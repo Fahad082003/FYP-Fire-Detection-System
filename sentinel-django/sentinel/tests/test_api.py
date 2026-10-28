@@ -17,7 +17,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from sentinel import alerts, events, notifications, services
-from sentinel.models import CameraFeed, IncidentAlert, IncidentLog, IncidentLogType, SmartSprinkler
+from sentinel.models import CameraFeed, FloorPlan, FloorPlanElement, IncidentAlert, IncidentLog, IncidentLogType, SmartSprinkler
 from sentinel.watchdog import Watchdog, watchdog
 
 from .base import ADMIN_EMAIL, PASSWORD, SentinelTestCase, fire
@@ -156,6 +156,49 @@ class ApiTests(SentinelTestCase):
         services.resolve_incident(stale, "test")
         incident = IncidentAlert.objects.get()
         self.assertEqual((incident.is_resolved, incident.severity), (True, "Critical"))
+
+    def _measurements(self, incident, points, now):
+        IncidentLog.objects.bulk_create([IncidentLog(incident=incident, type=IncidentLogType.FIRE_MEASUREMENT, zone=incident.zone,
+                                                     fire_area_percent=v, timestamp=now - timedelta(seconds=s)) for s, v in points])
+
+    def test_fire_trend_from_noisy_unevenly_spaced_measurements(self):
+        now = timezone.now()
+        cases = {  # (seconds ago, % of frame): jumpy boxes, uneven gaps
+            "Increasing": [(80, 1.0), (71, 1.6), (69, 1.1), (40, 2.0), (12, 2.4), (1, 3.0)],
+            "Stable": [(80, 2.0), (71, 2.3), (69, 1.8), (40, 2.1), (12, 2.0), (1, 2.2)],
+            "Decreasing": [(80, 4.0), (71, 3.5), (69, 3.8), (40, 3.0), (12, 2.2), (1, 2.0)],
+            "Insufficient data": [(30, 1.0), (20, 2.0), (10, 3.0)],  # 3 points only
+        }
+        for expected, points in cases.items():
+            incident = IncidentAlert.objects.create(zone="Ground Floor - Lobby", severity="Medium", message=expected, fire_detected=True)
+            self._measurements(incident, points, now)
+            with self.subTest(expected):
+                self.assertEqual(alerts.fire_trend(incident, now)["trend"], expected)
+        old = IncidentAlert.objects.create(zone="Ground Floor - Lobby", severity="Medium", message="old", fire_detected=True)
+        self._measurements(old, [(400, 1.0), (380, 2.0), (360, 3.0), (340, 4.0)], now)  # no recent detection: not "Decreasing"
+        self.assertEqual(alerts.fire_trend(old, now)["trend"], "Insufficient data")
+        quick = IncidentAlert.objects.create(zone="Ground Floor - Lobby", severity="Medium", message="quick", fire_detected=True)
+        self._measurements(quick, [(8, 1.0), (6, 2.0), (4, 3.0), (2, 4.0)], now)  # 4 points but only 6 s apart
+        self.assertEqual(alerts.fire_trend(quick, now)["trend"], "Insufficient data")
+
+    def test_sustained_fire_growth_warns_once_and_reading_the_trend_never_warns(self):
+        def box(w):
+            return {"cameraId": "cam-lobby", "frameWidth": 640, "frameHeight": 480, "fireSeverity": "Low",
+                    "detections": [{"category": "Fire", "confidence": 0.9, "bbox": [100, 100, w, w]}]}
+
+        self.post_frame(**box(60))  # 1.17 % of the frame
+        incident = IncidentAlert.objects.get()
+        self._measurements(incident, [(70, 0.5), (50, 0.7), (30, 0.9)], timezone.now())  # earlier, smaller boxes
+        growth = IncidentLog.objects.filter(incident=incident, type=IncidentLogType.FIRE_GROWTH)
+        for w in (150, 170):  # 7.3 %, then 9.4 %: a sustained increase
+            cache.delete("vision-eval:cam-lobby")  # the 2 s evaluation throttle has passed
+            self.post_frame(**box(w))
+        self.assertEqual(growth.count(), 1)  # deduplicated: one warning per incident
+        self.assertIn("not physical size", growth.get().details)
+        for _ in range(3):  # the dashboard polls the trend
+            self.assertEqual(self.op.get(f"/api/incidents/{incident.id}").json()["fireTrend"]["trend"], "Increasing")
+        self.assertEqual(growth.count(), 1)
+        self.assertEqual(notifications.jobs.qsize(), 0)  # a warning, not an emergency notification
 
     def test_simulated_sensor_alarm_is_labelled_and_never_opens_sprinklers(self):
         r = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-b1", "value": 80.0}], "simulated": True}, format="json")
@@ -531,3 +574,163 @@ class FloorPlanTests(SentinelTestCase):
         listed = next(c for c in self.op.get("/api/cameras").json() if c["id"] == "cam-lobby")
         self.assertEqual(listed["calibration"]["planPoints"], floor)
         self.assertIsNone(self.op.delete(url).json()["calibration"])
+
+
+class RiskWarningTests(SentinelTestCase):
+    """Proximity-based risk warning: rooms/corridors within 5 m of a danger zone linked to an open AI-confirmed fire."""
+    LOBBY = "Ground Floor - Lobby"
+    FIRE = {"cameraId": "cam-lobby", "frameWidth": 640, "frameHeight": 480, "fireSeverity": "Low",
+            "detections": [{"category": "Fire", "confidence": 0.9, "bbox": [100, 100, 60, 60]}]}
+
+    def plan_body(self, zone=LOBBY):  # distances from the fire zone: Hall 0 m, Near room 5.0 m, Far room 6.0 m
+        def room(name, x):
+            return {"type": "Room", "name": name, "x": x, "y": 0, "width": 1, "height": 2}
+
+        return {"name": "Risk floor", "building": "B", "floorNumber": 0, "widthMeters": 20, "heightMeters": 4, "elements": [
+            {"type": "Corridor", "name": "Hall", "x": 0, "y": 0, "width": 20, "height": 2},
+            {"type": "DangerZone", "name": "Fire zone", "x": 0, "y": 0, "width": 1, "height": 2, "zone": zone},
+            room("Near room", 5), room("Far room", 6)]}
+
+    def save_plan(self, zone=LOBBY):
+        r = self.op.post("/api/floorplans", self.plan_body(zone), format="json")
+        self.assertEqual(r.status_code, 201)
+        return r.json()
+
+    def warnings(self) -> list[str]:
+        return list(IncidentLog.objects.filter(type=IncidentLogType.RISK_WARNING).order_by("id").values_list("details", flat=True))
+
+    def test_warns_up_to_5_m_and_not_beyond(self):
+        self.save_plan()
+        self.post_frame(**self.FIRE)
+        warned = self.warnings()
+        self.assertEqual(len(warned), 2)
+        self.assertTrue(all(w.startswith("Proximity-based risk warning (not a fire-spread prediction)") for w in warned))
+        self.assertIn("corridor 'Hall' overlaps danger zone 'Fire zone'", warned[0])
+        self.assertTrue(any("room 'Near room' is 5 m from" in w for w in warned))  # the 5 m boundary counts
+        self.assertFalse(any("Far room" in w for w in warned))                     # 6 m: safe distance, no warning
+        self.assertEqual(notifications.jobs.qsize(), 0)  # a warning, never an SMS/e-mail/push
+
+    def test_no_duplicates_from_more_frames_polling_or_saving_the_plan_again(self):
+        plan = self.save_plan()
+        self.post_frame(**self.FIRE)
+        cache.delete("vision-eval:cam-lobby")  # the 2 s evaluation throttle has passed
+        self.post_frame(**{**self.FIRE, "detections": [{**self.FIRE["detections"][0], "bbox": [100, 100, 80, 80]}]})
+        for _ in range(3):
+            self.assertEqual(self.op.get(f"/api/floorplans/{plan['id']}/risk").status_code, 200)  # dashboard polling
+        self.assertEqual(self.op.put(f"/api/floorplans/{plan['id']}", self.plan_body(), format="json").status_code, 200)
+        self.assertEqual(alerts.warn_fire_proximity(), 0)  # elements got new ids on save; the area key did not change
+        self.assertEqual(len(self.warnings()), 2)
+
+    def test_a_plan_saved_while_the_fire_is_open_warns_server_side(self):
+        self.post_frame(**self.FIRE)  # fire first, no plan yet: nothing to measure
+        self.assertEqual(self.warnings(), [])
+        self.save_plan()
+        self.assertEqual(len(self.warnings()), 2)
+
+    def test_camera_lost_dispatch_sensor_alarm_and_marked_zones_are_not_fire(self):
+        self.save_plan()
+        IncidentAlert.objects.create(source="CameraLost", zone=self.LOBBY, severity="High", message="camera lost")
+        IncidentAlert.objects.create(source="Sensor", zone=self.LOBBY, severity="Critical", message="temperature alarm")
+        self.assertEqual(self.op.post("/api/incidents/dispatch", {"zone": self.LOBBY, "severity": "High"}, format="json").status_code, 201)
+        body = self.plan_body("Other zone")
+        body["elements"][1]["isActive"] = True  # marked dangerous by hand, linked to no fire
+        self.op.post("/api/floorplans", {**body, "name": "Marked floor"}, format="json")
+        self.assertEqual(alerts.warn_fire_proximity(), 0)
+        self.assertEqual(self.warnings(), [])
+
+    def test_unknown_fire_position_or_unusable_plan_gives_no_warning(self):
+        self.save_plan(zone="Ground Floor - Warehouse")  # this plan does not draw the lobby
+        broken = FloorPlan.objects.create(name="No scale", width_meters=0, height_meters=0)
+        FloorPlanElement.objects.create(floor_plan=broken, type="DangerZone", name="z", x=0, y=0, width=1, height=1, zone=self.LOBBY)
+        flat = FloorPlan.objects.create(name="Flat zone", width_meters=20, height_meters=4)
+        FloorPlanElement.objects.create(floor_plan=flat, type="Corridor", name="Hall", x=0, y=0, width=20, height=2)
+        FloorPlanElement.objects.create(floor_plan=flat, type="DangerZone", name="z", x=0, y=0, width=0, height=2, zone=self.LOBBY)
+        self.post_frame(**self.FIRE)
+        self.assertEqual(self.warnings(), [])
+
+    def test_concurrent_checks_for_one_fire_create_one_warning(self):
+        """A frame and a plan save at the same moment: the check-then-insert runs under one lock per fire. Stubs only."""
+        made, inside, release = [], threading.Event(), threading.Event()
+
+        def warn_plan(fire, plan):
+            if made:
+                return 0  # already warned
+            inside.set()
+            release.wait(10)  # between the duplicate check and the insert
+            made.append(plan)
+            return 1
+
+        fire = mock.Mock(id=999, is_resolved=False, fire_detected=True, zone=self.LOBBY)
+        first = threading.Thread(target=alerts.warn_fire_proximity, args=(fire,), kwargs={"plans": ["plan"]})
+        second = threading.Thread(target=alerts.warn_fire_proximity, args=(fire,), kwargs={"plans": ["plan"]})
+        with mock.patch.object(alerts, "_warn_plan", warn_plan):
+            try:
+                first.start()
+                self.assertTrue(inside.wait(10))
+                second.start()
+                second.join(0.5)
+                self.assertTrue(second.is_alive())  # waits for the first check-and-insert
+            finally:
+                release.set()
+                first.join(10)
+                if second.ident:
+                    second.join(10)
+        self.assertEqual(len(made), 1)
+
+
+class RouteComparisonApiTests(SentinelTestCase):
+    """POST /api/floorplans/{id}/routes: per-exit comparison and rescue list (Improvement 1)."""
+    LOBBY = "Ground Floor - Lobby"
+
+    def plan(self, danger_zone=None):
+        elements = [{"type": "Corridor", "name": "Hall", "x": 0, "y": 4, "width": 20, "height": 2},
+                    {"type": "Exit", "name": "East", "x": 19, "y": 4, "width": 1, "height": 2},
+                    {"type": "Exit", "name": "West", "x": 0, "y": 4, "width": 1, "height": 2},
+                    {"type": "Exit", "name": "North", "x": 9, "y": 3, "width": 2, "height": 1, "isBlocked": True}]
+        if danger_zone:
+            elements.append(danger_zone)
+        r = self.op.post("/api/floorplans", {"name": "Compare", "building": "", "floorNumber": 0, "widthMeters": 20, "heightMeters": 10,
+                                             "elements": elements}, format="json")
+        self.assertEqual(r.status_code, 201)
+        return r.json()["id"]
+
+    def routes(self, plan_id, starts):
+        return self.op.post(f"/api/floorplans/{plan_id}/routes", {"starts": starts}, format="json")
+
+    def test_every_exit_with_distance_time_and_status_and_nothing_is_logged(self):
+        plan_id = self.plan()
+        logs_before = IncidentLog.objects.count()
+        for _ in range(3):  # the dashboard refreshes it
+            r = self.routes(plan_id, [[16, 5], [3, 5]])
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(len(body["results"]), 2)
+        exits = {e["exitName"]: e for e in body["results"][0]["exits"]}
+        self.assertEqual({k: v["status"] for k, v in exits.items()}, {"East": "Available", "West": "Available", "North": "Blocked"})
+        speed = body["walkingSpeedMetersPerSecond"]
+        self.assertEqual(exits["East"]["estimatedSeconds"], round(exits["East"]["distanceMeters"] / speed, 1))
+        self.assertIsNone(exits["North"]["estimatedSeconds"])  # no route: no time, never 0
+        self.assertIsNone(exits["North"]["distanceMeters"])
+        self.assertEqual(body["results"][1]["exits"][0]["exitName"], "West")  # each start has its own nearest exit
+        self.assertEqual(IncidentLog.objects.count(), logs_before)  # read-only: no EvacuationRoute log, unlike /route
+
+    def test_danger_status_comes_from_the_plan_position(self):
+        plan_id = self.plan({"type": "DangerZone", "name": "Lobby fire", "x": 8, "y": 4, "width": 3, "height": 2, "zone": self.LOBBY})
+        self.post_frame(cameraId="cam-lobby", fireSeverity="Low", detections=[{"category": "Fire", "confidence": 0.9, "bbox": [100, 100, 60, 60]}])
+        inside, outside = self.routes(plan_id, [[9, 5], [16, 5]]).json()["results"]
+        self.assertTrue(inside["startInDangerZone"])
+        self.assertFalse(outside["startInDangerZone"])
+        self.assertTrue(inside["found"])  # a person inside can still walk out
+        self.assertNotIn("atRisk", str(inside))  # the camera's at-risk flag is not part of the plan answer
+
+    def test_malformed_requests_are_rejected_without_crashing(self):
+        plan_id = self.plan()
+        for starts in (None, [], "1,2", [[1]], [["a", "b"]], [[True, 2]], [[-1, 5]], [[25, 5]], [[1, 1]] * 51):
+            with self.subTest(starts=starts):
+                r = self.routes(plan_id, starts)
+                self.assertEqual(r.status_code, 400)
+                self.assertEqual(r["Content-Type"], "application/problem+json")
+        self.assertEqual(self.routes(99999, [[1, 1]]).status_code, 404)
+        self.assertEqual(self.device.post(f"/api/floorplans/{plan_id}/routes", {"starts": [[1, 1]]}, format="json").status_code, 401)
+        flat = FloorPlan.objects.create(name="No size", width_meters=0, height_meters=0)
+        self.assertEqual(self.routes(flat.id, [[0, 0]]).status_code, 400)

@@ -1,5 +1,6 @@
 """The alert engine (port of AlertEngine.cs): decides severity, opens/merges/escalates incidents and triggers the response
 (notifications and automatic sprinkler activation)."""
+import statistics
 import threading
 from collections import defaultdict
 from dataclasses import dataclass
@@ -9,8 +10,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
-from . import dto, events, notifications, sprinklers
-from .models import CameraFeed, CameraStatus, IncidentAlert, IncidentLog, IncidentLogType, IncidentSource, rank
+from . import dto, events, geometry, notifications, sprinklers
+from .models import CameraFeed, CameraStatus, FloorPlan, IncidentAlert, IncidentLog, IncidentLogType, IncidentSource, rank
 from .rules import classify_detection, is_emergency, max_severity, sensor_state
 
 # Per-origin locks so two frames from the same camera never create duplicate incidents.
@@ -80,6 +81,8 @@ def evaluate_detection(frame: dict) -> IncidentAlert | None:
     emergency = is_emergency(frame) or severity == "Critical"
     publish_incident(incident, action, emergency, simulated=frame["simulated"])
     _log_frame(incident, frame, camera_name)
+    if incident.fire_detected:
+        warn_fire_proximity(incident)
     return incident
 
 
@@ -99,6 +102,7 @@ def _log_frame(incident: IncidentAlert, f: dict, camera_name: str) -> None:
                 fire_severity=f["fireSeverity"], human_count=f["humanCount"], danger_count=f["dangerCount"],
                 simulated=f["simulated"],
                 details=f"Fire boxes cover {_num(area)}% of the frame on {camera_name}, AI fire severity {f['fireSeverity'] or 'n/a'}{sim}"))
+            _warn_if_growing(incident, camera_name, f["simulated"])
 
     for d in f["detections"]:
         if d["category"] != "Human" or not d["atRisk"]:
@@ -114,6 +118,97 @@ def _log_frame(incident: IncidentAlert, f: dict, camera_name: str) -> None:
                             person_track_id=d["trackId"], person_x=fx, person_y=fy, danger_zone=d["dangerZone"],
                             simulated=f["simulated"]))
         events.activity("critical", f"Incident #{incident.id}: {details}", incident.zone)
+
+
+# ---------------------------------------------------------------- fire growth trend
+TREND_WINDOW_SECONDS = 180      # recent measurements only
+TREND_MIN_POINTS, TREND_MIN_SPAN_SECONDS = 4, 20
+TREND_MIN_CHANGE_POINTS, TREND_MIN_CHANGE_RATIO = 0.5, 0.2  # a change counts only if >= 0.5 %-points and >= 20 % of the level
+
+
+def fire_trend(incident: IncidentAlert, now=None) -> dict:
+    """Trend of the AI fire bounding-box share of the camera frame over the last TREND_WINDOW_SECONDS of FireMeasurement logs.
+    Not a physical fire size and not a spread forecast. Theil-Sen slope (median of all pairwise slopes): robust to jumping
+    boxes and to uneven sampling. Too few recent measurements = "Insufficient data", never "Decreasing": a missed detection
+    is no proof that the fire is out."""
+    since = (now or timezone.now()) - timedelta(seconds=TREND_WINDOW_SECONDS)
+    points = [(m.timestamp.timestamp(), m.fire_area_percent) for m in IncidentLog.objects.filter(
+        incident=incident, type=IncidentLogType.FIRE_MEASUREMENT, timestamp__gte=since, fire_area_percent__isnull=False).order_by("timestamp", "id")]
+    result = {"trend": "Insufficient data", "measurements": len(points), "windowSeconds": TREND_WINDOW_SECONDS,
+              "basis": "AI fire bounding-box area, % of the camera frame (not a physical size)"}
+    span = points[-1][0] - points[0][0] if points else 0
+    slopes = [(v2 - v1) / (t2 - t1) for i, (t1, v1) in enumerate(points) for t2, v2 in points[i + 1:] if t2 > t1]
+    if len(points) < TREND_MIN_POINTS or span < TREND_MIN_SPAN_SECONDS or not slopes:
+        return result
+    slope = statistics.median(slopes)  # %-points per second
+    change = slope * span
+    threshold = max(TREND_MIN_CHANGE_POINTS, TREND_MIN_CHANGE_RATIO * statistics.median(v for _, v in points))
+    trend = "Increasing" if change >= threshold else "Decreasing" if change <= -threshold else "Stable"
+    return {**result, "trend": trend, "spanSeconds": round(span), "changePercentPoints": round(change, 2),
+            "percentPointsPerMinute": round(slope * 60, 2), "fromPercent": points[0][1], "toPercent": points[-1][1]}
+
+
+def _warn_if_growing(incident: IncidentAlert, camera_name: str, simulated: bool) -> None:
+    """One FireGrowth warning per incident (runs under the camera lock, so two frames cannot both create it). Only new
+    measurements call this; reading the trend (GET) never warns."""
+    if IncidentLog.objects.filter(incident=incident, type=IncidentLogType.FIRE_GROWTH).exists():
+        return
+    t = fire_trend(incident)
+    if t["trend"] != "Increasing":
+        return
+    details = (f"Fire growth warning on {camera_name}: AI fire box area {_num(t['fromPercent'])}% -> {_num(t['toPercent'])}% of the "
+               f"frame in {t['spanSeconds']} s (+{_num(t['percentPointsPerMinute'])} %-points/min). Share of the camera image, "
+               f"not physical size or a spread forecast{' [SIMULATED DATA]' if simulated else ''}")
+    add_log(IncidentLog(incident=incident, type=IncidentLogType.FIRE_GROWTH, zone=incident.zone, details=details,
+                        fire_area_percent=t["toPercent"], fire_severity=incident.fire_severity, simulated=simulated))
+    events.activity("warning", f"Incident #{incident.id}: {details}", incident.zone)
+
+
+# ---------------------------------------------------------------- proximity-based risk warning
+def warn_fire_proximity(incident: IncidentAlert | None = None, plans=None) -> int:
+    """Proximity-based risk warning, NOT a fire-spread prediction: a room or corridor within geometry.HIGH_METERS (5 m, through
+    rooms and doors) of a floor-plan danger zone linked to the zone of an open incident with AI-confirmed fire. Only such
+    incidents count; camera-lost, manual dispatch, sensor alarms and manually marked zones never do. One warning per
+    (fire incident, plan, area); runs on fire frames and plan saves, never on reads. Returns the number of new warnings."""
+    incidents = [incident] if incident else list(IncidentAlert.objects.filter(is_resolved=False, fire_detected=True))
+    plans = list(plans if plans is not None else FloorPlan.objects.prefetch_related("elements"))
+    created = 0
+    for fire in incidents:
+        if fire.is_resolved or not fire.fire_detected or not fire.zone.strip():
+            continue
+        # The check and the insert share this lock: a frame and a plan save at the same time cannot both warn.
+        with _lock_for(f"risk:{fire.id}"):
+            for plan in plans:
+                created += _warn_plan(fire, plan)
+    return created
+
+
+def _warn_plan(fire: IncidentAlert, plan: FloorPlan) -> int:
+    if not (plan.width_meters > 0 and plan.height_meters > 0):
+        return 0  # no reliable scale: no distance, no warning
+    elements = list(plan.elements.all())
+    zones = [e for e in elements if e.type == "DangerZone" and (e.zone or "").strip().lower() == fire.zone.strip().lower()
+             and e.width > 0 and e.height > 0]
+    if not zones:
+        return 0  # the fire's zone is not drawn on this plan: its position is unknown here
+    risk = geometry.fire_risk(plan.width_meters, plan.height_meters, elements, zones)
+    created = 0
+    for area in risk["areas"]:
+        if area["distanceMeters"] is None or area["distanceMeters"] > geometry.HIGH_METERS:
+            continue
+        x, y, w, h = area["bounds"]
+        key = f"p{plan.id}:{area['type'][0]}{x:g},{y:g},{w:g},{h:g}"[:48]  # stable across plan saves (element ids are not)
+        if IncidentLog.objects.filter(incident=fire, type=IncidentLogType.RISK_WARNING, danger_zone=key).exists():
+            continue
+        where = "overlaps" if area["distanceMeters"] <= 0 else f"is {geometry.fmt(area['distanceMeters'])} m from"
+        details = (f"Proximity-based risk warning (not a fire-spread prediction): {area['type'].lower()} '{area['name']}' {where} "
+                   f"danger zone '{', '.join(risk['activeDangerZones'])}' on floor plan '{plan.name}' (fire incident #{fire.id}, "
+                   f"distance through rooms and doors on the drawn plan)")
+        add_log(IncidentLog(incident=fire, type=IncidentLogType.RISK_WARNING, zone=fire.zone, details=details, danger_zone=key,
+                            fire_severity=fire.fire_severity))
+        events.activity("warning", f"Incident #{fire.id}: {details}", fire.zone)
+        created += 1
+    return created
 
 
 def _num(v: float) -> str:

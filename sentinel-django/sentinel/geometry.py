@@ -83,7 +83,60 @@ def find_route(width, height, elements, active_danger, start_x, start_y, clearan
     exits = [e for e in elements if e.type == "Exit" and not e.is_blocked]
     if not exits:
         return _fail("Floor plan has no open emergency exit.")
+    p = _prepare(width, height, elements, active_danger, start_x, start_y)
+    if "found" in p:
+        return p
+    _, prev, reached = _search(p, clearance, p["free"] & p["g"].centre_in(exits))
+    if reached < 0:
+        return _fail("No safe route: every exit is cut off by walls, closed doors or active danger zones.", p["start_danger"])
+    return _route(p, prev, reached, exits, clearance, start_x, start_y)
 
+
+def find_routes(width, height, elements, active_danger, start_x, start_y, clearance=0.0) -> dict:
+    """Every exit compared from one start point, with the same rules as find_route (one Dijkstra over the whole plan, so each
+    exit gets its own shortest route). Status per exit: Available (a safe route), Blocked (marked closed), Danger (the exit
+    lies in an active danger zone, or every route to it breaks the clearance), Unreachable (cut off), Unknown (start unusable).
+    No route = no path, no distance: nothing is invented."""
+    exits = [e for e in elements if e.type == "Exit"]
+    if not any(e.type in ("Room", "Corridor") for e in elements) or not exits:
+        reason = ("Floor plan has no rooms or corridors, so no walkable area is defined." if exits
+                  else "Floor plan has no emergency exit.")
+        return {"found": False, "message": reason, "startInDangerZone": False, "exits": []}
+    p = _prepare(width, height, elements, active_danger, start_x, start_y)
+    if "found" in p:
+        return {"found": False, "message": p["message"], "startInDangerZone": p["startInDangerZone"],
+                "exits": [_exit(e, "Blocked" if e.is_blocked else "Unknown", p["message"]) for e in exits]}
+    dist, prev, _ = _search(p, clearance)
+    results = []
+    for e in exits:
+        if e.is_blocked:
+            results.append(_exit(e, "Blocked", "The exit is marked blocked or closed."))
+            continue
+        cells = [c for c in p["free"] & p["g"].centre_in([e]) if c in dist]
+        if not cells:
+            in_danger = any(z.x < e.x + e.width and e.x < z.x + z.width and z.y < e.y + e.height and e.y < z.y + z.height
+                            for z in p["dangers"])
+            results.append(_exit(e, "Danger", "The exit lies inside an active danger zone.") if in_danger
+                           else _exit(e, "Unreachable", "No route: cut off by walls, closed doors or active danger zones."))
+            continue
+        r = _route(p, prev, min(cells, key=dist.get), [e], clearance, start_x, start_y)
+        results.append({**_exit(e, "Danger" if r["clearanceViolated"] else "Available", r["message"] if r["clearanceViolated"] else None),
+                        "found": True, "path": r["path"], "distanceMeters": r["distanceMeters"],
+                        "clearanceViolated": r["clearanceViolated"], "minDangerGapMeters": r["minDangerGapMeters"]})
+    order = {"Available": 0, "Danger": 1, "Unreachable": 2, "Blocked": 3}
+    results.sort(key=lambda x: (order[x["status"]], x["distanceMeters"] if x["found"] else math.inf))
+    safe = [x for x in results if x["status"] == "Available"]
+    return {"found": bool(safe), "message": f"Nearest safe exit: '{safe[0]['exitName']}'." if safe else "No safe route available.",
+            "startInDangerZone": p["startInDangerZone"], "exits": results}
+
+
+def _exit(e, status: str, reason: str | None) -> dict:
+    return {"exitName": e.name, "status": status, "found": False, "path": [], "distanceMeters": None, "clearanceViolated": False,
+            "minDangerGapMeters": None, "reason": reason}
+
+
+def _prepare(width, height, elements, active_danger, start_x, start_y) -> dict:
+    """The walkable grid, the distance of each free cell to the active danger zones and the start cell (or a _fail dict)."""
     start_danger = [z for z in active_danger if inside(z, start_x, start_y)]  # a person inside one must be able to walk out
     dangers = [z for z in active_danger if z not in start_danger]
     walk = [e for e in elements if not e.is_blocked and e.type in WALKABLE]
@@ -96,7 +149,6 @@ def find_route(width, height, elements, active_danger, start_x, start_y, clearan
     # Walls are thin, so test overlap with the whole cell (a centre test would let routes slip through).
     free = (g.centre_in(walk) - g.overlapping(closed) - (g.overlapping(walls) - g.overlapping(openings))
             - g.overlapping(dangers))
-    goal = free & g.centre_in(exits)
     gap = {}
     for i in free:
         r, c = divmod(i, g.cols)
@@ -108,13 +160,19 @@ def find_route(width, height, elements, active_danger, start_x, start_y, clearan
         return _fail("Start point is on a wall, a closed door or inside an active danger zone."
                      if any(inside(a, start_x, start_y) for a in walk)
                      else "Start point is not inside a room, corridor or other walkable area.", bool(start_danger))
+    return {"g": g, "free": free, "gap": gap, "start": start, "dangers": dangers, "start_danger": bool(start_danger),
+            "startInDangerZone": bool(start_danger)}
 
-    dist, prev, heap, reached = {start: 0.0}, {}, [(0.0, start)], -1
+
+def _search(p: dict, clearance: float, goal: set | None = None):
+    """Dijkstra from the start; stops at the first goal cell when a goal is given (find_route), else covers the whole plan."""
+    g, free, gap, cell = p["g"], p["free"], p["gap"], p["g"].cell
+    dist, prev, heap, reached = {p["start"]: 0.0}, {}, [(0.0, p["start"])], -1
     while heap:
         du, u = heapq.heappop(heap)
         if du > dist.get(u, math.inf):
             continue
-        if u in goal:
+        if goal is not None and u in goal:
             reached = u
             break
         for v, step in g.neighbours(u, free):
@@ -122,9 +180,11 @@ def find_route(width, height, elements, active_danger, start_x, start_y, clearan
             if nd < dist.get(v, math.inf):
                 dist[v], prev[v] = nd, u
                 heapq.heappush(heap, (nd, v))
-    if reached < 0:
-        return _fail("No safe route: every exit is cut off by walls, closed doors or active danger zones.", bool(start_danger))
+    return dist, prev, reached
 
+
+def _route(p: dict, prev: dict, reached: int, exits, clearance: float, start_x: float, start_y: float) -> dict:
+    g, gap, cell = p["g"], p["gap"], p["g"].cell
     # Cell path -> points; keep only turning points so the polyline stays small.
     cells = [reached]
     while cells[-1] in prev:
@@ -141,14 +201,14 @@ def find_route(width, height, elements, active_danger, start_x, start_y, clearan
 
     gr, gc = divmod(reached, g.cols)
     exit_name = next(e.name for e in exits if inside(e, gc * cell + cell / 2, gr * cell + cell / 2))  # same test as `goal`
-    min_gap = round(min(gap[c] for c in cells), 2) if dangers else None
+    min_gap = round(min(gap[c] for c in cells), 2) if p["dangers"] else None
     violated = min_gap is not None and min_gap < clearance
-    leave = " Start point is inside an active danger zone: leave immediately." if start_danger else ""
+    leave = " Start point is inside an active danger zone: leave immediately." if p["start_danger"] else ""
     message = (f"Route to exit '{exit_name}'.{leave}" if not violated else
                f"NO route keeps the required {fmt(clearance)} m clearance from active danger zones. The least-exposed route to "
                f"exit '{exit_name}' passes within {fmt(min_gap)} m of danger: it is NOT a safe route, verify on site.{leave}")
     return {"found": True, "message": message, "path": path, "distanceMeters": round(distance, 2), "exitName": exit_name,
-            "startInDangerZone": bool(start_danger), "clearanceViolated": violated, "minDangerGapMeters": min_gap}
+            "startInDangerZone": p["start_danger"], "clearanceViolated": violated, "minDangerGapMeters": min_gap}
 
 
 def _level(d: float) -> int:
@@ -192,7 +252,7 @@ def fire_risk(width, height, elements, active_danger) -> dict:
     areas = []
     for e in (e for e in elements if e.type in ("Room", "Corridor")):
         nearest = min((dist.get(i, math.inf) for i in open_cells & g.centre_in([e])), default=math.inf)
-        areas.append({"name": e.name if e.name and e.name.strip() else e.type, "type": e.type,
+        areas.append({"name": e.name if e.name and e.name.strip() else e.type, "type": e.type, "bounds": [e.x, e.y, e.width, e.height],
                       "level": LEVEL_NAMES[_level(nearest)], "distanceMeters": round(nearest, 1) if math.isfinite(nearest) else None})
     areas.sort(key=lambda a: a["distanceMeters"] if a["distanceMeters"] is not None else math.inf)
     nxt = [a for a in areas if a["level"] in ("High", "Medium")][:3]

@@ -40,6 +40,7 @@ urlpatterns = [
     path("api/floorplans/<int:plan_id>", api.floor_plan, name="api_floor_plan"),
     path("api/floorplans/<int:plan_id>/image", api.floor_plan_image, name="api_floor_plan_image"),
     path("api/floorplans/<int:plan_id>/route", api.floor_plan_route, name="api_floor_plan_route"),
+    path("api/floorplans/<int:plan_id>/routes", api.floor_plan_routes, name="api_floor_plan_routes"),
     path("api/floorplans/<int:plan_id>/risk", api.floor_plan_risk, name="api_floor_plan_risk"),
     path("api/ai/status", api.ai_status, name="api_ai_status"),
     path("api/ai/analyze", api.ai_analyze, name="api_ai_analyze"),

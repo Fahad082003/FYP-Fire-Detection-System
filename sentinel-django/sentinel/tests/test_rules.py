@@ -200,3 +200,74 @@ class EvacuationTests(SimpleTestCase):
         r = geometry.find_route(200, 100, [*rooms, *walls, *doors, el("Exit", 199, 40, 1, 20, "Far")], [], 2, 50)
         self.assertTrue(r["found"])
         self.assertLess(time.perf_counter() - started, 5)
+
+
+class ExitComparisonTests(SimpleTestCase):
+    """geometry.find_routes: every exit from one start, with the find_route rules (Improvement 1)."""
+
+    def by_name(self, result):
+        return {e["exitName"]: e for e in result["exits"]}
+
+    def test_every_open_exit_gets_its_own_route_distance_and_order(self):
+        r = geometry.find_routes(20, 10, corridor(), [], 16, 5)
+        exits = self.by_name(r)
+        self.assertEqual(set(exits), {"East", "West"})
+        self.assertTrue(all(e["status"] == "Available" and e["found"] for e in exits.values()))
+        self.assertTrue(2.5 <= exits["East"]["distanceMeters"] <= 4)
+        self.assertTrue(14 <= exits["West"]["distanceMeters"] <= 16.5)
+        self.assertEqual([e["exitName"] for e in r["exits"]], ["East", "West"])  # nearest safe first
+        self.assertEqual(r["message"], "Nearest safe exit: 'East'.")
+        single = geometry.find_route(20, 10, corridor(), [], 16, 5)  # the old single route agrees
+        self.assertEqual((single["exitName"], single["distanceMeters"]), ("East", exits["East"]["distanceMeters"]))
+
+    def test_a_blocked_nearest_exit_is_reported_blocked_and_the_other_exit_is_used(self):
+        plan = [el("Corridor", 0, 4, 20, 2), el("Exit", 19, 4, 1, 2, "East", blocked=True), el("Exit", 0, 4, 1, 2, "West")]
+        exits = self.by_name(geometry.find_routes(20, 10, plan, [], 16, 5))
+        self.assertEqual(exits["East"]["status"], "Blocked")
+        self.assertEqual((exits["East"]["found"], exits["East"]["path"], exits["East"]["distanceMeters"]), (False, [], None))
+        self.assertEqual(exits["West"]["status"], "Available")
+        self.assertTrue(exits["West"]["path"])
+
+    def test_danger_zones_make_an_exit_danger_or_unreachable_never_a_route_through_fire(self):
+        on_exit = el("DangerZone", 18.5, 4, 1.5, 2, "Fire at East")
+        exits = self.by_name(geometry.find_routes(20, 10, [*corridor(), on_exit], [on_exit], 10, 5))
+        self.assertEqual(exits["East"]["status"], "Danger")
+        self.assertFalse(exits["East"]["found"])
+        self.assertEqual(exits["West"]["status"], "Available")
+        across = el("DangerZone", 17, 4, 1, 2, "Fire")  # cuts the corridor between the start and East
+        exits = self.by_name(geometry.find_routes(20, 10, [*corridor(), across], [across], 16, 5))
+        self.assertEqual(exits["East"]["status"], "Unreachable")
+        self.assertIsNone(exits["East"]["distanceMeters"])
+        self.assertFalse(any(17 <= p[0] <= 18 for p in exits["West"]["path"]))
+
+    def test_no_safe_route_is_a_clear_failure(self):
+        fires = [el("DangerZone", 5, 4, 1, 2, "F1"), el("DangerZone", 14, 4, 1, 2, "F2")]
+        r = geometry.find_routes(20, 10, [*corridor(), *fires], fires, 10, 5)
+        self.assertFalse(r["found"])
+        self.assertEqual(r["message"], "No safe route available.")
+        self.assertTrue(all(e["status"] == "Unreachable" and e["distanceMeters"] is None for e in r["exits"]))
+
+    def test_the_clearance_rule_is_kept_per_exit(self):
+        strip = el("DangerZone", 8, 4, 2, 1.2, "Fire")  # leaves a 0.8 m strip: closer than the 1 m clearance
+        exits = self.by_name(geometry.find_routes(20, 10, [*corridor(), strip], [strip], 16, 5, clearance=1.0))
+        self.assertEqual(exits["East"]["status"], "Available")
+        self.assertEqual(exits["West"]["status"], "Danger")  # a route exists but is not safe
+        self.assertTrue(exits["West"]["clearanceViolated"])
+        self.assertIn("NOT a safe route", exits["West"]["reason"])
+
+    def test_start_in_a_danger_zone_can_still_walk_out(self):
+        fire = el("DangerZone", 9, 4, 2, 2, "Fire")
+        r = geometry.find_routes(20, 10, [*corridor(), fire], [fire], 10, 5)
+        self.assertTrue(r["startInDangerZone"])
+        self.assertTrue(r["found"])
+
+    def test_unusable_start_or_plan_does_not_crash(self):
+        off = geometry.find_routes(20, 10, corridor(), [], 5, 1)  # outside the corridor
+        self.assertFalse(off["found"])
+        self.assertIn("not inside a room, corridor", off["message"])
+        self.assertTrue(all(e["status"] == "Unknown" and not e["found"] for e in off["exits"]))
+        no_exit = geometry.find_routes(20, 10, [el("Corridor", 0, 4, 20, 2)], [], 10, 5)
+        self.assertEqual((no_exit["exits"], no_exit["message"]), ([], "Floor plan has no emergency exit."))
+        no_room = geometry.find_routes(20, 10, [el("Exit", 0, 4, 1, 2, "West")], [], 10, 5)
+        self.assertFalse(no_room["found"])
+        self.assertEqual(no_room["exits"], [])

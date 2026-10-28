@@ -67,6 +67,8 @@ class IncidentLogType(models.TextChoices):
     FIRE_MEASUREMENT = "FireMeasurement"
     PERSON_IN_DANGER = "PersonInDanger"
     EVACUATION_ROUTE = "EvacuationRoute"
+    FIRE_GROWTH = "FireGrowth"  # fits the existing nvarchar(16) column: no schema change
+    RISK_WARNING = "RiskWarning"  # same column, no schema change
 
 
 SEVERITIES = ["Low", "Medium", "High", "Critical"]  # ordered: index = rank

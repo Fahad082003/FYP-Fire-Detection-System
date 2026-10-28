@@ -106,6 +106,96 @@ test('incidents: a fire alert appears live with a toast, raises the alarm frame,
   await page.context().close();
 });
 
+test('fire size labels: the AI fire severity keeps its name and adds Small/Medium/Large in the tile, alert log and history', async () => {
+  const page = await dashboard();
+  const texts = await page.evaluate(async () => {
+    const { fireSeverityText } = await import('/static/sentinel/js/core.js');
+    return ['Low', 'Medium', 'High', 'Critical', null, 'Unknown'].map(fireSeverityText);
+  });
+  assert.deepEqual(texts, ['Low · Small', 'Medium · Medium', 'High · Large', 'Critical · Large', null, 'Unknown']); // no guessed size
+  await postFrame({ cameraId: 'cam-warehouse', fireSeverity: 'Low', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 60, 60] }] });
+  await page.locator('.tile', { hasText: 'Warehouse Floor' }).locator('.chips', { hasText: 'FIRE Low · Small' }).waitFor();
+  await page.locator('#incident-rows tr', { hasText: 'Warehouse Floor' }).filter({ hasText: 'Low · Small' }).waitFor();
+  await page.locator('#history-table', { hasText: 'FIRE Low · Small' }).waitFor();
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('fire trend: the history chart of a camera incident shows the server trend, "Insufficient data" with one measurement', async () => {
+  const page = await dashboard();
+  await postFrame({ cameraId: 'cam-server', fireSeverity: 'Low', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 60, 60] }] });
+  await page.locator('#incident-rows tr', { hasText: 'Server Hall' }).waitFor();
+  const [incident] = (await api('/api/incidents?resolved=false')).filter((i) => i.cameraId === 'cam-server');
+  await page.selectOption('#history-incident', String(incident.id));
+  const trend = page.locator('#history-chart [data-trend]');
+  await trend.filter({ hasText: 'Insufficient data' }).waitFor();
+  assert.match(await trend.textContent(), /not physical size or a spread forecast/);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('risk warning: a room within 5 m of a fire appears in the Live Event Log and the incident history', async () => {
+  const plan = await api('/api/floorplans', { method: 'POST', body: JSON.stringify({ name: 'Risk e2e', building: 'E2E', floorNumber: 0,
+    widthMeters: 20, heightMeters: 4, elements: [
+      { type: 'Corridor', name: 'Hall', x: 0, y: 0, width: 20, height: 2 },
+      { type: 'DangerZone', name: 'Lobby fire', x: 0, y: 0, width: 1, height: 2, zone: 'Ground Floor - Lobby' },
+      { type: 'Room', name: 'Near room', x: 5, y: 0, width: 1, height: 2 }] }) });
+  try {
+    const page = await dashboard();
+    await postFrame({ cameraId: 'cam-lobby', fireSeverity: 'Low', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 60, 60] }] });
+    await page.locator('#activity', { hasText: "Proximity-based risk warning (not a fire-spread prediction): room 'Near room' is 5 m" }).waitFor();
+    await page.locator('#history-table tr', { hasText: 'RiskWarning' }).first().waitFor();
+    assert.deepEqual(page.problems, []);
+    await page.context().close();
+  } finally {
+    await api(`/api/floorplans/${plan.id}`, { method: 'DELETE' }); // keep the other tests' floor plans unaffected
+  }
+});
+
+test('route comparison and rescue list: every exit with its status, then camera person markers with their nearest safe exit', async () => {
+  const plan = await api('/api/floorplans', { method: 'POST', body: JSON.stringify({ name: 'Compare e2e', building: 'E2E', floorNumber: 0,
+    widthMeters: 20, heightMeters: 10, elements: [
+      { type: 'Corridor', name: 'Hall', x: 0, y: 4, width: 20, height: 2 },
+      { type: 'Exit', name: 'East', x: 19, y: 4, width: 1, height: 2 }, { type: 'Exit', name: 'West', x: 0, y: 4, width: 1, height: 2 },
+      { type: 'Exit', name: 'North', x: 9, y: 3, width: 2, height: 1, isBlocked: true }] }) });
+  // cam-lobby's frame (640 x 480) mapped onto this plan, as ai-service/tools/live_test.py does
+  await api('/api/cameras/cam-lobby/calibration', { method: 'PUT', body: JSON.stringify({ floorPlanId: plan.id,
+    imagePoints: [[0, 240], [640, 240], [640, 480], [0, 480]], planPoints: [[2, 3], [18, 3], [18, 7], [2, 7]] }) });
+  try {
+    const page = await dashboard();
+    await page.selectOption('#evac-plan', String(plan.id));
+    const map = page.locator('#evacuation svg');
+    await map.scrollIntoViewIfNeeded();
+    const m = await map.boundingBox();
+    const s = Math.min(m.width, m.height * 21.8 / 11.8) / 21.8;
+    await page.mouse.click(m.x + m.width / 2 + (16 - 10) * s, m.y + m.height / 2 + (5 - 5) * s); // start at (16, 5) m
+    const table = page.locator('#evacuation [data-exits]');
+    await table.locator('tr', { hasText: 'North' }).filter({ hasText: 'Blocked' }).waitFor();
+    assert.match(await table.locator('tbody tr').first().textContent(), /East\s*Available\s*[\d.]+ m\s*~\d+ s/); // cells join without spaces
+    assert.match(await table.locator('tr', { hasText: 'North' }).textContent(), /Blocked\s*—\s*—/); // no route: no distance or time
+    await table.locator('tr', { hasText: 'West' }).getByRole('button', { name: 'Show' }).click();
+    await table.locator('tr', { hasText: 'West' }).getByRole('button', { name: 'Shown' }).waitFor();
+
+    // A person seen by the calibrated camera: feet at (320, 400) px -> about (10, 5.7) m on the plan
+    const person = { cameraId: 'cam-lobby', detections: [{ category: 'Human', confidence: 0.9, bbox: [300, 300, 40, 100] }] };
+    await postFrame(person);
+    await postFrame({ cameraId: 'cam-server', detections: [{ category: 'Human', confidence: 0.9, bbox: [100, 100, 40, 100] }] });
+    const rescue = page.locator('#evacuation [data-rescue-list]');
+    await rescue.locator('tr', { hasText: 'Person marker 1' }).filter({ hasText: /East|West/ }).waitFor({ timeout: 12_000 });
+    assert.match(await rescue.textContent(), /Not in an active danger zone \(plan\)/);
+    await page.locator('#evacuation [data-rescue]', { hasText: 'location unknown (camera not calibrated to this plan)' }).waitFor(); // cam-server's frame
+    assert.match(await page.locator('#evacuation [data-rescue]').textContent(), /not identified\s+people/);
+    await rescue.locator('tr', { hasText: 'Location stale' }).waitFor({ timeout: 6000 }); // no new frame: the marker ages
+    await page.locator('#evacuation [data-rescue]', { hasText: 'No person markers from cameras calibrated to this plan right now.' })
+      .waitFor({ timeout: 6000 }); // expired markers are not listed as current people
+    assert.deepEqual(page.problems, []);
+    await page.context().close();
+  } finally {
+    await api('/api/cameras/cam-lobby/calibration', { method: 'DELETE' });
+    await api(`/api/floorplans/${plan.id}`, { method: 'DELETE' });
+  }
+});
+
 test('camera tile shows live AI counts and the overlay canvas, then "NO AI DATA" when frames stop', async () => {
   const page = await dashboard();
   const tile = page.locator('.tile', { hasText: 'Main Lobby' });

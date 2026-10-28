@@ -1,5 +1,5 @@
 // The command-center dashboard panels (ports of the Angular dashboard components).
-import { SEVERITY_RANK, api, confirmAsk, dateTimeOf, errorMessage, esc, relativeTime, timeOf, toast } from './core.js';
+import { SEVERITY_RANK, api, confirmAsk, dateTimeOf, errorMessage, esc, fireSeverityText, relativeTime, timeOf, toast } from './core.js';
 import { HISTORY_POINTS, live } from './shell.js';
 import { OverlayRenderer, register, unregister } from './overlay.js';
 import { PlanMap } from './planmap.js';
@@ -113,7 +113,7 @@ class Tile {
       ${model ? `<span class="chip" title="Detections from AI model: ${esc(model)}">AI</span>` : ''}
       ${model?.includes(':missing') ? `<span class="chip text-amber" title="Model not loaded: ${esc(model)}">MODEL MISSING</span>` : ''}
       ${s?.smokeDetected ? '<span class="chip chip-fire">SMOKE</span>' : ''}
-      <span class="chip ${s?.fireDetected ? 'chip-fire' : ''}" title="Fire severity = share of the image covered by fire boxes, not a calibrated physical size">FIRE <b>${s?.fireDetected ? esc(s.fireSeverity ?? 'YES') : '—'}</b></span>`;
+      <span class="chip ${s?.fireDetected ? 'chip-fire' : ''}" title="Fire severity = share of the image covered by fire boxes, not a calibrated physical size">FIRE <b>${s?.fireDetected ? esc(fireSeverityText(s.fireSeverity) ?? 'YES') : '—'}</b></span>`;
   }
 
   destroy() {
@@ -335,7 +335,7 @@ function renderIncidents() {
       <td><span class="sev sev-${i.severity}">${i.severity}</span></td>
       <td style="min-width:180px;color:var(--text-2)" title="${esc(i.message)}">${esc(locationOf(i))}</td>
       <td class="nowrap">${SOURCE_LABEL[i.source] ?? esc(i.source)}</td>
-      <td class="mono">${i.fireDetected ? esc(i.fireSeverity ?? 'Yes') : '—'}</td>
+      <td class="mono">${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'Yes') : '—'}</td>
       <td class="num">${i.humanCount}</td><td class="num ${i.dangerCount > 0 ? 'text-amber' : ''}">${i.dangerCount}</td>
       <td class="tiny strong ${i.isResolved ? 'text-green' : 'text-amber'}">${i.isResolved ? 'Resolved' : 'Open'}</td>
       <td>${i.isResolved ? '' : `<button type="button" class="btn btn-sm btn-success" data-resolve="${i.id}" ${resolving.has(i.id) ? 'disabled' : ''}>Resolve</button>`}</td></tr>`;
@@ -368,7 +368,8 @@ live.on('state', renderIncidents);
 
 // ================================================================ incident history
 const CHART_W = 600, CHART_H = 140;
-const history = { incidentId: null, type: '', logs: [], sensor: null, loading: false, error: null, request: 0 };
+const history = { incidentId: null, type: '', logs: [], sensor: null, trend: null, loading: false, error: null, request: 0 };
+const TREND_COLOR = { Increasing: 'text-red', Decreasing: 'text-green', Stable: 'text-amber' };
 
 /** SVG polyline for a time series scaled into a CHART_W x CHART_H box; null when there is nothing to draw. */
 export function chartPath(points) {
@@ -382,7 +383,7 @@ export function chartPath(points) {
 async function loadHistory() {
   const request = ++history.request; // a newer filter wins over a slower older reply
   const { incidentId, type } = history;
-  Object.assign(history, { loading: true, sensor: null });
+  Object.assign(history, { loading: true, sensor: null, trend: null });
   renderHistory();
   const q = new URLSearchParams({ limit: '500' });
   if (incidentId) q.set('incidentId', incidentId);
@@ -400,7 +401,16 @@ async function loadHistory() {
     api(`/api/iot/sensors/${encodeURIComponent(incident.sensorId)}/history?limit=500&since=${encodeURIComponent(incident.timestamp)}`)
       .then((s) => { if (request === history.request) { history.sensor = s; renderHistory(); } }).catch(() => undefined);
   }
+  loadTrend();
   renderHistory();
+}
+
+/** The server computes the fire-area trend (one implementation, also used for the FireGrowth warning); reading it never warns. */
+function loadTrend() {
+  const { incidentId, request } = history;
+  if (live.incidents.find((i) => i.id === incidentId)?.source !== 'Vision') return;
+  api(`/api/incidents/${incidentId}`)
+    .then((i) => { if (request === history.request) { history.trend = i.fireTrend; renderHistory(); } }).catch(() => undefined);
 }
 
 function renderHistory() {
@@ -422,7 +432,13 @@ function renderHistory() {
       [label, unit, path] = ['AI fire bounding-box area (% of camera frame) — not a physical fire size', '%',
         chartPath(m.map((l) => ({ t: Date.parse(l.timestamp), v: l.fireAreaPercent })))];
     }
-    chart = `<div class="panel-body" style="border-bottom:1px solid var(--ink-700);padding:12px"><div class="tiny strong dim" style="margin-bottom:4px">${esc(label)}</div>
+    const t = !incident.sensorId && history.trend;
+    const trend = !t ? '' : `<div class="tiny" style="margin-bottom:6px" data-trend>Trend (last ${t.windowSeconds / 60} min):
+      <b class="${TREND_COLOR[t.trend] ?? 'muted'}">${esc(t.trend)}</b>${t.spanSeconds !== undefined
+        ? ` <span class="dim">· ${t.fromPercent}% → ${t.toPercent}% in ${t.spanSeconds} s</span>`
+        : ` <span class="dim">· ${t.measurements} measurement(s); needs at least 4 over 20 s. No detection is no proof the fire is out.</span>`}
+      <span class="muted">— share of the camera frame, not physical size or a spread forecast</span></div>`;
+    chart = `<div class="panel-body" style="border-bottom:1px solid var(--ink-700);padding:12px"><div class="tiny strong dim" style="margin-bottom:4px">${esc(label)}</div>${trend}
       ${path ? `<svg class="chart" viewBox="0 0 ${CHART_W} ${CHART_H}" preserveAspectRatio="none" role="img" aria-label="${esc(label)}">
         <polyline points="${path.line}" fill="none" stroke="#ef4444" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
         <div class="chart-axis"><span>${timeOf(path.from)}</span><span>max scale ${path.max.toFixed(1)} ${esc(unit)}</span><span>${timeOf(path.to)}</span></div>`
@@ -435,7 +451,7 @@ function renderHistory() {
       : `<table class="data" style="font-size:12px"><thead><tr><th>Time</th><th>Incident</th><th>Event</th><th>Details</th></tr></thead><tbody>${
         history.logs.length ? history.logs.map((l) => `<tr class="${l.type === 'PersonInDanger' ? 'row-person' : ''}">
           <td class="mono nowrap">${timeOf(l.timestamp)}</td><td class="mono">${l.incidentId ? `#${l.incidentId}` : '—'}</td>
-          <td class="nowrap">${l.type}${l.simulated ? '<span class="tag tag-sim">SIMULATED</span>' : ''}${l.type === 'EvacuationRoute' ? '<span class="tag tag-est">ESTIMATE</span>' : ''}</td>
+          <td class="nowrap">${l.type}${l.simulated ? '<span class="tag tag-sim">SIMULATED</span>' : ''}${l.type === 'EvacuationRoute' ? '<span class="tag tag-est">ESTIMATE</span>' : ''}${l.fireSeverity ? `<span class="tag tag-fire">FIRE ${esc(fireSeverityText(l.fireSeverity))}</span>` : ''}</td>
           <td style="color:var(--text-2)">${esc(l.details)}</td></tr>`).join('')
           : '<tr><td colspan="4" class="empty">No history entries for this filter.</td></tr>'}</tbody></table>`;
 }
@@ -447,6 +463,7 @@ live.on('incidentLog', (l) => {
     history.logs = [l, ...history.logs].slice(0, 500);
     renderHistory();
   }
+  if (l.incidentId === history.incidentId && (l.type === 'FireMeasurement' || l.type === 'FireGrowth')) loadTrend();
 });
 live.on('incidents', () => {
   const select = $('history-incident');
@@ -459,7 +476,11 @@ const PEOPLE_EXPIRE_MS = 4500; // as the camera tile: a camera that sent nothing
 const RISK_RGBA = ['', 'rgba(250,204,21,0.35)', 'rgba(249,115,22,0.5)', 'rgba(239,68,68,0.6)', 'rgba(185,28,28,0.85)'];
 const round1 = (v) => Math.round(v * 10) / 10;
 const evac = { plans: [], planId: null, imageUrl: null, start: null, result: null, routing: false, error: null, risk: null, seen: new Map(),
-  people: [], openZonesKey: '', map: null };
+  people: [], openZonesKey: '', map: null, compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueBusy: false, rescueAt: 0 };
+const RESCUE_EVERY_MS = 5000, MARKER_STALE_MS = 2000; // markers older than this are shown as stale; PEOPLE_EXPIRE_MS removes them
+const EXIT_STATUS_CLASS = { Available: 'text-green', Danger: 'text-red', Blocked: 'text-amber', Unreachable: 'muted', Unknown: 'muted' };
+const metres = (v) => (v === null || v === undefined ? '—' : `${v.toFixed(1)} m`); // unknown is never shown as 0
+const seconds = (v) => (v === null || v === undefined ? '—' : `~${Math.round(v)} s`);
 
 /** Perspective transform that maps 4 camera-frame points onto the same 4 floor-plan points; null when 3 lie on one line. */
 export function homography(src, dst) {
@@ -502,10 +523,16 @@ function renderEvacuation() {
   const plan = currentPlan();
   if (!plan) return;
   if (!evac.map) {
-    box.innerHTML = '<div class="panel-body" style="padding:12px"><div data-map></div><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-safe></div></div>';
+    box.innerHTML = '<div class="panel-body" style="padding:12px"><div data-map></div><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-compare></div><div data-rescue></div><div data-safe></div></div>';
     evac.map = new PlanMap(box.querySelector('[data-map]'), onPlanPointer);
+    box.addEventListener('click', (e) => { // "Show" in the exit comparison: draw that exit's route
+      const b = e.target.closest('[data-exit]');
+      if (b) { evac.highlight = Number(b.dataset.exit); renderEvacuation(); }
+    });
   }
-  evac.map.set({ width: plan.widthMeters, height: plan.heightMeters, elements: plan.elements, imageUrl: evac.imageUrl, route: evac.result?.path ?? null,
+  const shown = evac.highlight !== null ? evac.compare?.results?.[0]?.exits?.[evac.highlight] : null;
+  evac.map.set({ width: plan.widthMeters, height: plan.heightMeters, elements: plan.elements, imageUrl: evac.imageUrl,
+    route: shown?.found ? shown.path : evac.result?.path ?? null,
     start: evac.start, people: evac.people, riskLayer: evac.riskLayerCache ?? null, activeDanger: evac.result?.activeDangerZones ?? evac.risk?.activeDangerZones ?? [] });
 
   const rk = evac.risk;
@@ -532,6 +559,8 @@ function renderEvacuation() {
     result += `<p class="tiny muted" style="margin-top:4px">Start (${evac.start[0]}, ${evac.start[1]}) m · recalculated automatically when incidents open or close.</p>`;
   }
   box.querySelector('[data-result]').innerHTML = result ?? '';
+  box.querySelector('[data-compare]').innerHTML = compareHtml();
+  renderRescue();
 
   const safe = plan.elements.filter((e) => e.type === 'SafeZone');
   box.querySelector('[data-safe]').innerHTML = `<h3 class="panel-title" style="margin-top:16px">Safe zones on this floor</h3>${safe.length
@@ -540,13 +569,100 @@ function renderEvacuation() {
     : '<p class="tiny muted" style="margin-top:4px">No safe zone marked on this floor plan.</p>'}`;
 }
 
+/** Every exit from the chosen start point (POST …/routes, read-only). A row without a route shows no distance, time or line. */
+function compareHtml() {
+  if (!evac.start) return '';
+  if (evac.compareError) return `<p class="tiny text-red" role="alert" style="margin-top:12px">Exit comparison failed: ${esc(evac.compareError)}</p>`;
+  const c = evac.compare?.results?.[0];
+  if (!c) return '<p class="tiny muted" style="margin-top:12px">Comparing exits…</p>';
+  if (!c.exits.length) return `<p class="tiny muted" style="margin-top:12px">Exit comparison: ${esc(c.message)}</p>`;
+  const rows = c.exits.map((e, i) => `<tr><td class="strong">${esc(e.exitName || 'Exit')}</td>
+    <td class="${EXIT_STATUS_CLASS[e.status] ?? 'muted'}">${esc(e.status)}</td><td class="mono">${metres(e.distanceMeters)}</td>
+    <td class="mono">${seconds(e.estimatedSeconds)}</td>
+    <td>${e.found ? `<button type="button" class="btn btn-ghost btn-sm" data-exit="${i}" aria-pressed="${evac.highlight === i}">${evac.highlight === i ? 'Shown' : 'Show'}</button>` : ''}
+      ${e.reason ? `<span class="tiny muted">${esc(e.reason)}</span>` : ''}</td></tr>`).join('');
+  return `<h3 class="panel-title" style="margin-top:16px">Exit comparison</h3>
+    <div style="overflow-x:auto"><table class="data" data-exits><thead><tr><th>Exit</th><th>Status</th><th>Distance</th><th>Est. time</th><th>Route</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    <p class="tiny muted">${esc(c.message)} Times = distance ÷ ${evac.compare.walkingSpeedMetersPerSecond} m/s, an estimate. Danger = the exit is in an
+      active danger zone or every route to it passes closer than ${evac.compare.requiredClearanceMeters} m to one.</p>`;
+}
+
+/** Rescue list: the current camera person markers on this plan (not identified people), each with its nearest safe exit. */
+function renderRescue() {
+  const box = $('evacuation').querySelector('[data-rescue]');
+  if (!box || !currentPlan()) return;
+  const now = Date.now();
+  const r = evac.rescue;
+  const current = (r?.markers ?? []).map((m, i) => ({ ...m, result: r.results[i] })).filter((m) => now - m.at <= PEOPLE_EXPIRE_MS); // expired: gone
+  const unknown = live.cameras.filter((c) => { // people seen by cameras not calibrated to this plan: no location on it
+    const s = live.frameStats[c.id];
+    return s && s.humanCount > 0 && now - s.receivedAt <= PEOPLE_EXPIRE_MS && c.calibration?.floorPlanId !== evac.planId;
+  });
+  const rows = current.map((m) => {
+    const res = m.result, safe = res?.exits.find((e) => e.status === 'Available');
+    const stale = now - m.at > MARKER_STALE_MS;
+    const where = `(${m.x.toFixed(1)}, ${m.y.toFixed(1)}) m`;
+    const danger = stale ? `<span class="text-amber">Location stale · ${Math.round((now - m.at) / 1000)} s old</span>`
+      : !res ? '<span class="muted">Unknown</span>'
+      : res.startInDangerZone ? '<span class="text-red strong">In active danger zone (plan)</span>'
+      : res.exits.every((e) => e.status === 'Unknown' || e.status === 'Blocked') ? `<span class="muted">Unknown: ${esc(res.message)}</span>`
+      : '<span class="dim">Not in an active danger zone (plan)</span>';
+    const exit = stale || !res ? '—' : safe ? esc(safe.exitName || 'Exit') : '<span class="text-red strong">No safe route available</span>';
+    return `<tr><td>Person marker ${m.n} <span class="tiny muted">(${esc(m.cameraName)})</span></td><td class="mono">${where}</td><td>${danger}</td>
+      <td>${exit}</td><td class="mono">${stale ? '—' : metres(safe?.distanceMeters)}</td><td class="mono">${stale ? '—' : seconds(safe?.estimatedSeconds)}</td></tr>`;
+  }).join('');
+  box.innerHTML = `<h3 class="panel-title" style="margin-top:16px">Rescue list (estimate)</h3>
+    ${evac.rescueError ? `<p class="tiny text-red" role="alert">Rescue list failed: ${esc(evac.rescueError)}</p>` : ''}
+    ${rows ? `<div style="overflow-x:auto"><table class="data" data-rescue-list><thead><tr><th>Marker</th><th>Plan location</th><th>Danger status</th>
+      <th>Nearest safe exit</th><th>Distance</th><th>Est. time</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : '<p class="tiny muted">No person markers from cameras calibrated to this plan right now.</p>'}
+    ${unknown.map((c) => `<p class="tiny text-amber">${esc(c.name)}: ${live.frameStats[c.id].humanCount} person(s) seen — location unknown (camera not calibrated to this plan).</p>`).join('')}
+    <p class="tiny muted">Markers are camera estimates of where feet touch the floor, refreshed every ${RESCUE_EVERY_MS / 1000} s. They are not identified
+      people: one person seen by two cameras can appear twice, and numbers change between refreshes. Danger status is computed from the plan
+      position, not from the camera's own at-risk flag.</p>`;
+}
+
+async function loadComparison() {
+  const id = evac.planId, s = evac.start;
+  Object.assign(evac, { compare: null, compareError: null, highlight: null });
+  try {
+    const c = await api(`/api/floorplans/${id}/routes`, { method: 'POST', body: { starts: [s] } });
+    if (evac.planId === id && evac.start === s) evac.compare = c;
+  } catch (err) {
+    if (evac.planId === id && evac.start === s) evac.compareError = errorMessage(err);
+  }
+  renderEvacuation();
+}
+
+async function loadRescue() {
+  const id = evac.planId;
+  if (!id || evac.rescueBusy) return;
+  evac.rescueAt = Date.now();
+  const cameras = new Map(live.cameras.map((c) => [c.id, c.name]));
+  const markers = [...evac.seen].flatMap(([cameraId, v]) => v.points.map((p) => ({ cameraName: cameras.get(cameraId) ?? cameraId, at: v.at, x: p.x, y: p.y })))
+    .filter((m) => Date.now() - m.at <= PEOPLE_EXPIRE_MS).slice(0, 50).map((m, i) => ({ ...m, n: i + 1 }));
+  if (!markers.length) { Object.assign(evac, { rescue: { markers: [], results: [] }, rescueError: null }); renderRescue(); return; }
+  evac.rescueBusy = true;
+  try {
+    const r = await api(`/api/floorplans/${id}/routes`, { method: 'POST', body: { starts: markers.map((m) => [round1(m.x), round1(m.y)]) } });
+    if (evac.planId === id) Object.assign(evac, { rescue: { markers, results: r.results }, rescueError: null });
+  } catch (err) {
+    if (evac.planId === id) evac.rescueError = errorMessage(err);
+  } finally {
+    evac.rescueBusy = false;
+  }
+  renderRescue();
+}
+
 function setImage(url) {
   if (evac.imageUrl) URL.revokeObjectURL(evac.imageUrl);
   evac.imageUrl = url;
 }
 
 async function choosePlan(id) {
-  Object.assign(evac, { planId: id, start: null, result: null, routing: false, error: null, risk: null, riskLayerCache: null, people: [] });
+  Object.assign(evac, { planId: id, start: null, result: null, routing: false, error: null, risk: null, riskLayerCache: null, people: [],
+    compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueAt: 0 });
   evac.seen.clear();
   setImage(null);
   $('evac-plan').value = String(id);
@@ -577,6 +693,7 @@ async function calculateRoute() {
   if (!id || !s) return;
   evac.routing = true;
   renderEvacuation();
+  loadComparison();
   try {
     const r = await api(`/api/floorplans/${id}/route`, { method: 'POST', body: { x: s[0], y: s[1] } });
     if (evac.planId !== id) return;
@@ -608,6 +725,7 @@ function placePeople(f) {
     .map(([x, y]) => ({ x, y }));
   evac.seen.set(f.cameraId, { at: Date.now(), points });
   refreshPeople();
+  if (points.length && Date.now() - evac.rescueAt >= RESCUE_EVERY_MS) loadRescue(); // new markers: list them now, at most every 5 s
 }
 
 function refreshPeople() {
@@ -619,7 +737,8 @@ function refreshPeople() {
 
 $('evac-plan').addEventListener('change', (e) => choosePlan(Number(e.target.value)));
 live.on('detection', placePeople);
-live.on('tick', refreshPeople);
+live.on('tick', () => { refreshPeople(); renderRescue(); }); // ages and stale labels move on between rescue refreshes
+setInterval(loadRescue, RESCUE_EVERY_MS);
 live.on('incidents', () => { // open incidents change the active danger zones: refresh the risk and the route
   const key = [...new Set(live.openIncidents().map((i) => i.zone))].sort().join('|');
   if (key === evac.openZonesKey) return;

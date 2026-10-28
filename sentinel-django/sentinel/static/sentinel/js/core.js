@@ -2,6 +2,11 @@
 
 export const SEVERITY_RANK = { Low: 0, Medium: 1, High: 2, Critical: 3 };
 
+/** Display-only size word for an AI fire severity (fireSeverity, not the incident severity); the AI thresholds are unchanged. */
+export const FIRE_SIZE = { Low: 'Small', Medium: 'Medium', High: 'Large', Critical: 'Large' };
+/** "High · Large"; an unknown or missing value is returned as it is (no guessed size). */
+export const fireSeverityText = (severity) => (FIRE_SIZE[severity] ? `${severity} · ${FIRE_SIZE[severity]}` : severity);
+
 /** HTML-escape a value for use inside template strings. */
 export function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

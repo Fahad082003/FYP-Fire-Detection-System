@@ -291,6 +291,7 @@ def save_floor_plan(plan: FloorPlan | None, data: dict) -> FloorPlan:
         floor_plan=plan, type=e["type"], name=(e.get("name") or "").strip(), x=e["x"], y=e["y"], width=e["width"],
         height=e["height"], is_blocked=e.get("isBlocked", False), is_active=e.get("isActive", False),
         zone=(e.get("zone") or "").strip() or None) for e in data["elements"]])
+    alerts.warn_fire_proximity(plans=[plan])  # a changed plan changes the distances to an open fire
     return plan
 
 
@@ -353,6 +354,33 @@ def route(plan: FloorPlan, x, y) -> dict:
         alerts.add_log(IncidentLog(type=IncidentLogType.EVACUATION_ROUTE, zone=zone, details=details))
     return {**r, "estimatedSeconds": seconds, "walkingSpeedMetersPerSecond": speed, "activeDangerZones": _zone_names(active),
             "requiredClearanceMeters": clearance}
+
+
+MAX_ROUTE_STARTS = 50
+
+
+def routes(plan: FloorPlan, starts) -> dict:
+    """Every exit compared from each start point (meters): the dashboard's route comparison (one start) and rescue list (the
+    current camera person markers). Read-only: no log, no incident, so polling it changes nothing."""
+    if not (plan.width_meters > 0 and plan.height_meters > 0):
+        raise invalid("plan", "The floor plan has no valid size.")
+    if not isinstance(starts, list) or not 1 <= len(starts) <= MAX_ROUTE_STARTS:
+        raise invalid("starts", f"Give 1 to {MAX_ROUTE_STARTS} start points, each [x, y] in meters.")
+    for i, s in enumerate(starts):
+        ok = isinstance(s, list) and len(s) == 2 and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in s)
+        if not ok or not (0 <= s[0] <= plan.width_meters and 0 <= s[1] <= plan.height_meters):
+            raise invalid(f"starts[{i}]", "Start point must be [x, y] inside the floor plan.")
+    elements = list(plan.elements.all())
+    active = _active_danger(elements)
+    clearance, speed = _opt("DANGER_CLEARANCE_METERS"), _opt("WALKING_SPEED")
+    results = []
+    for x, y in starts:
+        r = geometry.find_routes(plan.width_meters, plan.height_meters, elements, active, x, y, clearance)
+        for e in r["exits"]:
+            e["estimatedSeconds"] = round(e["distanceMeters"] / speed, 1) if e["found"] else None  # no route: no time
+        results.append({"start": [x, y], **r})
+    return {"results": results, "walkingSpeedMetersPerSecond": speed, "requiredClearanceMeters": clearance,
+            "activeDangerZones": _zone_names(active)}
 
 
 def risk(plan: FloorPlan) -> dict:

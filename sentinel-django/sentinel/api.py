@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import exception_handler
 
-from . import ai_client, dto, services, sprinklers
+from . import ai_client, alerts, dto, services, sprinklers
 from .forms import CameraForm
 from .models import (CameraFeed, FloorPlan, IncidentAlert, IncidentLogType, SensorNode, SmartSprinkler, SprinklerMode,
                      WebPushSubscription)
@@ -298,7 +298,8 @@ def _incident(incident_id) -> IncidentAlert:
 
 @api_view(["GET"])
 def incident(request, incident_id):
-    return Response(dto.incident(_incident(incident_id)))
+    found = _incident(incident_id)
+    return Response({**dto.incident(found), "fireTrend": alerts.fire_trend(found)})  # read-only: never creates a warning
 
 
 @api_view(["POST"])
@@ -422,6 +423,13 @@ def floor_plan_image(request, plan_id):
 def floor_plan_route(request, plan_id):
     d = request.data if isinstance(request.data, dict) else {}
     return Response(services.route(_plan(plan_id), d.get("x"), d.get("y")))
+
+
+@api_view(["POST"])
+def floor_plan_routes(request, plan_id):
+    """Read-only per-exit comparison for one or more start points: {"starts": [[x, y], ...]}."""
+    d = request.data if isinstance(request.data, dict) else {}
+    return Response(services.routes(_plan(plan_id), d.get("starts")))
 
 
 @api_view(["GET"])
