@@ -1,0 +1,420 @@
+{
+  "dataset": "D-Fire official TEST split (4,306 images), D-Fire.zip sha256 3824fb3c...",
+  "slice": null,
+  "images": 4306,
+  "iouThreshold": 0.5,
+  "models": {
+    "fire_smoke": "fire_smoke_pilot.onnx"
+  },
+  "configuredThresholds": {
+    "fire_smoke": 0.4
+  },
+  "latencyMs": {
+    "mean": 42.3,
+    "p50": 31.8,
+    "p95": 88.5
+  },
+  "byThreshold": {
+    "0.05": {
+      "Smoke": {
+        "tp": 443,
+        "fp": 1862,
+        "fn": 1868,
+        "precision": 0.1922,
+        "recall": 0.1917,
+        "f1": 0.1919,
+        "imageLevel": {
+          "tp": 1067,
+          "fp": 282,
+          "fn": 1014,
+          "tn": 1943,
+          "falsePositiveRate": 0.1267
+        }
+      },
+      "Fire": {
+        "tp": 300,
+        "fp": 1737,
+        "fn": 2578,
+        "precision": 0.1473,
+        "recall": 0.1042,
+        "f1": 0.1221,
+        "imageLevel": {
+          "tp": 623,
+          "fp": 53,
+          "fn": 492,
+          "tn": 3138,
+          "falsePositiveRate": 0.0166
+        }
+      }
+    },
+    "0.1": {
+      "Smoke": {
+        "tp": 301,
+        "fp": 922,
+        "fn": 2010,
+        "precision": 0.2461,
+        "recall": 0.1302,
+        "f1": 0.1703,
+        "imageLevel": {
+          "tp": 774,
+          "fp": 124,
+          "fn": 1307,
+          "tn": 2101,
+          "falsePositiveRate": 0.0557
+        }
+      },
+      "Fire": {
+        "tp": 49,
+        "fp": 175,
+        "fn": 2829,
+        "precision": 0.2188,
+        "recall": 0.017,
+        "f1": 0.0316,
+        "imageLevel": {
+          "tp": 129,
+          "fp": 3,
+          "fn": 986,
+          "tn": 3188,
+          "falsePositiveRate": 0.0009
+        }
+      }
+    },
+    "0.2": {
+      "Smoke": {
+        "tp": 116,
+        "fp": 305,
+        "fn": 2195,
+        "precision": 0.2755,
+        "recall": 0.0502,
+        "f1": 0.0849,
+        "imageLevel": {
+          "tp": 345,
+          "fp": 21,
+          "fn": 1736,
+          "tn": 2204,
+          "falsePositiveRate": 0.0094
+        }
+      },
+      "Fire": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 2878,
+        "precision": null,
+        "recall": 0.0,
+        "f1": null,
+        "imageLevel": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1115,
+          "tn": 3191,
+          "falsePositiveRate": 0.0
+        }
+      }
+    },
+    "0.4": {
+      "Smoke": {
+        "tp": 9,
+        "fp": 7,
+        "fn": 2302,
+        "precision": 0.5625,
+        "recall": 0.0039,
+        "f1": 0.0077,
+        "imageLevel": {
+          "tp": 15,
+          "fp": 0,
+          "fn": 2066,
+          "tn": 2225,
+          "falsePositiveRate": 0.0
+        }
+      },
+      "Fire": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 2878,
+        "precision": null,
+        "recall": 0.0,
+        "f1": null,
+        "imageLevel": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1115,
+          "tn": 3191,
+          "falsePositiveRate": 0.0
+        }
+      }
+    }
+  },
+  "slices": {
+    "_meaning": "images in the slice and how many had >= 1 detection of the class at the configured threshold. negative: any detection is a false alarm. smoke_only: smoke labelled, no fire labelled. small_fire: a fire box under 1% of the image. low_light_*: mean grey level < 60/255 (a brightness proxy, not a verified night label). Fog/steam/dust/reflections need human-tagged --images-list files.",
+    "negative": {
+      "Smoke": {
+        "images": 2005,
+        "detected": 0
+      },
+      "Fire": {
+        "images": 2005,
+        "detected": 0
+      }
+    },
+    "smoke_only": {
+      "Smoke": {
+        "images": 1186,
+        "detected": 1
+      },
+      "Fire": {
+        "images": 1186,
+        "detected": 0
+      }
+    },
+    "small_fire": {
+      "Smoke": {
+        "images": 831,
+        "detected": 12
+      },
+      "Fire": {
+        "images": 831,
+        "detected": 0
+      }
+    },
+    "low_light_positive": {
+      "Smoke": {
+        "images": 559,
+        "detected": 8
+      },
+      "Fire": {
+        "images": 559,
+        "detected": 0
+      }
+    },
+    "low_light_negative": {
+      "Smoke": {
+        "images": 229,
+        "detected": 0
+      },
+      "Fire": {
+        "images": 229,
+        "detected": 0
+      }
+    }
+  },
+  "skippedDegenerateLabels": [
+    "AoF07743.txt: 0 0.6171875 0.4986111111111111 0.0 0.0",
+    "AoF07774.txt: 0 0.443359375 0.3666666666666667 0.00078125 0.0",
+    "AoF08348.txt: 0 0.9875 0.24166666666666667 0.0 0.0",
+    "WEB10669.txt: 0 0.6000000000000001 0.26666666666666666 0.0 0.0"
+  ],
+  "failures": {
+    "false_negatives": [
+      "AoF06978.jpg (Smoke: missed 1)",
+      "AoF07618.jpg (Smoke: missed 1)",
+      "AoF07673.jpg (Smoke: missed 1)",
+      "AoF07718.jpg (Smoke: missed 1)",
+      "AoF07718.jpg (Fire: missed 5)",
+      "AoF07719.jpg (Fire: missed 4)",
+      "AoF07720.jpg (Smoke: missed 1)",
+      "AoF07720.jpg (Fire: missed 4)",
+      "AoF07721.jpg (Fire: missed 6)",
+      "AoF07722.jpg (Smoke: missed 1)",
+      "AoF07722.jpg (Fire: missed 4)",
+      "AoF07723.jpg (Smoke: missed 1)",
+      "AoF07723.jpg (Fire: missed 4)",
+      "AoF07724.jpg (Smoke: missed 1)",
+      "AoF07724.jpg (Fire: missed 4)",
+      "AoF07725.jpg (Fire: missed 5)",
+      "AoF07726.jpg (Smoke: missed 2)",
+      "AoF07726.jpg (Fire: missed 4)",
+      "AoF07727.jpg (Smoke: missed 1)",
+      "AoF07727.jpg (Fire: missed 3)",
+      "AoF07728.jpg (Smoke: missed 2)",
+      "AoF07728.jpg (Fire: missed 3)",
+      "AoF07729.jpg (Smoke: missed 2)",
+      "AoF07729.jpg (Fire: missed 4)",
+      "AoF07730.jpg (Smoke: missed 2)",
+      "AoF07730.jpg (Fire: missed 5)",
+      "AoF07731.jpg (Smoke: missed 1)",
+      "AoF07731.jpg (Fire: missed 5)",
+      "AoF07732.jpg (Smoke: missed 1)",
+      "AoF07732.jpg (Fire: missed 6)",
+      "AoF07733.jpg (Smoke: missed 1)",
+      "AoF07733.jpg (Fire: missed 6)",
+      "AoF07734.jpg (Smoke: missed 1)",
+      "AoF07734.jpg (Fire: missed 2)",
+      "AoF07735.jpg (Smoke: missed 1)",
+      "AoF07735.jpg (Fire: missed 3)",
+      "AoF07736.jpg (Smoke: missed 1)",
+      "AoF07736.jpg (Fire: missed 3)",
+      "AoF07737.jpg (Smoke: missed 1)",
+      "AoF07737.jpg (Fire: missed 3)",
+      "AoF07738.jpg (Fire: missed 2)",
+      "AoF07739.jpg (Fire: missed 2)",
+      "AoF07740.jpg (Fire: missed 2)",
+      "AoF07741.jpg (Smoke: missed 1)",
+      "AoF07741.jpg (Fire: missed 1)",
+      "AoF07742.jpg (Smoke: missed 1)",
+      "AoF07742.jpg (Fire: missed 1)",
+      "AoF07743.jpg (Smoke: missed 1)",
+      "AoF07743.jpg (Fire: missed 1)",
+      "AoF07744.jpg (Smoke: missed 1)",
+      "AoF07744.jpg (Fire: missed 1)",
+      "AoF07745.jpg (Fire: missed 2)",
+      "AoF07746.jpg (Smoke: missed 1)",
+      "AoF07746.jpg (Fire: missed 1)",
+      "AoF07747.jpg (Smoke: missed 1)",
+      "AoF07747.jpg (Fire: missed 1)",
+      "AoF07748.jpg (Smoke: missed 1)",
+      "AoF07748.jpg (Fire: missed 1)",
+      "AoF07749.jpg (Smoke: missed 1)",
+      "AoF07749.jpg (Fire: missed 1)",
+      "AoF07750.jpg (Smoke: missed 1)",
+      "AoF07750.jpg (Fire: missed 1)",
+      "AoF07751.jpg (Smoke: missed 1)",
+      "AoF07751.jpg (Fire: missed 1)",
+      "AoF07752.jpg (Smoke: missed 1)",
+      "AoF07752.jpg (Fire: missed 1)",
+      "AoF07753.jpg (Smoke: missed 1)",
+      "AoF07753.jpg (Fire: missed 1)",
+      "AoF07754.jpg (Smoke: missed 1)",
+      "AoF07754.jpg (Fire: missed 1)",
+      "AoF07755.jpg (Smoke: missed 1)",
+      "AoF07755.jpg (Fire: missed 1)",
+      "AoF07756.jpg (Smoke: missed 1)",
+      "AoF07756.jpg (Fire: missed 1)",
+      "AoF07757.jpg (Smoke: missed 1)",
+      "AoF07757.jpg (Fire: missed 1)",
+      "AoF07758.jpg (Fire: missed 2)",
+      "AoF07759.jpg (Smoke: missed 1)",
+      "AoF07759.jpg (Fire: missed 1)",
+      "AoF07760.jpg (Smoke: missed 1)",
+      "AoF07760.jpg (Fire: missed 3)",
+      "AoF07761.jpg (Smoke: missed 1)",
+      "AoF07761.jpg (Fire: missed 3)",
+      "AoF07762.jpg (Fire: missed 3)",
+      "AoF07763.jpg (Smoke: missed 1)",
+      "AoF07763.jpg (Fire: missed 1)",
+      "AoF07764.jpg (Smoke: missed 1)",
+      "AoF07764.jpg (Fire: missed 1)",
+      "AoF07765.jpg (Smoke: missed 1)",
+      "AoF07765.jpg (Fire: missed 1)",
+      "AoF07766.jpg (Smoke: missed 1)",
+      "AoF07766.jpg (Fire: missed 1)",
+      "AoF07767.jpg (Smoke: missed 1)",
+      "AoF07767.jpg (Fire: missed 3)",
+      "AoF07768.jpg (Smoke: missed 1)",
+      "AoF07768.jpg (Fire: missed 1)",
+      "AoF07769.jpg (Smoke: missed 1)",
+      "AoF07769.jpg (Fire: missed 2)",
+      "AoF07770.jpg (Fire: missed 2)",
+      "AoF07771.jpg (Smoke: missed 1)",
+      "AoF07771.jpg (Fire: missed 2)",
+      "AoF07772.jpg (Smoke: missed 1)",
+      "AoF07772.jpg (Fire: missed 2)",
+      "AoF07773.jpg (Smoke: missed 1)",
+      "AoF07773.jpg (Fire: missed 2)",
+      "AoF07774.jpg (Smoke: missed 1)",
+      "AoF07774.jpg (Fire: missed 2)",
+      "AoF07775.jpg (Smoke: missed 1)",
+      "AoF07775.jpg (Fire: missed 1)",
+      "AoF07776.jpg (Smoke: missed 1)",
+      "AoF07776.jpg (Fire: missed 2)",
+      "AoF07777.jpg (Smoke: missed 1)",
+      "AoF07777.jpg (Fire: missed 1)",
+      "AoF07778.jpg (Smoke: missed 1)",
+      "AoF07778.jpg (Fire: missed 2)",
+      "AoF07779.jpg (Smoke: missed 1)",
+      "AoF07779.jpg (Fire: missed 1)",
+      "AoF07780.jpg (Fire: missed 1)",
+      "AoF07781.jpg (Smoke: missed 1)",
+      "AoF07781.jpg (Fire: missed 1)",
+      "AoF07782.jpg (Smoke: missed 1)",
+      "AoF07782.jpg (Fire: missed 1)",
+      "AoF07783.jpg (Smoke: missed 1)",
+      "AoF07783.jpg (Fire: missed 2)",
+      "AoF07784.jpg (Fire: missed 1)",
+      "AoF07785.jpg (Smoke: missed 1)",
+      "AoF07785.jpg (Fire: missed 2)",
+      "AoF07786.jpg (Smoke: missed 1)",
+      "AoF07786.jpg (Fire: missed 2)",
+      "AoF07787.jpg (Smoke: missed 1)",
+      "AoF07787.jpg (Fire: missed 2)",
+      "AoF07788.jpg (Smoke: missed 1)",
+      "AoF07788.jpg (Fire: missed 1)",
+      "AoF07789.jpg (Fire: missed 2)",
+      "AoF07790.jpg (Smoke: missed 1)",
+      "AoF07790.jpg (Fire: missed 1)",
+      "AoF07791.jpg (Smoke: missed 2)",
+      "AoF07791.jpg (Fire: missed 1)",
+      "AoF07792.jpg (Smoke: missed 1)",
+      "AoF07792.jpg (Fire: missed 1)",
+      "AoF07793.jpg (Fire: missed 1)",
+      "AoF07794.jpg (Smoke: missed 1)",
+      "AoF07794.jpg (Fire: missed 1)",
+      "AoF07795.jpg (Smoke: missed 1)",
+      "AoF07795.jpg (Fire: missed 1)",
+      "AoF07796.jpg (Smoke: missed 1)",
+      "AoF07796.jpg (Fire: missed 1)",
+      "AoF07797.jpg (Smoke: missed 1)",
+      "AoF07797.jpg (Fire: missed 1)",
+      "AoF07798.jpg (Fire: missed 1)",
+      "AoF07799.jpg (Smoke: missed 1)",
+      "AoF07799.jpg (Fire: missed 2)",
+      "AoF07800.jpg (Smoke: missed 1)",
+      "AoF07800.jpg (Fire: missed 2)",
+      "AoF07801.jpg (Smoke: missed 1)",
+      "AoF07801.jpg (Fire: missed 1)",
+      "AoF07802.jpg (Smoke: missed 1)",
+      "AoF07802.jpg (Fire: missed 1)",
+      "AoF07803.jpg (Smoke: missed 1)",
+      "AoF07803.jpg (Fire: missed 2)",
+      "AoF07804.jpg (Smoke: missed 1)",
+      "AoF07804.jpg (Fire: missed 2)",
+      "AoF07805.jpg (Smoke: missed 1)",
+      "AoF07805.jpg (Fire: missed 1)",
+      "AoF07806.jpg (Fire: missed 1)",
+      "AoF07807.jpg (Fire: missed 1)",
+      "AoF07808.jpg (Fire: missed 1)",
+      "AoF07809.jpg (Fire: missed 1)",
+      "AoF07810.jpg (Fire: missed 1)",
+      "AoF07811.jpg (Smoke: missed 1)",
+      "AoF07811.jpg (Fire: missed 1)",
+      "AoF07812.jpg (Smoke: missed 1)",
+      "AoF07812.jpg (Fire: missed 1)",
+      "AoF07813.jpg (Fire: missed 1)",
+      "AoF07814.jpg (Fire: missed 1)",
+      "AoF07815.jpg (Smoke: missed 1)",
+      "AoF07815.jpg (Fire: missed 1)",
+      "AoF07816.jpg (Smoke: missed 1)",
+      "AoF07816.jpg (Fire: missed 1)",
+      "AoF07817.jpg (Smoke: missed 1)",
+      "AoF07817.jpg (Fire: missed 1)",
+      "AoF07818.jpg (Smoke: missed 2)",
+      "AoF07818.jpg (Fire: missed 1)",
+      "AoF07819.jpg (Smoke: missed 1)",
+      "AoF07819.jpg (Fire: missed 1)",
+      "AoF07820.jpg (Smoke: missed 1)",
+      "AoF07820.jpg (Fire: missed 1)",
+      "AoF07821.jpg (Smoke: missed 1)",
+      "AoF07821.jpg (Fire: missed 1)",
+      "AoF07822.jpg (Smoke: missed 1)",
+      "AoF07822.jpg (Fire: missed 1)",
+      "AoF07823.jpg (Smoke: missed 1)",
+      "AoF07823.jpg (Fire: missed 1)",
+      "AoF07824.jpg (Smoke: missed 1)",
+      "AoF07824.jpg (Fire: missed 1)",
+      "AoF07825.jpg (Smoke: missed 1)",
+      "AoF07825.jpg (Fire: missed 1)",
+      "AoF07826.jpg (Smoke: missed 1)",
+      "AoF07826.jpg (Fire: missed 1)",
+      "AoF07827.jpg (Smoke: missed 1)"
+    ],
+    "false_positives": [
+      "WEB10842.jpg (Smoke: 1 extra, max conf 0.45)",
+      "WEB10878.jpg (Smoke: 1 extra, max conf 0.41)",
+      "WEB10879.jpg (Smoke: 1 extra, max conf 0.43)",
+      "WEB11174.jpg (Smoke: 1 extra, max conf 0.42)",
+      "WEB11410.jpg (Smoke: 1 extra, max conf 0.43)",
+      "WEB11567.jpg (Smoke: 1 extra, max conf 0.42)",
+      "WEB11690.jpg (Smoke: 1 extra, max conf 0.40)"
+    ]
+  },
+  "model": "CPU pilot: YOLOX-Nano @320, run 2 epoch 3 (best validation), lr 0.01, frozen backbone, 4,000-image train subset"
+}

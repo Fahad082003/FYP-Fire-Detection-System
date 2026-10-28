@@ -1,0 +1,169 @@
+{
+  "dataset": "C:\\Users\\m_fahad\\AppData\\Local\\Temp\\claude\\c--Users-m-fahad-Desktop-Project\\ec281dd0-207c-4e81-b499-5eb0580a9570\\scratchpad\\stress\\penn-dark",
+  "slice": null,
+  "images": 170,
+  "iouThreshold": 0.5,
+  "models": {
+    "person": "yolox_tiny.onnx"
+  },
+  "configuredThresholds": {
+    "person": 0.45
+  },
+  "modelLoadMs": {
+    "person": 559.2
+  },
+  "modelFileBytes": {
+    "person": 20219662
+  },
+  "averagePrecision": {
+    "_meaning": "COCO-style 101-point AP per IoU threshold from predictions >= 0.01; mAP50 = AP at IoU 0.50, mAP50_95 = mean over IoU 0.50..0.95. All object sizes, no crowd regions.",
+    "Human": {
+      "groundTruthBoxes": 423,
+      "AP50": 0.9717,
+      "AP50_95": 0.7372,
+      "byIoU": {
+        "0.5": 0.9717,
+        "0.55": 0.9607,
+        "0.6": 0.9522,
+        "0.65": 0.9382,
+        "0.7": 0.9131,
+        "0.75": 0.8619,
+        "0.8": 0.7643,
+        "0.85": 0.6277,
+        "0.9": 0.3535,
+        "0.95": 0.0283
+      }
+    }
+  },
+  "latencyMs": {
+    "mean": 272.2,
+    "p50": 215.8,
+    "p95": 668.0,
+    "p99": 1037.0,
+    "first": 295.4,
+    "imagesPerSecond": 3.67
+  },
+  "byThreshold": {
+    "0.45": {
+      "Human": {
+        "tp": 416,
+        "fp": 113,
+        "fn": 7,
+        "precision": 0.7864,
+        "recall": 0.9835,
+        "f1": 0.8739,
+        "imageLevel": {
+          "tp": 170,
+          "fp": 0,
+          "fn": 0,
+          "tn": 0,
+          "falsePositiveRate": null
+        }
+      }
+    }
+  },
+  "slices": {
+    "_meaning": "images in the slice and how many had >= 1 detection of the class at the configured threshold. negative: any detection is a false alarm. smoke_only: smoke labelled, no fire labelled. small_fire: a fire box under 1% of the image. low_light_*: mean grey level < 60/255 (a brightness proxy, not a verified night label). Fog/steam/dust/reflections need human-tagged --images-list files.",
+    "negative": {
+      "Human": {
+        "images": 0,
+        "detected": 0
+      }
+    },
+    "smoke_only": {
+      "Human": {
+        "images": 0,
+        "detected": 0
+      }
+    },
+    "small_fire": {
+      "Human": {
+        "images": 0,
+        "detected": 0
+      }
+    },
+    "low_light_positive": {
+      "Human": {
+        "images": 170,
+        "detected": 170
+      }
+    },
+    "low_light_negative": {
+      "Human": {
+        "images": 0,
+        "detected": 0
+      }
+    }
+  },
+  "skippedDegenerateLabels": [],
+  "failures": {
+    "false_negatives": [
+      "FudanPed00037.jpg (Human: missed 1)",
+      "FudanPed00063.jpg (Human: missed 2)",
+      "PennPed00047.jpg (Human: missed 1)",
+      "PennPed00057.jpg (Human: missed 1)",
+      "PennPed00066.jpg (Human: missed 1)",
+      "PennPed00090.jpg (Human: missed 1)"
+    ],
+    "false_positives": [
+      "FudanPed00006.jpg (Human: 1 extra, max conf 0.88)",
+      "FudanPed00007.jpg (Human: 2 extra, max conf 0.88)",
+      "FudanPed00008.jpg (Human: 1 extra, max conf 0.86)",
+      "FudanPed00009.jpg (Human: 2 extra, max conf 0.87)",
+      "FudanPed00015.jpg (Human: 3 extra, max conf 0.91)",
+      "FudanPed00016.jpg (Human: 4 extra, max conf 0.90)",
+      "FudanPed00017.jpg (Human: 2 extra, max conf 0.88)",
+      "FudanPed00022.jpg (Human: 2 extra, max conf 0.93)",
+      "FudanPed00028.jpg (Human: 1 extra, max conf 0.93)",
+      "FudanPed00029.jpg (Human: 1 extra, max conf 0.90)",
+      "FudanPed00031.jpg (Human: 1 extra, max conf 0.91)",
+      "FudanPed00033.jpg (Human: 1 extra, max conf 0.85)",
+      "FudanPed00034.jpg (Human: 2 extra, max conf 0.92)",
+      "FudanPed00038.jpg (Human: 1 extra, max conf 0.88)",
+      "FudanPed00041.jpg (Human: 2 extra, max conf 0.88)",
+      "FudanPed00042.jpg (Human: 4 extra, max conf 0.90)",
+      "FudanPed00043.jpg (Human: 4 extra, max conf 0.86)",
+      "FudanPed00044.jpg (Human: 3 extra, max conf 0.92)",
+      "FudanPed00045.jpg (Human: 4 extra, max conf 0.88)",
+      "FudanPed00046.jpg (Human: 4 extra, max conf 0.88)",
+      "FudanPed00047.jpg (Human: 7 extra, max conf 0.86)",
+      "FudanPed00048.jpg (Human: 4 extra, max conf 0.91)",
+      "FudanPed00049.jpg (Human: 2 extra, max conf 0.89)",
+      "FudanPed00054.jpg (Human: 2 extra, max conf 0.91)",
+      "FudanPed00057.jpg (Human: 1 extra, max conf 0.90)",
+      "FudanPed00063.jpg (Human: 1 extra, max conf 0.91)",
+      "FudanPed00065.jpg (Human: 1 extra, max conf 0.92)",
+      "FudanPed00071.jpg (Human: 2 extra, max conf 0.90)",
+      "PennPed00001.jpg (Human: 2 extra, max conf 0.90)",
+      "PennPed00002.jpg (Human: 2 extra, max conf 0.89)",
+      "PennPed00003.jpg (Human: 2 extra, max conf 0.91)",
+      "PennPed00006.jpg (Human: 1 extra, max conf 0.87)",
+      "PennPed00007.jpg (Human: 1 extra, max conf 0.87)",
+      "PennPed00008.jpg (Human: 1 extra, max conf 0.90)",
+      "PennPed00009.jpg (Human: 5 extra, max conf 0.82)",
+      "PennPed00010.jpg (Human: 1 extra, max conf 0.84)",
+      "PennPed00016.jpg (Human: 1 extra, max conf 0.91)",
+      "PennPed00019.jpg (Human: 1 extra, max conf 0.87)",
+      "PennPed00023.jpg (Human: 2 extra, max conf 0.86)",
+      "PennPed00025.jpg (Human: 1 extra, max conf 0.82)",
+      "PennPed00027.jpg (Human: 2 extra, max conf 0.90)",
+      "PennPed00033.jpg (Human: 1 extra, max conf 0.87)",
+      "PennPed00035.jpg (Human: 1 extra, max conf 0.92)",
+      "PennPed00036.jpg (Human: 2 extra, max conf 0.90)",
+      "PennPed00039.jpg (Human: 2 extra, max conf 0.89)",
+      "PennPed00044.jpg (Human: 2 extra, max conf 0.90)",
+      "PennPed00047.jpg (Human: 1 extra, max conf 0.91)",
+      "PennPed00048.jpg (Human: 1 extra, max conf 0.90)",
+      "PennPed00049.jpg (Human: 1 extra, max conf 0.88)",
+      "PennPed00050.jpg (Human: 1 extra, max conf 0.88)",
+      "PennPed00056.jpg (Human: 1 extra, max conf 0.89)",
+      "PennPed00062.jpg (Human: 2 extra, max conf 0.90)",
+      "PennPed00063.jpg (Human: 2 extra, max conf 0.83)",
+      "PennPed00064.jpg (Human: 2 extra, max conf 0.84)",
+      "PennPed00067.jpg (Human: 2 extra, max conf 0.77)",
+      "PennPed00080.jpg (Human: 1 extra, max conf 0.91)",
+      "PennPed00084.jpg (Human: 1 extra, max conf 0.84)",
+      "PennPed00086.jpg (Human: 3 extra, max conf 0.89)"
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{% extends "sentinel/shell.html" %}
+{% load static %}
+{% block title %}Floor Plans · FireVision AI{% endblock %}
+{% block page %}
+<main class="page page-floorplans">
+  <section class="panel" aria-labelledby="plans-title">
+    <header class="panel-head">
+      <h2 id="plans-title" class="panel-title">Floor Plans</h2>
+      <button type="button" class="btn btn-sm btn-success" id="new-plan">+ New</button>
+    </header>
+    <div id="plan-list"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section class="panel" aria-labelledby="editor-title">
+    <header class="panel-head">
+      <h2 id="editor-title" class="panel-title">Editor</h2>
+      <span class="editing-only hidden row">
+        <label class="btn btn-sm">Upload image (PNG/JPG)<input type="file" accept="image/png,image/jpeg" class="sr-only" id="plan-image"></label>
+        <button type="button" class="btn btn-sm btn-success" id="save-plan" disabled>Save</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="delete-plan">Delete plan</button>
+      </span>
+    </header>
+    <div class="editing-only hidden">
+      <div class="toolbar" role="toolbar" aria-label="Drawing tools" id="tools">
+        <button type="button" class="seg-btn active" data-tool="select">Select / Move</button>
+        <button type="button" class="seg-btn" data-tool="pan">Pan</button>
+        <button type="button" class="seg-btn" data-tool="Room">+ Room</button>
+        <button type="button" class="seg-btn" data-tool="Corridor">+ Corridor</button>
+        <button type="button" class="seg-btn" data-tool="Wall">+ Wall</button>
+        <button type="button" class="seg-btn" data-tool="Door">+ Door</button>
+        <button type="button" class="seg-btn" data-tool="Exit">+ Exit</button>
+        <button type="button" class="seg-btn" data-tool="SafeZone">+ Safe zone</button>
+        <button type="button" class="seg-btn" data-tool="DangerZone">+ Danger zone</button>
+      </div>
+      <div class="panel-body" style="padding:8px">
+        <div id="editor-map"></div>
+        <p class="tiny muted" style="margin-top:8px">Drag on the plan to draw the selected element (1 grid square = 1 m). <b>Select / Move</b>: drag an element to
+          move it, drag the cyan corner to resize, <kbd>Delete</kbd> to remove. Mouse wheel zooms. An uploaded image is only a background to trace over:
+          walls, rooms and exits are not detected from it.</p>
+      </div>
+    </div>
+    <p class="empty" id="no-plan">Select or create a floor plan.</p>
+  </section>
+
+  <aside class="col editing-only hidden">
+    <form class="panel panel-body stack" id="plan-form" novalidate>
+      <h3 class="panel-title">Plan settings</h3>
+      <label class="field"><span>Name</span><input class="input" name="name" maxlength="120" required>
+        <span class="error hidden" data-error="name">Name is required.</span></label>
+      <label class="field"><span>Building</span><input class="input" name="building" maxlength="120" placeholder="e.g. Warehouse"></label>
+      <div class="grid-3">
+        <label class="field"><span>Floor</span><input class="input" type="number" name="floorNumber" min="-10" max="200"></label>
+        <label class="field"><span>Width (m)</span><input class="input" type="number" name="widthMeters" min="1" max="1000"></label>
+        <label class="field"><span>Height (m)</span><input class="input" type="number" name="heightMeters" min="1" max="1000"></label>
+      </div>
+      <span class="error-text tiny hidden" data-error="size">Width and height must be 1–1000 m.</span>
+      <p class="tiny muted">The background image is stretched to this size, so set it to the real building dimensions.</p>
+    </form>
+
+    <section class="panel panel-body stack" aria-label="Selected element" id="element-panel"></section>
+
+    <section class="panel panel-body stack" aria-label="Camera calibration">
+      <h3 class="panel-title">Camera calibration</h3>
+      <p class="tiny muted">Links a camera to this plan, so people it sees appear as amber dots in the dashboard's evacuation panel.
+        Choose 4 floor corners that the camera sees. <b>Camera px</b>: read x, y from a camera snapshot (Paint shows them at the bottom).
+        <b>Plan m</b>: type them, or press <b>Plan m ⌖</b> and click the plan. Save the plan first.</p>
+      <select class="input" id="calib-camera" aria-label="Camera"><option value="">Choose a camera…</option></select>
+      <div id="calib-rows"></div>
+    </section>
+
+    <section class="panel panel-body" aria-label="Legend">
+      <h3 class="panel-title" style="margin-bottom:8px">Legend</h3>
+      <ul class="legend">
+        <li><span class="swatch" style="border:1px solid #94a3b8;background:rgb(148 163 184 / .1)"></span>Room</li>
+        <li><span class="swatch" style="border:1px dashed #60a5fa;background:rgb(96 165 250 / .1)"></span>Corridor</li>
+        <li><span class="swatch" style="background:#cbd5e1"></span>Wall</li>
+        <li><span class="swatch" style="background:#f59e0b"></span>Door</li>
+        <li><span class="swatch" style="background:rgb(34 197 94 / .6)"></span>Exit</li>
+        <li><span class="swatch" style="border:1px solid #22c55e;background:rgb(34 197 94 / .2)"></span>Safe zone</li>
+        <li><span class="swatch" style="border:1px dashed #ef4444;background:rgb(239 68 68 / .2)"></span>Danger zone</li>
+        <li><span class="swatch" style="background:rgb(239 68 68 / .5)"></span>Blocked</li>
+      </ul>
+    </section>
+  </aside>
+</main>
+{% endblock %}
+{% block scripts %}{{ block.super }}<script type="module" src="{% static 'sentinel/js/floorplans.js' %}"></script>{% endblock %}

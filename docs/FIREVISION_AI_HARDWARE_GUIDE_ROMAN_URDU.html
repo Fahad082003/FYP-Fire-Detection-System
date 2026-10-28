@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="ur-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FireVision AI Hardware Guide</title>
+<style>
+:root {
+  --bg: #f7f8fa; --panel: #ffffff; --text: #1e293b; --muted: #64748b; --line: #e2e8f0;
+  --accent: #dc2626; --accent-soft: #fef2f2; --link: #1d4ed8; --code-bg: #f1f5f9; --code-text: #9f1239;
+  --pre-bg: #0b1220; --pre-text: #e2e8f0; --th-bg: #0f172a; --th-text: #ffffff; --row-alt: #f8fafc;
+  --note-bg: #fff7ed; --note-line: #f59e0b; --mark: #fde68a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f17; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937;
+    --accent: #f87171; --accent-soft: #2a1215; --link: #93c5fd; --code-bg: #1f2937; --code-text: #fda4af;
+    --pre-bg: #030712; --pre-text: #e5e7eb; --th-bg: #1f2937; --th-text: #f9fafb; --row-alt: #0f1623;
+    --note-bg: #2a1d0a; --note-line: #f59e0b; --mark: #854d0e;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f17; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937;
+  --accent: #f87171; --accent-soft: #2a1215; --link: #93c5fd; --code-bg: #1f2937; --code-text: #fda4af;
+  --pre-bg: #030712; --pre-text: #e5e7eb; --th-bg: #1f2937; --th-text: #f9fafb; --row-alt: #0f1623;
+  --note-bg: #2a1d0a; --note-line: #f59e0b; --mark: #854d0e;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 "Segoe UI", system-ui, -apple-system, Arial, sans-serif; }
+a { color: var(--link); }
+header.top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--panel); border-bottom: 1px solid var(--line); }
+header.top .brand { font-weight: 800; letter-spacing: .12em; color: var(--accent); white-space: nowrap; }
+header.top .sub { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+header.top .spacer { flex: 1; }
+header.top input { width: min(320px, 40vw); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
+button.icon { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 14px; }
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
+nav.toc { position: sticky; top: 57px; height: calc(100vh - 57px); overflow-y: auto; padding: 16px 12px 40px 16px; border-right: 1px solid var(--line); }
+nav.toc ul { list-style: none; margin: 0; padding: 0; }
+nav.toc li.part { margin: 16px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+nav.toc a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.4; }
+nav.toc a:hover { background: var(--accent-soft); }
+nav.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+main { padding: 24px 40px 80px; min-width: 0; }
+.hero { background: linear-gradient(135deg, #0b1220, #2a0f12); color: #f1f5f9; border-radius: 14px; padding: 28px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .14em; border: 0; color: #fff; }
+.hero p { margin: 0; color: #cbd5e1; max-width: 760px; }
+.hero .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px; }
+.hero .stats div { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.hero .stats b { display: block; color: #fff; font-size: 18px; }
+.part-label { margin: 40px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+section.chapter { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 28px 20px; margin: 14px 0 22px; }
+h1 { font-size: 26px; margin: 18px 0 12px; padding-bottom: 8px; border-bottom: 3px solid var(--accent); }
+h2 { font-size: 20px; margin: 26px 0 8px; }
+h3 { font-size: 17px; margin: 22px 0 6px; color: var(--accent); }
+p, li { overflow-wrap: anywhere; }
+code { font-family: "Cascadia Code", Consolas, monospace; font-size: .88em; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 4px; }
+pre { position: relative; background: var(--pre-bg); color: var(--pre-text); border-radius: 8px; padding: 14px 16px; overflow-x: auto; border-left: 3px solid var(--accent); font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre button.copy { position: absolute; top: 8px; right: 8px; font-size: 12px; padding: 3px 8px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; opacity: .8; }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th { background: var(--th-bg); color: var(--th-text); text-align: left; padding: 8px 10px; white-space: nowrap; }
+td { padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+tr:nth-child(even) td { background: var(--row-alt); }
+blockquote { margin: 0 0 14px; padding: 10px 14px; background: var(--note-bg); border-left: 4px solid var(--note-line); border-radius: 6px; }
+blockquote p { margin: 4px 0; }
+img { max-width: 100%; height: auto; display: block; margin: 8px auto 16px; border-radius: 8px; border: 1px solid var(--line); }
+td img { margin: 0; }
+mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 3px; }
+.hidden { display: none !important; }
+#noresult { color: var(--muted); padding: 20px 0; }
+li.task { list-style: none; margin-left: -22px; }
+li.task input { width: 17px; height: 17px; margin: 0 6px 0 0; vertical-align: -3px; accent-color: #16a34a; cursor: pointer; }
+li.task:has(input:checked) { color: var(--muted); text-decoration: line-through; }
+.progress { display: flex; align-items: center; gap: 12px; margin-top: 16px; font-size: 14px; color: #e2e8f0; flex-wrap: wrap; }
+.progress i { flex: 1; min-width: 120px; height: 8px; background: rgba(255,255,255,.15); border-radius: 99px; overflow: hidden; }
+.progress i b { display: block; height: 100%; width: 0; background: #22c55e; transition: width .3s; }
+.progress .icon { background: transparent; color: #e2e8f0; border-color: rgba(255,255,255,.25); }
+#totop { position: fixed; right: 16px; bottom: 16px; z-index: 30; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  nav.toc { position: static; height: auto; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); display: none; }
+  body.toc-open nav.toc { display: block; }
+  main { padding: 16px 16px 72px; }
+  section.chapter { padding: 4px 16px 14px; }
+  header.top .sub { display: none; }
+  header.top input { width: 100%; }
+  .hero { padding: 20px; } .hero h1 { font-size: 26px; }
+}
+@media (min-width: 901px) { #menu { display: none; } }
+@media print { header.top, nav.toc, #totop, pre button.copy { display: none !important; } .layout { display: block; } section.chapter { break-inside: auto; border: 0; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="icon" id="menu" aria-label="Fehrist dikhayein">☰</button>
+  <span class="brand">FIREVISION AI</span>
+  <span class="sub">Hardware Guide · Asli camera, sensor, relay aur alerts jorna · Roman Urdu</span>
+  <span class="spacer"></span>
+  <input id="q" type="search" placeholder="Search… (jaise: RTSP, ESP32, Twilio, firewall)" aria-label="Guide mein search">
+  <button class="icon" id="theme" aria-label="Dark ya light mode">◐</button>
+</header>
+<div class="layout">
+  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kya Hai?</a></li><li><a href="#ch2" data-ch="2">2. Shuru Se Pehle: Checklist</a></li><li><a href="#ch3" data-ch="3">3. Network: API Ko Doosre Devices Ke Liye Kholna</a></li><li class="part">B · Camera, sensor aur relay</li><li><a href="#ch4" data-ch="4">4. CCTV / IP Camera Jorna</a></li><li><a href="#ch5" data-ch="5">5. Smoke Aur Temperature Sensor Jorna</a></li><li><a href="#ch6" data-ch="6">6. Sprinkler Relay Jorna</a></li><li class="part">C · SMS, Email aur Push</li><li><a href="#ch7" data-ch="7">7. SMS Alerts (Twilio)</a></li><li><a href="#ch8" data-ch="8">8. Email Alerts (SMTP, misaal Gmail)</a></li><li><a href="#ch9" data-ch="9">9. Browser Push Notifications</a></li><li class="part">D · Active karna, masle aur hifazat</li><li><a href="#ch10" data-ch="10">10. Sab Ko Active Karna: Tarteeb</a></li><li><a href="#ch11" data-ch="11">11. Masle Aur Hal</a></li><li><a href="#ch12" data-ch="12">12. Hifazat Ki Baatein</a></li></ul></nav>
+  <main>
+    <div class="hero">
+      <h1>FIREVISION AI</h1>
+      <p>Asli CCTV camera, smoke/temperature sensor, sprinkler relay, SMS, Email aur browser push ko system se kaise jorein: kya chahiye, kahan se milega, kaun si setting kahan likhni hai, aur kaise check karein ke kaam kar raha hai.</p>
+      <div class="stats"><div><b>RTSP</b>IP camera Devices page se</div><div><b>ESP32</b>Sensor aur relay, device key se</div><div><b>Twilio · SMTP</b>SMS aur Email ki settings</div><div><b>Checklist</b>Tick karein, progress yaad rahe</div></div>
+      <div id="progress" class="progress hidden"><span></span><i><b></b></i><button class="icon" id="reset">Ticks saaf karein</button></div>
+    </div>
+    <p class="part-label">A · Shuru</p><section class="chapter" data-ch="1"><h1 id="ch1">1. Ye Guide Kya Hai?</h1>
+<p>Ye guide batati hai ke <strong>asli camera, sensor, sprinkler relay, SMS, Email aur Push</strong> ko FireVision AI se kaise jorna hai: kya chahiye, kahan se milega, kaun si setting kahan likhni hai, aur kaise check karein ke kaam kar raha hai.</p>
+<blockquote>
+<p>⚠️ <strong>Sab se pehle:</strong> FireVision AI ek <strong>madadgar</strong> system hai, certified fire alarm nahi. Asli sprinkler valve ya building ke fire panel ko <strong>khud na jorein</strong>. Ye kaam licensed electrician aur fire-safety engineer ka hai. Demo ke liye relay par <strong>LED ya buzzer</strong> lagayein.</p>
+</blockquote>
+<h3 id="ch1-kaun-si-cheez-kis-raaste-se-judti-hai">Kaun si cheez kis raaste se judti hai</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Hardware</th>
+<th>Kis raaste se system tak</th>
+<th>Kahan set hota hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CCTV / IP camera</strong></td>
+<td>Camera ka RTSP link → AI service video parhti hai</td>
+<td>Dashboard → <strong>Devices</strong> page</td>
+</tr>
+<tr>
+<td><strong>Camera browser mein dikhana</strong></td>
+<td>MJPEG ya HLS link (RTSP browser nahi chala sakta)</td>
+<td>Devices page → "Browser video format"</td>
+</tr>
+<tr>
+<td><strong>Smoke / temperature sensor</strong></td>
+<td>ESP32 (ya gateway) → <code>POST /api/iot/telemetry</code></td>
+<td>Sensor database mein (SQL), key <code>.env</code> mein</td>
+</tr>
+<tr>
+<td><strong>Sprinkler relay</strong></td>
+<td>ESP32 → <code>GET /api/iot/sprinklers</code> se haal poochhta hai → relay ON/OFF</td>
+<td>Sprinkler database mein (SQL)</td>
+</tr>
+<tr>
+<td><strong>SMS</strong></td>
+<td>Twilio</td>
+<td><code>.env</code></td>
+</tr>
+<tr>
+<td><strong>Email</strong></td>
+<td>SMTP (jaise Gmail)</td>
+<td><code>.env</code></td>
+</tr>
+<tr>
+<td><strong>Browser push</strong></td>
+<td>VAPID keys</td>
+<td><code>.env</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Device key:</strong> camera ke AI, sensors aur relay sab ek hi khufia key bhejte hain: header <code>X-Device-Key</code>, value <code>.env</code> ka <code>Device__ApiKey</code>. Ye na ho to API <strong>401</strong> deti hai.</p>
+<hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Shuru Se Pehle: Checklist</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Kya</th>
+<th>Kahan / kaise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Project chal raha ho</td>
+<td><code>.\start.ps1</code> (user guide, chapter 5)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>.env</code> mein <code>Device__ApiKey</code></td>
+<td>Lamba random text. PowerShell: <code>[Convert]::ToBase64String((1..32 \| % {Get-Random -Max 256}))</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>.env</code> mein <code>Jwt__SigningKey</code></td>
+<td>Kam az kam 32 harf, random</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Zone ke naam tay</td>
+<td>"Manzil - Jagah", jaise <code>Ground Floor - Kitchen</code>. Camera, sensor, sprinkler aur naqshe mein <strong>bilkul ek jaisa</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Sab devices ek hi network (WiFi/LAN) par</td>
+<td>Camera, ESP32 aur server PC</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Server PC ka IP</td>
+<td>PowerShell: <code>ipconfig</code> → "IPv4 Address", jaise <code>192.168.1.10</code></td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>💡 <strong>Test ke dauran:</strong> pehle <code>.env</code> mein SMS/Email band rakhein (Safe Test Mode, user guide chapter 4). Jab sab kaam kare, tab asli numbers daalein.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="3"><h1 id="ch3">3. Network: API Ko Doosre Devices Ke Liye Kholna</h1>
+<p>Aam taur par API sirf usi PC par chalti hai (<code>localhost:5291</code>). Camera wali AI service usi PC par ho to kuch nahi karna. Lekin <strong>ESP32 sensor/relay</strong> doosra device hai, is liye API ko network par kholna hoga.</p>
+<p><strong>1. Server ko network par sunne dein</strong> (Server wali window mein, <code>start.ps1</code> ki jagah). <code>SENTINEL_ALLOWED_HOSTS</code> mein is PC ka IP bhi daalein, warna Django doosre device ki request ko 400 de deta hai:</p>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+$env:SENTINEL_ALLOWED_HOSTS = 'localhost,127.0.0.1,192.168.1.10'
+.\.venv\Scripts\python -m uvicorn config.asgi:application --host 0.0.0.0 --port 5291
+</code></pre>
+<p><strong>2. Windows Firewall mein port kholein</strong> (PowerShell <strong>Run as Administrator</strong>, ek dafa):</p>
+<pre><code class="language-powershell">New-NetFirewallRule -DisplayName &quot;FireVision API 5291&quot; -Direction Inbound -Protocol TCP -LocalPort 5291 -Action Allow
+</code></pre>
+<p><strong>3. Check:</strong> doosre device ke browser se <code>http://192.168.1.10:5291/health</code> kholein. <code>{"status":"ok"}</code> aana chahiye.</p>
+<blockquote>
+<p>⚠️ Ye <strong>HTTP</strong> hai, encryption nahi. Device key network par saaf likhi jati hai. Sirf <strong>ghar ya office ke private network</strong> par istemaal karein, kabhi internet par khula na chhorein.
+ℹ️ Django server dashboard bhi isi port (<code>5291</code>) par deta hai, is liye upar wale qadam ke baad doosre PC ke browser se <code>http://192.168.1.10:5291</code> khul sakta hai. Ye is migration mein <strong>test nahi hua</strong>; aur HTTP par login password bhi saaf jata hai, is liye sirf private network.</p>
+</blockquote>
+<hr /></section><p class="part-label">B · Camera, sensor aur relay</p><section class="chapter" data-ch="4"><h1 id="ch4">4. CCTV / IP Camera Jorna</h1>
+<h3 id="ch4-a-camera-se-kya-chahiye">A. Camera se kya chahiye</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Kahan milegi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Camera ka <strong>IP</strong></td>
+<td>Camera ki app/NVR, ya router ki "connected devices" list</td>
+</tr>
+<tr>
+<td><strong>Username / password</strong></td>
+<td>Camera setup ke waqt banaya hua</td>
+</tr>
+<tr>
+<td><strong>RTSP link</strong></td>
+<td>Camera ke manual ya company ki website par</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Aam RTSP links</strong> (company ke hisaab se, manual se pakka karein):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Company</th>
+<th>Link ki shakal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hikvision</td>
+<td><code>rtsp://user:pass@192.168.1.20:554/Streaming/Channels/101</code></td>
+</tr>
+<tr>
+<td>Dahua</td>
+<td><code>rtsp://user:pass@192.168.1.20:554/cam/realmonitor?channel=1&amp;subtype=0</code></td>
+</tr>
+<tr>
+<td>Doosri</td>
+<td>Manual mein "RTSP URL" dhoondein</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Link check karein:</strong> VLC → Media → Open Network Stream → link daalein. Video chale to link sahi hai.</p>
+<h3 id="ch4-b-system-mein-daalna">B. System mein daalna</h3>
+<ol>
+<li>Admin login → <strong>Devices</strong> → <strong>+ Camera</strong>.</li>
+<li>Id (<code>cam-kitchen</code>), Name ("Kitchen Camera"), Zone (<code>Ground Floor - Kitchen</code>).</li>
+<li><strong>Stream link:</strong> RTSP link.</li>
+<li><strong>Browser video format:</strong> <strong>Simulated</strong>. Browser RTSP nahi chala sakta, is liye tile par asli video nahi, sirf AI ke dabbe dikhenge (C dekhein).</li>
+<li><strong>Save.</strong> AI service (jo <code>start.ps1</code> se device key ke saath chalti hai) <strong>1 minute ke andar</strong> camera utha leti hai.</li>
+</ol>
+<p><strong>Check:</strong> dashboard → <strong>AI</strong> page → "Camera sources" mein <code>cam-kitchen · stream · running</code>.</p>
+<blockquote>
+<p>🔒 Password dashboard par <code>rtsp://***@…</code> dikhta hai. Poora link sirf AI service ko jata hai. Database mein ye saaf likha hota hai, is liye database ka backup bhi hifazat se rakhein.</p>
+</blockquote>
+<h3 id="ch4-c-tile-par-asli-video-bhi-dikhani-ho">C. Tile par asli video bhi dikhani ho</h3>
+<p>Browser <strong>MJPEG</strong> ya <strong>HLS</strong> chala sakta hai. RTSP ko badalne ke liye camera aur server ke beech ek converter chahiye, jaise <strong>go2rtc</strong> ya <strong>MediaMTX</strong> (free, open source; GitHub se download karein).</p>
+<ol>
+<li>Converter mein camera ka RTSP link daalein. Ye ek <strong>MJPEG</strong> (ya HLS) link deta hai, jo us ke web page par copy ho sakta hai.</li>
+<li>Devices par camera <strong>Edit</strong> karein: Stream link = converter ka MJPEG link, format = <strong>Mjpeg</strong>.</li>
+<li>Ab tile par video aur AI dono <strong>usi ek link</strong> se chalte hain.</li>
+</ol>
+<blockquote>
+<p>ℹ️ Converter ka sahi link aur port us tool ke apne web page/README par dekhein. Hum ne go2rtc/MediaMTX ko is system ke saath test nahi kiya.</p>
+</blockquote>
+<p><strong>Test hua (19 Oct):</strong> hum ne apna test camera (<code>tools/mjpeg_camera.py</code>, MJPEG) Devices par <strong>Mjpeg</strong> format se daala. Edge mein tile par asli video chali aur AI ke dabbe track number ke saath aaye:</p>
+<p><img alt="MJPEG camera ki live tile" src="images/live-mjpeg-tile.png" /></p>
+<blockquote>
+<p>💡 Dabbe sirf us tile par bante hain jo <strong>screen par nazar aa rahi ho</strong> (CPU bachane ke liye). Neeche wali tile par scroll karein to wo bhi LIVE ho jati hai.</p>
+</blockquote>
+<h3 id="ch4-d-camera-lagane-ke-tips">D. Camera lagane ke tips</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Karein</th>
+<th>Kyun</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Camera <strong>pakka</strong> lagayein, hile nahi</td>
+<td>Calibration aur danger zones kharab ho jate hain</td>
+</tr>
+<tr>
+<td><strong>Exposure automatic</strong> rakhein</td>
+<td>Bohat kaali tasveer mein AI aag nahi dekh pati (test mein 2%)</td>
+</tr>
+<tr>
+<td>Dhund/bhaap wali jagah (kitchen, boiler) par <strong>smoke sensor bhi</strong></td>
+<td>Dhund mein AI aag 73% hi pakadti hai</td>
+</tr>
+<tr>
+<td>Bijli ke liye <strong>UPS/PoE</strong></td>
+<td>Aag mein bijli jaye to camera band, "Camera lost" alert aata hai</td>
+</tr>
+<tr>
+<td>Har camera ke baad <strong>calibration</strong></td>
+<td>Insaan naqshe par sahi jagah dikhe (Features guide, chapter 6)</td>
+</tr>
+<tr>
+<td>Ek kamre ke saare camera ka <strong>ek hi zone</strong></td>
+<td>Log ek dafa gine jate hain (har zone ki sab se bari ginti). Do alag kamron ko ek zone na dein, warna ginti kam aayegi</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ch4-e-kitne-cameras-chalenge">E. Kitne cameras chalenge</h3>
+<p>Is PC (CPU, GPU nahi) par AI service ek waqt mein ek frame dekhti hai:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cameras</th>
+<th>Har camera kitni baar dekha jata hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>~2 dafa / second</td>
+</tr>
+<tr>
+<td>3</td>
+<td>~0.6 dafa / second (aag ki tasdeeq ~5 second)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Zyada cameras ke liye taqatwar PC ya GPU chahiye (audit report, section E).</p>
+<hr /></section><section class="chapter" data-ch="5"><h1 id="ch5">5. Smoke Aur Temperature Sensor Jorna</h1>
+<h3 id="ch5-a-kya-khareedna-hai-demo-ke-liye">A. Kya khareedna hai (demo ke liye)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Kaam</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ESP32</strong> board</td>
+<td>WiFi se readings bhejta hai, relay chalata hai</td>
+<td>Arduino IDE se program hota hai</td>
+</tr>
+<tr>
+<td><strong>MQ-2</strong> smoke sensor</td>
+<td>Dhuwan/gas</td>
+<td>⚠️ Is ki reading <strong>ppm nahi</strong> hoti jab tak calibrate na karein. Demo ke liye raw value ka andaza</td>
+</tr>
+<tr>
+<td><strong>DHT22</strong> ya <strong>DS18B20</strong></td>
+<td>Temperature (°C)</td>
+<td>Seedha °C deta hai</td>
+</tr>
+<tr>
+<td>Asli building ke liye</td>
+<td><strong>Certified</strong> smoke/heat detector + gateway</td>
+<td>Gateway ko neeche wali API se jorein</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ch5-b-sensor-ko-system-mein-register-karna-sql-ek-dafa">B. Sensor ko system mein register karna (SQL, ek dafa)</h3>
+<p>Sensors ka abhi koi page nahi hai, is liye database mein daalein (<strong>API band karke</strong>, ya chalti mein bhi chalega). Phir dashboard <strong>reload</strong> karein:</p>
+<pre><code class="language-sql">INSERT INTO SensorNodes (Id, Type, CurrentValue, Threshold, LocationZone, UpdatedAt) VALUES
+  (N'smoke-kitchen1', N'Smoke',       0,  300, N'Ground Floor - Kitchen', SYSUTCDATETIME()),
+  (N'temp-kitchen1',  N'Temperature', 25, 57,  N'Ground Floor - Kitchen', SYSUTCDATETIME());
+</code></pre>
+<p>Chalane ka tareeqa (file mein save karke):</p>
+<pre><code class="language-powershell">sqlcmd -S localhost -E -C -d SentinelDb -i sensors.sql
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Matlab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>Sensor ka pakka naam; ESP32 yahi bhejega</td>
+</tr>
+<tr>
+<td><code>Type</code></td>
+<td><code>Smoke</code> (ppm) ya <code>Temperature</code> (°C), bilkul isi spelling mein</td>
+</tr>
+<tr>
+<td><code>Threshold</code></td>
+<td>Alarm ki had. Smoke 300 ppm, temperature 57 °C (sprinkler bulb ka standard)</td>
+</tr>
+<tr>
+<td><code>LocationZone</code></td>
+<td>Camera aur sprinkler wala <strong>wahi</strong> zone</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Darje khud bante hain:</strong> had ka 80% = Warning, had paar = <strong>Alarm</strong>, had ×1.5 (smoke) ya ×1.25 (temp) = <strong>Critical</strong>.</p>
+<h3 id="ch5-c-reading-bhejna-api">C. Reading bhejna (API)</h3>
+<pre><code>POST http://192.168.1.10:5291/api/iot/telemetry
+Header: X-Device-Key: &lt;Device__ApiKey&gt;
+Header: Content-Type: application/json
+Body:   {&quot;readings&quot;:[{&quot;sensorId&quot;:&quot;smoke-kitchen1&quot;,&quot;value&quot;:40},{&quot;sensorId&quot;:&quot;temp-kitchen1&quot;,&quot;value&quot;:26}]}
+</code></pre>
+<p>Jawab: <code>{"updated":["smoke-kitchen1","temp-kitchen1"],"errors":[]}</code></p>
+<ul>
+<li>Har <strong>2–5 second</strong> baad bhejein.</li>
+<li>Ghalat <code>sensorId</code> par <code>"Sensor ... not found"</code> aata hai.</li>
+<li>Ye asli data hai, is liye <code>"simulated"</code> <strong>mat</strong> bhejein (ya <code>false</code>). <code>true</code> sirf test ke liye hai; us par sprinkler khud nahi chalte.</li>
+</ul>
+<h3 id="ch5-d-esp32-ka-namoona-code-arduino">D. ESP32 ka namoona code (Arduino)</h3>
+<blockquote>
+<p>⚠️ <strong>Misaal hai, hum ne ESP32 par chala kar nahi dekha.</strong> API ka hissa (yahi JSON aur header) asli API par test hua hai.</p>
+</blockquote>
+<pre><code class="language-cpp">#include &lt;WiFi.h&gt;
+#include &lt;HTTPClient.h&gt;
+
+const char* WIFI_NAME = &quot;AapKaWiFi&quot;;
+const char* WIFI_PASS = &quot;wifi-password&quot;;
+const char* API = &quot;http://192.168.1.10:5291&quot;;   // server PC ka IP
+const char* KEY = &quot;yahan-Device__ApiKey&quot;;        // .env wali key
+const int SMOKE_PIN = 34;                        // MQ-2 ka analog pin
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(WIFI_NAME, WIFI_PASS);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+}
+
+void loop() {
+  int raw = analogRead(SMOKE_PIN);   // 0..4095, ppm NAHI: calibration chahiye
+  float smoke = raw / 10.0;          // demo ka andaza
+  HTTPClient http;
+  http.begin(String(API) + &quot;/api/iot/telemetry&quot;);
+  http.addHeader(&quot;Content-Type&quot;, &quot;application/json&quot;);
+  http.addHeader(&quot;X-Device-Key&quot;, KEY);
+  String body = &quot;{\&quot;readings\&quot;:[{\&quot;sensorId\&quot;:\&quot;smoke-kitchen1\&quot;,\&quot;value\&quot;:&quot; + String(smoke) + &quot;}]}&quot;;
+  int code = http.POST(body);
+  Serial.printf(&quot;telemetry %d\n&quot;, code);   // 200 = theek, 401 = key ghalat
+  http.end();
+  delay(3000);
+}
+</code></pre>
+<h3 id="ch5-e-check">E. Check</h3>
+<ol>
+<li>Dashboard → <strong>Sensor Telemetry</strong> mein <code>smoke-kitchen1</code> ka gauge hilne lage.</li>
+<li>Sensor ke paas agarbatti (dhuwan) le jayein: Warning → Alarm.</li>
+<li>Alarm par <strong>Alert Logs</strong> mein "Sensor" incident aaye.</li>
+</ol>
+<hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Sprinkler Relay Jorna</h1>
+<h3 id="ch6-a-system-relay-ko-kaise-batata-hai">A. System relay ko kaise batata hai</h3>
+<p>System relay ko <strong>khud signal nahi bhejta</strong>. Relay (ESP32) har 1–2 second baad <strong>poochhta</strong> hai:</p>
+<pre><code>GET http://192.168.1.10:5291/api/iot/sprinklers
+Header: X-Device-Key: &lt;Device__ApiKey&gt;
+</code></pre>
+<p>Jawab:</p>
+<pre><code class="language-json">[{&quot;id&quot;:&quot;spr-kitchen1&quot;,&quot;zone&quot;:&quot;Ground Floor - Kitchen&quot;,&quot;isActive&quot;:true,&quot;mode&quot;:&quot;Auto&quot;, ...}]
+</code></pre>
+<p><code>isActive: true</code> = relay <strong>ON</strong>, <code>false</code> = <strong>OFF</strong>.</p>
+<blockquote>
+<p>✅ Hum ne asli API par test kiya: smoke 350 bheja (had 300), aur <code>spr-kitchen1</code> khud <code>isActive: true</code> ho gaya.</p>
+</blockquote>
+<h3 id="ch6-b-sprinkler-register-karna-sql-ek-dafa">B. Sprinkler register karna (SQL, ek dafa)</h3>
+<pre><code class="language-sql">INSERT INTO SmartSprinklers (Id, Zone, IsActive, Mode, UpdatedAt) VALUES
+  (N'spr-kitchen1', N'Ground Floor - Kitchen', 0, N'Auto', SYSUTCDATETIME());
+</code></pre>
+<ul>
+<li><code>Mode</code>: <strong><code>Auto</code></strong> = aag par system khud chalaye, <strong><code>Manual</code></strong> = sirf operator.</li>
+<li>Dashboard par baad mein badal sakte hain.</li>
+</ul>
+<h3 id="ch6-c-esp32-relay-ka-namoona-upar-wale-code-mein-add-karein">C. ESP32 relay ka namoona (upar wale code mein add karein)</h3>
+<pre><code class="language-cpp">const int RELAY_PIN = 26;   // demo: relay par LED/buzzer
+
+void checkSprinkler() {
+  HTTPClient http;
+  http.begin(String(API) + &quot;/api/iot/sprinklers&quot;);
+  http.addHeader(&quot;X-Device-Key&quot;, KEY);
+  if (http.GET() == 200) {
+    String json = http.getString();
+    int i = json.indexOf(&quot;\&quot;spr-kitchen1\&quot;&quot;);
+    bool on = i &gt;= 0 &amp;&amp; json.indexOf(&quot;\&quot;isActive\&quot;:true&quot;, i) == json.indexOf(&quot;\&quot;isActive\&quot;&quot;, i);
+    digitalWrite(RELAY_PIN, on ? HIGH : LOW);
+  }
+  http.end();
+}
+// setup() mein: pinMode(RELAY_PIN, OUTPUT); digitalWrite(RELAY_PIN, LOW);
+// loop() mein: checkSprinkler();
+</code></pre>
+<blockquote>
+<p>⚠️ Misaal hai, ESP32 par test nahi hua. Asli kaam ke liye <strong>ArduinoJson</strong> library se JSON parse karein.</p>
+</blockquote>
+<h3 id="ch6-d-zaroori-hifazat">D. Zaroori hifazat</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Baat</th>
+<th>Kyun</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Network ya API band ho to relay <strong>pichli halat</strong> mein rehta hai</td>
+<td>Design aap ka; fire sprinklers ke liye building ka <strong>apna</strong> system zaroori</td>
+</tr>
+<tr>
+<td>System sprinkler <strong>khud OFF nahi</strong> karta</td>
+<td>Aag ke baad operator dashboard se OFF kare</td>
+</tr>
+<tr>
+<td>Test data (<code>simulated</code>) par Auto sprinkler <strong>nahi</strong> chalta</td>
+<td>Asli valve test mein na khul jaye</td>
+</tr>
+<tr>
+<td>Asli valve sirf professional jore</td>
+<td>Paani, bijli aur insurance ka masla</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></section><p class="part-label">C · SMS, Email aur Push</p><section class="chapter" data-ch="7"><h1 id="ch7">7. SMS Alerts (Twilio)</h1>
+<h3 id="ch7-kahan-se-milega">Kahan se milega</h3>
+<ol>
+<li><strong>twilio.com</strong> par account banayein.</li>
+<li>Twilio Console ke dashboard par <strong>Account SID</strong> aur <strong>Auth Token</strong> milte hain.</li>
+<li>Console se ek <strong>phone number</strong> lein (ye "From" number hai).</li>
+<li>⚠️ <strong>Trial account</strong> sirf <strong>verified</strong> numbers par SMS bhejta hai. Apna number Console mein verify karein.</li>
+</ol>
+<h3 id="ch7-env-mein-likhein"><code>.env</code> mein likhein</h3>
+<pre><code>Notifications__Sms__TwilioAccountSid=AC................................
+Notifications__Sms__TwilioAuthToken=................................
+Notifications__Sms__FromNumber=+1XXXXXXXXXX
+Notifications__Sms__Recipients=+923001234567,+923331234567
+</code></pre>
+<ul>
+<li>Number hamesha <strong>+92</strong> wali shakal mein (E.164). Kai numbers comma se.</li>
+<li>API dobara chalayein (<code>.env</code> start par parhi jati hai).</li>
+</ul>
+<h3 id="ch7-kab-jata-hai">Kab jata hai</h3>
+<p>Sirf <strong>emergency</strong> par: Critical incident, insaan danger zone mein, ya Emergency Dispatch.</p>
+<p><strong>Check:</strong> dashboard → <strong>Emergency Dispatch</strong> → Dispatch Now → phone par SMS. <strong>Live Event Log</strong> mein "SMS sent" ya error.</p>
+<hr /></section><section class="chapter" data-ch="8"><h1 id="ch8">8. Email Alerts (SMTP, misaal Gmail)</h1>
+<h3 id="ch8-kahan-se-milega-gmail">Kahan se milega (Gmail)</h3>
+<ol>
+<li>Google account mein <strong>2-Step Verification</strong> on karein.</li>
+<li><strong>myaccount.google.com/apppasswords</strong> par ek <strong>App Password</strong> banayein (16 harf). Asli Gmail password <strong>istemaal na karein</strong>.</li>
+</ol>
+<h3 id="ch8-env-mein-likhein"><code>.env</code> mein likhein</h3>
+<pre><code>Notifications__Email__SmtpHost=smtp.gmail.com
+Notifications__Email__SmtpPort=587
+Notifications__Email__UseStartTls=true
+Notifications__Email__Username=aapka.email@gmail.com
+Notifications__Email__Password=&lt;16 harf ka app password&gt;
+Notifications__Email__From=aapka.email@gmail.com
+Notifications__Email__Recipients=guard@example.com,manager@example.com
+</code></pre>
+<ul>
+<li><code>SmtpHost</code> <strong>khali</strong> = "console mode": email bheji nahi jati, sirf API ki window mein likhi jati hai (test ke liye achha).</li>
+</ul>
+<p><strong>Check:</strong> Emergency Dispatch karein → inbox (aur Spam folder).</p>
+<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Browser Push Notifications</h1>
+<h3 id="ch9-keys-banana-ek-dafa">Keys banana (ek dafa)</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+.\.venv\Scripts\python -m pip install pywebpush   # Django server ko push bhejne ke liye (ek dafa)
+npx web-push generate-vapid-keys                    # Node.js chahiye; koi bhi VAPID tool chalega
+</code></pre>
+<p>Ye ek Public Key aur ek Private Key deta hai. Dono <code>.env</code> mein copy karein:</p>
+<pre><code>Notifications__WebPush__PublicKey=B....
+Notifications__WebPush__PrivateKey=....
+Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
+</code></pre>
+<blockquote>
+<p>🔒 Private key kisi ko na dein, aur keys <strong>dobara na banayein</strong>: purane subscriptions band ho jate hain.</p>
+</blockquote>
+<p><strong>Check:</strong> API dobara chalayein → dashboard → <strong>Enable Alerts</strong> → Allow → Emergency Dispatch → Windows ke kone mein notification.</p>
+<hr /></section><p class="part-label">D · Active karna, masle aur hifazat</p><section class="chapter" data-ch="10"><h1 id="ch10">10. Sab Ko Active Karna: Tarteeb</h1>
+<p>Isi tarteeb se karein. Har qadam ke baad check karke aage jayein.</p>
+<ul>
+<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> <code>.env</code>: <code>Device__ApiKey</code>, <code>Jwt__SigningKey</code> bhare hue</li>
+<li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> Zone ke naam tay ("Manzil - Jagah")</li>
+<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> <code>.\start.ps1</code> se teeno windows chal rahi hain</li>
+<li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> Camera ka RTSP link VLC mein chala</li>
+<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> Devices par camera daala → AI page par <code>running</code></li>
+<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Floor Plans mein naqsha + calibration</li>
+<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> API network par (<code>0.0.0.0:5291</code>) + firewall → doosre device se <code>/health</code> ok</li>
+<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> Sensors aur sprinkler SQL se daale → dashboard reload par nazar aaye</li>
+<li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> ESP32 reading bhej raha hai → gauge hil raha hai</li>
+<li class="task"><input type="checkbox" data-task="10" aria-label="Ho gaya"> Relay <code>GET /api/iot/sprinklers</code> par sahi ON/OFF (LED se check)</li>
+<li class="task"><input type="checkbox" data-task="11" aria-label="Ho gaya"> Safe Test Mode mein poora test (<code>tools\live_test.py</code>) pass</li>
+<li class="task"><input type="checkbox" data-task="12" aria-label="Ho gaya"> SMS, Email, Push keys daale → Emergency Dispatch se teeno pohnche</li>
+<li class="task"><input type="checkbox" data-task="13" aria-label="Ho gaya"> Demo ke baad SMS/Email wapas band ya asli numbers par</li>
+</ul>
+<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Masle Aur Hal</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Masla</th>
+<th>Wajah</th>
+<th>Hal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESP32 ko <strong>401</strong></td>
+<td>Device key ghalat</td>
+<td><code>.env</code> wali <code>Device__ApiKey</code> bilkul wahi copy karein</td>
+</tr>
+<tr>
+<td>ESP32 connect hi nahi hota</td>
+<td>API sirf localhost par / firewall</td>
+<td>Chapter 3: <code>--urls http://0.0.0.0:5291</code> aur firewall rule</td>
+</tr>
+<tr>
+<td><code>Sensor ... not found</code></td>
+<td>SQL mein sensor nahi ya Id ghalat</td>
+<td>Chapter 5B; Id ki spelling</td>
+</tr>
+<tr>
+<td>Camera AI page par <code>error: cannot open stream source</code></td>
+<td>RTSP link/password ghalat, ya camera band</td>
+<td>VLC mein link check</td>
+</tr>
+<tr>
+<td>Camera AI page par nazar hi nahi aata</td>
+<td>AI service bina device key ke</td>
+<td><code>.\start.ps1</code> se chalayein (wo key deta hai)</td>
+</tr>
+<tr>
+<td>Tile par video nahi, sirf dabbe</td>
+<td>Format Simulated ya RTSP</td>
+<td>Chapter 4C: converter + Mjpeg</td>
+</tr>
+<tr>
+<td>Aag par sprinkler nahi chala</td>
+<td>Zone ka naam alag, ya Mode = Manual, ya data simulated</td>
+<td>Zone ek jaisa, Mode Auto, <code>simulated</code> na bhejein</td>
+</tr>
+<tr>
+<td>SMS nahi aaya</td>
+<td>Trial account, number verify nahi</td>
+<td>Twilio Console mein number verify</td>
+</tr>
+<tr>
+<td>Email nahi aayi</td>
+<td>App password nahi, ya Spam</td>
+<td>Chapter 8; Spam folder</td>
+</tr>
+<tr>
+<td>"Camera lost" alert</td>
+<td>10 second frame nahi aaya</td>
+<td>Camera ki bijli/network; wapas aaye to Resolve</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Hifazat Ki Baatein</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>✅ Karein</th>
+<th>❌ Na karein</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.env</code> ko kisi ko na dein, git par na daalein</td>
+<td>Device key ya passwords chat ya screenshot mein</td>
+</tr>
+<tr>
+<td>Network private rakhein (ghar/office WiFi)</td>
+<td>Port 5291 internet par khula</td>
+</tr>
+<tr>
+<td>Camera ke default password badlein</td>
+<td><code>admin/admin</code> jaisa password</td>
+</tr>
+<tr>
+<td>Asli valve aur fire panel professional se</td>
+<td>Bina ijazat building ka hardware jorna</td>
+</tr>
+<tr>
+<td>Certified smoke detector aur fire alarm <strong>saath</strong> rakhein</td>
+<td>Sirf FireVision AI par bharosa</td>
+</tr>
+</tbody>
+</table></div></section>
+    <p id="noresult" class="hidden">Kuch nahi mila. Doosra lafz try karein.</p>
+  </main>
+</div>
+<button class="icon" id="totop" aria-label="Upar jayein">↑ Upar</button>
+<script>
+(() => {
+  const root = document.documentElement, store = (k, v) => { try { v === undefined ? null : localStorage.setItem(k, v); return localStorage.getItem(k); } catch { return null; } };
+  const saved = store('sentinel-theme'); if (saved) root.dataset.theme = saved;
+  document.getElementById('theme').onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark'; store('sentinel-theme', root.dataset.theme);
+  };
+  document.getElementById('menu').onclick = () => document.body.classList.toggle('toc-open');
+  document.querySelectorAll('nav.toc a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('toc-open')));
+  document.getElementById('totop').onclick = () => scrollTo({ top: 0 });
+  // Test checkboxes: ticks are kept in this browser (localStorage) and shown as progress in the banner.
+  const tasks = [...document.querySelectorAll('li.task input')], tickKey = 'sentinel-ticks-hardware';
+  if (tasks.length) {
+    let done = {}; try { done = JSON.parse(localStorage.getItem(tickKey) || '{}'); } catch { done = {}; }
+    const bar = document.getElementById('progress');
+    const show = () => { const n = tasks.filter(t => t.checked).length; bar.querySelector('span').textContent = `Tests: ${n} / ${tasks.length} ho gaye`; bar.querySelector('b').style.width = (100 * n / tasks.length) + '%'; };
+    tasks.forEach(t => { t.checked = !!done[t.dataset.task]; t.addEventListener('change', () => { done[t.dataset.task] = t.checked; try { localStorage.setItem(tickKey, JSON.stringify(done)); } catch {} show(); }); });
+    document.getElementById('reset').onclick = () => { done = {}; try { localStorage.removeItem(tickKey); } catch {} tasks.forEach(t => t.checked = false); show(); };
+    bar.classList.remove('hidden'); show();
+  }
+  document.querySelectorAll('pre').forEach(pre => {
+    const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'Copy';
+    b.onclick = async () => { try { await navigator.clipboard.writeText(pre.innerText.replace(/Copy$/, '').trim()); b.textContent = 'Copied ✓'; } catch { b.textContent = 'Copy nahi hua'; } setTimeout(() => b.textContent = 'Copy', 1500); };
+    pre.appendChild(b);
+  });
+  // Highlight the chapter being read in the sidebar.
+  const links = new Map([...document.querySelectorAll('nav.toc a')].map(a => [a.dataset.ch, a]));
+  let ticking = false;
+  const markActive = () => {
+    ticking = false;
+    const current = [...document.querySelectorAll('section.chapter:not(.hidden)')].filter(s => s.getBoundingClientRect().top <= 160).pop();
+    links.forEach(l => l.classList.remove('active'));
+    if (current) links.get(current.dataset.ch)?.classList.add('active');
+  };
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(markActive); } }, { passive: true });
+  markActive();
+  // Search: show only chapters that contain every typed word.
+  const q = document.getElementById('q'), sections = [...document.querySelectorAll('section.chapter')], labels = [...document.querySelectorAll('.part-label')];
+  const clearMarks = () => document.querySelectorAll('mark').forEach(m => m.replaceWith(m.textContent));
+  q.addEventListener('input', () => {
+    clearMarks(); document.querySelectorAll('section.chapter').forEach(s => s.normalize());
+    const words = q.value.toLowerCase().split(/\s+/).filter(Boolean); let shown = 0;
+    sections.forEach(s => {
+      const hit = !words.length || words.every(w => s.textContent.toLowerCase().includes(w));
+      s.classList.toggle('hidden', !hit); links.get(s.dataset.ch)?.parentElement.classList.toggle('hidden', !hit); shown += hit;
+      if (hit && words.length) {
+        const walker = document.createTreeWalker(s, NodeFilter.SHOW_TEXT), nodes = [];
+        while (walker.nextNode()) if (!walker.currentNode.parentElement.closest('pre, button')) nodes.push(walker.currentNode);
+        const rx = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+        nodes.forEach(n => { if (!rx.test(n.nodeValue)) return; rx.lastIndex = 0; const span = document.createElement('span'); span.innerHTML = n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(rx, '<mark>$1</mark>'); n.replaceWith(...span.childNodes); });
+      }
+    });
+    labels.forEach(l => l.classList.toggle('hidden', words.length > 0));
+    document.querySelectorAll('nav.toc li.part').forEach(p => p.classList.toggle('hidden', words.length > 0));
+    document.getElementById('noresult').classList.toggle('hidden', shown > 0);
+  });
+})();
+</script>
+</body>
+</html>

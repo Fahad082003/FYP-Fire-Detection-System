@@ -1,0 +1,16 @@
+node_modules/
+.env
+*.pfx
+*.log
+__pycache__/
+.venv/
+ai-service/config.json
+*.pth
+bin/
+obj/
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db
+.DS_Store

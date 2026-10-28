@@ -1,0 +1,15 @@
+{
+  "_comment": "Copy to config.json. Video files are ALWAYS labelled simulated. Put stream credentials in environment variables (e.g. ${CAM_LOBBY_URL}), never in this file. Zone polygons are in pixels of that camera's frame.",
+  "api": "http://localhost:5291",
+  "listen": "127.0.0.1:8008",
+  "settings": {
+    "confirm_frames": 3,
+    "severity_area_percent": { "Medium": 2.0, "High": 10.0, "Critical": 25.0 },
+    "fire_zone_margin": 0.25
+  },
+  "cameras": [
+    { "cameraId": "cam-lobby", "source": "${CAM_LOBBY_URL}", "fps": 1, "enabled": false },
+    { "cameraId": "cam-warehouse", "source": "samples/warehouse-test.mp4", "fps": 1, "loop": true, "enabled": false,
+      "zones": [ { "label": "Fuel store", "level": "Danger", "polygon": [[100, 400], [500, 400], [500, 700], [100, 700]] } ] }
+  ]
+}

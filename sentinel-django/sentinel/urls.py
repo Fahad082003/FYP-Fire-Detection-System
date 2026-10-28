@@ -1,0 +1,49 @@
+from django.urls import path
+
+from . import api, views
+
+urlpatterns = [
+    # pages
+    path("", views.dashboard, name="dashboard"),
+    path("login", views.login, name="login"),
+    path("logout", views.logout, name="logout"),
+    path("floor-plans", views.floor_plans, name="floor_plans"),
+    path("ai", views.ai, name="ai"),
+    path("devices", views.devices, name="devices"),
+    path("sw.js", views.service_worker, name="service_worker"),
+    path("api/events", views.event_stream, name="events"),
+    path("health", api.health, name="health"),
+
+    # REST API: same paths as the ASP.NET Core API
+    path("api/auth/login", api.login, name="api_login"),
+    path("api/auth/me", api.me, name="api_me"),
+    path("api/cameras", api.cameras, name="api_cameras"),
+    path("api/cameras/<str:camera_id>", api.camera, name="api_camera"),
+    path("api/cameras/<str:camera_id>/calibration", api.calibration, name="api_calibration"),
+    path("api/cameras/<str:camera_id>/stream", views.camera_stream, name="api_camera_stream"),
+    path("api/dashboard/snapshot", api.snapshot, name="api_snapshot"),
+    path("api/detections", api.detections, name="api_detections"),
+    path("api/incidents", api.incidents, name="api_incidents"),
+    path("api/incidents/logs", api.incident_logs, name="api_incident_logs"),
+    path("api/incidents/dispatch", api.dispatch, name="api_dispatch"),
+    path("api/incidents/<int:incident_id>", api.incident, name="api_incident"),
+    path("api/incidents/<int:incident_id>/resolve", api.resolve, name="api_resolve"),
+    path("api/iot/sensors", api.sensors, name="api_sensors"),
+    path("api/iot/sensors/<str:sensor_id>", api.sensor, name="api_sensor"),
+    path("api/iot/sensors/<str:sensor_id>/history", api.sensor_history, name="api_sensor_history"),
+    path("api/iot/sensors/<str:sensor_id>/readings", api.sensor_reading, name="api_sensor_reading"),
+    path("api/iot/telemetry", api.telemetry, name="api_telemetry"),
+    path("api/iot/sprinklers", api.sprinkler_list, name="api_sprinklers"),
+    path("api/iot/sprinklers/master", api.sprinkler_master, name="api_sprinkler_master"),
+    path("api/iot/sprinklers/<str:sprinkler_id>/toggle", api.sprinkler_toggle, name="api_sprinkler_toggle"),
+    path("api/floorplans", api.floor_plans, name="api_floor_plans"),
+    path("api/floorplans/<int:plan_id>", api.floor_plan, name="api_floor_plan"),
+    path("api/floorplans/<int:plan_id>/image", api.floor_plan_image, name="api_floor_plan_image"),
+    path("api/floorplans/<int:plan_id>/route", api.floor_plan_route, name="api_floor_plan_route"),
+    path("api/floorplans/<int:plan_id>/risk", api.floor_plan_risk, name="api_floor_plan_risk"),
+    path("api/ai/status", api.ai_status, name="api_ai_status"),
+    path("api/ai/analyze", api.ai_analyze, name="api_ai_analyze"),
+    path("api/push/vapid-public-key", api.vapid_key, name="api_vapid_key"),
+    path("api/push/subscribe", api.push_subscribe, name="api_push_subscribe"),
+    path("api/push/unsubscribe", api.push_unsubscribe, name="api_push_unsubscribe"),
+]

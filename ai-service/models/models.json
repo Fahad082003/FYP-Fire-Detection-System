@@ -1,0 +1,29 @@
+{
+  "_comment": "Model manifest. 'categories' maps the model's class index to a Sentinel DetectionCategory; other classes are ignored. Weights are NOT stored in git: run tools/download_models.py (verifies sha256).",
+  "models": [
+    {
+      "name": "person",
+      "file": "yolox_tiny.onnx",
+      "url": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_tiny.onnx",
+      "sha256": "427cc366d34e27ff7a03e2899b5e3671425c262ea2291f88bb942bc1cc70b0f7",
+      "license": "Apache-2.0 (Megvii YOLOX, COCO-pretrained)",
+      "input": [416, 416],
+      "categories": { "0": "Human" },
+      "labels": { "0": "person" },
+      "threshold": 0.45,
+      "nms": 0.45
+    },
+    {
+      "name": "fire_smoke",
+      "file": "fire_smoke_yolox.onnx",
+      "url": null,
+      "sha256": "8d73df91dbb0241cfb04cacf529a8be4b26e68d4fccbb20cd816884bfa914d73",
+      "license": "Your fine-tuned weights (YOLOX Apache-2.0 code, D-Fire dataset CC0). See training/README.md.",
+      "input": [416, 416],
+      "categories": { "0": "Smoke", "1": "Fire" },
+      "labels": { "0": "smoke", "1": "fire" },
+      "threshold": 0.40,
+      "nms": 0.45
+    }
+  ]
+}

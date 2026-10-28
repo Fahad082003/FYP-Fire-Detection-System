@@ -1,0 +1,64 @@
+{% extends "sentinel/base.html" %}
+{% load static %}
+{% block body %}
+<div class="alarm-frame hidden" id="alarm-frame"></div>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" stroke-width="1.6" aria-hidden="true"><path d="M16 2 4 7v8c0 7.2 5.1 13.4 12 15 6.9-1.6 12-7.8 12-15V7z"/>
+      <path d="M8 17h4l2-5 3 9 2-4h5" fill="none" stroke="#f1f5f9" stroke-linecap="round"/></svg>
+    <div>
+      <div class="brand-name">FIREVISION AI</div>
+      <div class="brand-sub">Emergency Command Center</div>
+    </div>
+  </div>
+
+  <nav class="nav" aria-label="Main">
+    <a class="seg-btn" href="{% url 'dashboard' %}" {% if page == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+    <a class="seg-btn" href="{% url 'floor_plans' %}" {% if page == 'floor_plans' %}aria-current="page"{% endif %}>Floor Plans</a>
+    <a class="seg-btn" href="{% url 'ai' %}" {% if page == 'ai' %}aria-current="page"{% endif %} id="ai-link" title="AI service status unknown">
+      AI <span class="dot dot-red" id="ai-dot"></span></a>
+    {% if user.is_admin %}<a class="seg-btn" href="{% url 'devices' %}" {% if page == 'devices' %}aria-current="page"{% endif %}>Devices</a>{% endif %}
+  </nav>
+
+  <div class="status-pill level-elevated" id="status-pill" role="status" aria-live="polite">MONITORING DEGRADED · LIVE LINK DOWN</div>
+
+  <div class="controls">
+    <span class="link-state" title="Live event link"><span class="dot dot-amber blink" id="link-dot"></span><span id="link-label">Connecting</span></span>
+    <time class="clock" id="clock" title="Current local time"></time>
+    <button type="button" class="btn btn-ghost icon-btn" id="mute" aria-pressed="false" title="Audible alarm on">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path data-on d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path data-off class="hidden" d="m17 9 4 6m0-6-4 6"/></svg>
+    </button>
+    <button type="button" class="btn btn-ghost wide-only hidden" id="push-toggle">Enable Alerts</button>
+    <button type="button" class="btn btn-danger" id="open-dispatch">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3 2 21h20L12 3zm0 6v5m0 3v.01"/></svg>
+      <span class="wide-only">Emergency Dispatch</span>
+    </button>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-sm" title="Signed in as {{ user.email }}">Logout</button>
+    </form>
+  </div>
+</header>
+
+{% block page %}{% endblock %}
+
+<dialog id="dispatch-dialog">
+  <form class="dialog-body" id="dispatch-form" novalidate>
+    <header>
+      <h2 class="text-red">Emergency Dispatch</h2>
+      <p class="dim small">Opens an incident and alerts all responders by SMS, email and push immediately.</p>
+    </header>
+    <label class="field"><span>Zone</span><select class="input" name="zone" required></select>
+      <span class="error hidden" data-error="zone">Select a zone.</span></label>
+    <label class="field"><span>Severity</span>
+      <select class="input" name="severity"><option>Critical</option><option>High</option><option>Medium</option></select></label>
+    <label class="field"><span>Message (<span data-count>0</span>/500)</span>
+      <textarea class="input" name="message" rows="3" maxlength="500" placeholder="e.g. Evacuate the warehouse via the east stairwell."></textarea></label>
+    <label class="row dim"><input type="checkbox" name="activateSprinklers"> Activate all sprinklers in this zone</label>
+    <footer class="dialog-actions">
+      <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+      <button type="submit" class="btn btn-danger">Dispatch Now</button>
+    </footer>
+  </form>
+</dialog>
+{% endblock %}
+{% block scripts %}<script type="module" src="{% static 'sentinel/js/shell.js' %}"></script>{% endblock %}

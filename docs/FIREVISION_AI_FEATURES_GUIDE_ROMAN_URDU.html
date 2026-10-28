@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="ur-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FireVision AI Features Guide</title>
+<style>
+:root {
+  --bg: #f7f8fa; --panel: #ffffff; --text: #1e293b; --muted: #64748b; --line: #e2e8f0;
+  --accent: #dc2626; --accent-soft: #fef2f2; --link: #1d4ed8; --code-bg: #f1f5f9; --code-text: #9f1239;
+  --pre-bg: #0b1220; --pre-text: #e2e8f0; --th-bg: #0f172a; --th-text: #ffffff; --row-alt: #f8fafc;
+  --note-bg: #fff7ed; --note-line: #f59e0b; --mark: #fde68a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f17; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937;
+    --accent: #f87171; --accent-soft: #2a1215; --link: #93c5fd; --code-bg: #1f2937; --code-text: #fda4af;
+    --pre-bg: #030712; --pre-text: #e5e7eb; --th-bg: #1f2937; --th-text: #f9fafb; --row-alt: #0f1623;
+    --note-bg: #2a1d0a; --note-line: #f59e0b; --mark: #854d0e;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f17; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937;
+  --accent: #f87171; --accent-soft: #2a1215; --link: #93c5fd; --code-bg: #1f2937; --code-text: #fda4af;
+  --pre-bg: #030712; --pre-text: #e5e7eb; --th-bg: #1f2937; --th-text: #f9fafb; --row-alt: #0f1623;
+  --note-bg: #2a1d0a; --note-line: #f59e0b; --mark: #854d0e;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 "Segoe UI", system-ui, -apple-system, Arial, sans-serif; }
+a { color: var(--link); }
+header.top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--panel); border-bottom: 1px solid var(--line); }
+header.top .brand { font-weight: 800; letter-spacing: .12em; color: var(--accent); white-space: nowrap; }
+header.top .sub { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+header.top .spacer { flex: 1; }
+header.top input { width: min(320px, 40vw); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
+button.icon { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 14px; }
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
+nav.toc { position: sticky; top: 57px; height: calc(100vh - 57px); overflow-y: auto; padding: 16px 12px 40px 16px; border-right: 1px solid var(--line); }
+nav.toc ul { list-style: none; margin: 0; padding: 0; }
+nav.toc li.part { margin: 16px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+nav.toc a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.4; }
+nav.toc a:hover { background: var(--accent-soft); }
+nav.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+main { padding: 24px 40px 80px; min-width: 0; }
+.hero { background: linear-gradient(135deg, #0b1220, #2a0f12); color: #f1f5f9; border-radius: 14px; padding: 28px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .14em; border: 0; color: #fff; }
+.hero p { margin: 0; color: #cbd5e1; max-width: 760px; }
+.hero .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px; }
+.hero .stats div { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.hero .stats b { display: block; color: #fff; font-size: 18px; }
+.part-label { margin: 40px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+section.chapter { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 28px 20px; margin: 14px 0 22px; }
+h1 { font-size: 26px; margin: 18px 0 12px; padding-bottom: 8px; border-bottom: 3px solid var(--accent); }
+h2 { font-size: 20px; margin: 26px 0 8px; }
+h3 { font-size: 17px; margin: 22px 0 6px; color: var(--accent); }
+p, li { overflow-wrap: anywhere; }
+code { font-family: "Cascadia Code", Consolas, monospace; font-size: .88em; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 4px; }
+pre { position: relative; background: var(--pre-bg); color: var(--pre-text); border-radius: 8px; padding: 14px 16px; overflow-x: auto; border-left: 3px solid var(--accent); font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre button.copy { position: absolute; top: 8px; right: 8px; font-size: 12px; padding: 3px 8px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; opacity: .8; }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th { background: var(--th-bg); color: var(--th-text); text-align: left; padding: 8px 10px; white-space: nowrap; }
+td { padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+tr:nth-child(even) td { background: var(--row-alt); }
+blockquote { margin: 0 0 14px; padding: 10px 14px; background: var(--note-bg); border-left: 4px solid var(--note-line); border-radius: 6px; }
+blockquote p { margin: 4px 0; }
+img { max-width: 100%; height: auto; display: block; margin: 8px auto 16px; border-radius: 8px; border: 1px solid var(--line); }
+td img { margin: 0; }
+mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 3px; }
+.hidden { display: none !important; }
+#noresult { color: var(--muted); padding: 20px 0; }
+li.task { list-style: none; margin-left: -22px; }
+li.task input { width: 17px; height: 17px; margin: 0 6px 0 0; vertical-align: -3px; accent-color: #16a34a; cursor: pointer; }
+li.task:has(input:checked) { color: var(--muted); text-decoration: line-through; }
+.progress { display: flex; align-items: center; gap: 12px; margin-top: 16px; font-size: 14px; color: #e2e8f0; flex-wrap: wrap; }
+.progress i { flex: 1; min-width: 120px; height: 8px; background: rgba(255,255,255,.15); border-radius: 99px; overflow: hidden; }
+.progress i b { display: block; height: 100%; width: 0; background: #22c55e; transition: width .3s; }
+.progress .icon { background: transparent; color: #e2e8f0; border-color: rgba(255,255,255,.25); }
+#totop { position: fixed; right: 16px; bottom: 16px; z-index: 30; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  nav.toc { position: static; height: auto; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); display: none; }
+  body.toc-open nav.toc { display: block; }
+  main { padding: 16px 16px 72px; }
+  section.chapter { padding: 4px 16px 14px; }
+  header.top .sub { display: none; }
+  header.top input { width: 100%; }
+  .hero { padding: 20px; } .hero h1 { font-size: 26px; }
+}
+@media (min-width: 901px) { #menu { display: none; } }
+@media print { header.top, nav.toc, #totop, pre button.copy { display: none !important; } .layout { display: block; } section.chapter { break-inside: auto; border: 0; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="icon" id="menu" aria-label="Fehrist dikhayein">☰</button>
+  <span class="brand">FIREVISION AI</span>
+  <span class="sub">Features Guide · Har feature kaise use karein · Roman Urdu</span>
+  <span class="spacer"></span>
+  <input id="q" type="search" placeholder="Search… (jaise: floor plan, camera, sprinkler)" aria-label="Guide mein search">
+  <button class="icon" id="theme" aria-label="Dark ya light mode">◐</button>
+</header>
+<div class="layout">
+  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kya Hai?</a></li><li><a href="#ch2" data-ch="2">2. Shuru Karna</a></li><li><a href="#ch3" data-ch="3">3. Dashboard: Har Hissa Kahan Hai</a></li><li class="part">B · Setup: cameras, naqsha, calibration</li><li><a href="#ch4" data-ch="4">4. Apne Cameras Daalna (Devices, Admin)</a></li><li><a href="#ch5" data-ch="5">5. Naqsha (Floor Plan) Banana</a></li><li><a href="#ch6" data-ch="6">6. Camera Ko Naqshe Se Jorna (Calibration)</a></li><li class="part">C · Roz ka istemaal</li><li><a href="#ch7" data-ch="7">7. Evacuation Raasta Dekhna</a></li><li><a href="#ch8" data-ch="8">8. Aag Ka Risk (Agle Kaun Se Kamre)</a></li><li><a href="#ch9" data-ch="9">9. Live Cameras Aur AI</a></li><li><a href="#ch10" data-ch="10">10. AI Page: Photo Par AI Chalana</a></li><li><a href="#ch11" data-ch="11">11. Alerts, Alarm Aur Incidents</a></li><li><a href="#ch12" data-ch="12">12. Emergency Dispatch (Haath Se Alert)</a></li><li><a href="#ch13" data-ch="13">13. Sensors Aur Sprinklers</a></li><li><a href="#ch14" data-ch="14">14. Incident History Aur Logs</a></li><li><a href="#ch15" data-ch="15">15. Browser Notifications</a></li><li><a href="#ch16" data-ch="16">16. Camera Lost</a></li><li class="part">D · Demo, database, yaad rakhne wali baatein aur tools</li><li><a href="#ch17" data-ch="17">17. Demo Chalana (Simulator Aur Live Camera)</a></li><li><a href="#ch18" data-ch="18">18. Database Doosre PC Par Le Jana</a></li><li><a href="#ch19" data-ch="19">19. Yaad Rakhne Wali Baatein</a></li><li><a href="#ch20" data-ch="20">20. Tools: Kab Kaunsa Chalayein</a></li></ul></nav>
+  <main>
+    <div class="hero">
+      <h1>FIREVISION AI</h1>
+      <p>Har feature kahan hai, kya click karna hai, kya bharna hai aur kya dikhega: cameras daalna, naqsha banana, calibration, evacuation raasta, risk heatmap, alerts, sprinklers, dispatch aur baqi sab.</p>
+      <div class="stats"><div><b>start.ps1</b>Ek click mein sab chalu</div><div><b>Devices</b>Apne cameras khud daalein</div><div><b>Floor Plans</b>Naqsha draw + zones</div><div><b>20 chapters</b>Har feature qadam ba qadam</div></div>
+      <div id="progress" class="progress hidden"><span></span><i><b></b></i><button class="icon" id="reset">Ticks saaf karein</button></div>
+    </div>
+    <p class="part-label">A · Shuru</p><section class="chapter" data-ch="1"><h1 id="ch1">1. Ye Guide Kya Hai?</h1>
+<p>Ye guide batati hai ke <strong>FireVision AI ka har feature kaise use karna hai</strong>: kahan click karna hai, kya bharna hai, aur kya dikhega.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kaun si guide</th>
+<th>Kis liye</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Ye (Features guide)</strong></td>
+<td>Har feature <strong>use</strong> kaise karein</td>
+</tr>
+<tr>
+<td>User guide</td>
+<td>Install, aur har feature ka <strong>test</strong> + checklist</td>
+</tr>
+<tr>
+<td>Project guide v5</td>
+<td>Andar se kaise kaam karta hai (code, AI, accuracy)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Do qisam ke log:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Kya kar sakta hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Admin</strong></td>
+<td>Sab kuch + <strong>Devices</strong> (cameras add/edit/delete)</td>
+</tr>
+<tr>
+<td><strong>Operator</strong></td>
+<td>Dashboard, Floor Plans, AI page, incidents resolve, dispatch. Devices nahi</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Shuru Karna</h1>
+<h3 id="ch2-ek-click-se-chalana">Ek click se chalana</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
+.\start.ps1
+</code></pre>
+<p>Do windows khulti hain: <strong>Server</strong> (Django: dashboard aur API dono) aur <strong>AI service</strong>. Aag ka demo bhi chahiye to <code>.\start.ps1 -Simulator</code>.</p>
+<blockquote>
+<p>ℹ️ 2026-10-26 se project Django par chalta hai (<code>sentinel-django/</code>). Is guide ki tasveerein purane Angular dashboard ki hain; Django dashboard mein wahi panels hain, lekin chhota sa visual farq ho sakta hai.</p>
+</blockquote>
+<h3 id="ch2-login">Login</h3>
+<ol>
+<li>Browser: <strong>http://localhost:5291</strong></li>
+<li>Email aur password daalein → <strong>Sign in</strong>.</li>
+</ol>
+<p><img alt="Login" src="images/login.png" /></p>
+<p>Login 8 ghante chalta hai. Phir dobara login karna hota hai.</p>
+<hr /></section><section class="chapter" data-ch="3"><h1 id="ch3">3. Dashboard: Har Hissa Kahan Hai</h1>
+<p><img alt="Dashboard" src="images/dashboard-fire.png" /></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Hissa</th>
+<th>Kahan</th>
+<th>Kya karta hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Top bar</strong></td>
+<td>Upar</td>
+<td>System ka haal: Hara <strong>"ALL SYSTEMS NOMINAL"</strong> = sab theek <strong>aur</strong> AI chal rahi hai. Peela <strong>"MONITORING DEGRADED · AI OFFLINE"</strong> (ya AI MODEL MISSING / CAMERA OFFLINE / AI DATA STALE / LIVE LINK DOWN; har 10 second, aur AI ke frames 8 second ruk jayein to foran). Incident khula ho to wajah saath likhi jati hai, jaise "ELEVATED RISK · 1 OPEN · AI OFFLINE" = koi incident nahi, lekin <strong>nigrani adhoori hai</strong>: is ka matlab "aag nahi" nahi, balke "dekha hi nahi ja raha". Peela "ELEVATED RISK" / laal "CRITICAL ALERT" = khule incidents. Phir Live/Offline, ghari (AM/PM), 🔊 alarm, Enable Alerts, Emergency Dispatch, Logout</td>
+</tr>
+<tr>
+<td><strong>Menu</strong></td>
+<td>Upar baen</td>
+<td>Dashboard · Floor Plans · AI · Devices (sirf Admin)</td>
+</tr>
+<tr>
+<td><strong>KPI patti</strong></td>
+<td>Upar daen</td>
+<td>Khule incidents, insaan, sab se zyada garmi aur dhuwan. Ek kamre (zone) ke kai camera ek hi log dekhein to <strong>ek dafa</strong> gine jate hain (sab se bari ginti), 2 log = 2, 6 nahi</td>
+</tr>
+<tr>
+<td><strong>Live Feeds</strong></td>
+<td>Beech</td>
+<td>Har camera: naam (zone), AI ke boxes, chips</td>
+</tr>
+<tr>
+<td><strong>Sensor Telemetry</strong></td>
+<td>Daen</td>
+<td>Har sensor ka gauge aur chhota graph</td>
+</tr>
+<tr>
+<td><strong>Smart Sprinklers</strong></td>
+<td>Daen</td>
+<td>ON/OFF, Auto/Manual, Master</td>
+</tr>
+<tr>
+<td><strong>Alert Logs</strong></td>
+<td>Neeche</td>
+<td>Incidents ki list + <strong>Resolve</strong></td>
+</tr>
+<tr>
+<td><strong>Live Event Log</strong></td>
+<td>Neeche daen</td>
+<td>Har waqia: SMS gaya, sprinkler chala, camera lost…</td>
+</tr>
+<tr>
+<td><strong>Incident History</strong></td>
+<td>Neeche</td>
+<td>Aag ka graph aur poori history</td>
+</tr>
+<tr>
+<td><strong>Evacuation Route</strong></td>
+<td>Neeche</td>
+<td>Naqsha, raasta, risk heatmap</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></section><p class="part-label">B · Setup: cameras, naqsha, calibration</p><section class="chapter" data-ch="4"><h1 id="ch4">4. Apne Cameras Daalna (Devices, Admin)</h1>
+<p><strong>Kab:</strong> naya customer, ya naya camera laga.</p>
+<ol>
+<li>Menu → <strong>Devices</strong>.</li>
+<li><strong>+ Camera</strong> dabayein aur bharein:</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Kya likhein</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Id</strong></td>
+<td>Chhota pakka naam, jaise <code>cam-gate</code> (letters, digits, - ya _). Baad mein nahi badalta</td>
+</tr>
+<tr>
+<td><strong>Name</strong></td>
+<td>Screen wala naam, jaise "Main Gate"</td>
+</tr>
+<tr>
+<td><strong>Type</strong></td>
+<td>CCTV ya Drone</td>
+</tr>
+<tr>
+<td><strong>Zone</strong></td>
+<td><strong>List se chunein</strong>. Naya zone sirf pehli dafa likhein, hamesha <strong>"Floor - Area"</strong>: jaise "First Floor - Kitchen" (beech mein <code>-</code> zaroori, warna Save nahi hoga)</td>
+</tr>
+<tr>
+<td><strong>Stream link</strong></td>
+<td>Camera ka <code>rtsp://user:pass@IP/...</code>, MJPEG <code>http://…/video</code> (test camera, phone app), ya khali (simulated)</td>
+</tr>
+<tr>
+<td><strong>Browser video format</strong></td>
+<td>RTSP ke liye <strong>Simulated</strong>. MJPEG/HLS/MP4 link ho to wohi</td>
+</tr>
+</tbody>
+</table></div>
+<ol start="3">
+<li><strong>Save</strong>. Camera foran dashboard par aa jata hai.</li>
+</ol>
+<p><strong>Edit:</strong> camera ki line par <strong>Edit</strong> → badlein → <strong>Save</strong>. Link <code>rtsp://***@…</code> dikhe to waise hi chhod dein, purana password mehfooz rehta hai.</p>
+<p><strong>Delete:</strong> <strong>Delete</strong> → confirm. Purane incidents history mein rehte hain.</p>
+<p><strong>AI khud camera uthati hai:</strong> link wala camera save kiya to AI service <strong>1 minute ke andar</strong> us ki video dekhna shuru kar deti hai. Kuch aur likhne ki zaroorat nahi.</p>
+<p><strong>Zone ke naam ka tareeqa: "Floor - Area"</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Misaal</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ground Floor - Lobby</td>
+<td>Neeche ki manzil, lobby</td>
+</tr>
+<tr>
+<td>Ground Floor - Warehouse</td>
+<td>Neeche ki manzil, godaam</td>
+</tr>
+<tr>
+<td>First Floor - Server Hall</td>
+<td>Pehli manzil, server hall</td>
+</tr>
+<tr>
+<td>Basement - Parking</td>
+<td>Tehkhana, parking</td>
+</tr>
+</tbody>
+</table></div>
+<p>Alert aate hi pata chal jata hai kis manzil par kahan jana hai.</p>
+<blockquote>
+<p>⚠️ <strong>Zone ka khayal:</strong> aag lagne par usi zone ke sprinklers aur naqshe ke danger zones chalte hain. Camera, sensor aur naqsha ek hi zone naam use karein. List se chunne par spelling galat nahi hoti.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="5"><h1 id="ch5">5. Naqsha (Floor Plan) Banana</h1>
+<p><strong>Kahan:</strong> Menu → <strong>Floor Plans</strong>.</p>
+<h3 id="ch5-a-naya-naqsha">A. Naya naqsha</h3>
+<ol>
+<li><strong>+ New</strong> → "New floor plan" ban jata hai.</li>
+<li>Daen <strong>Plan settings</strong>: Name ("Ground Floor"), Building ("Warehouse"), Floor (0), <strong>Width aur Height meters mein</strong> (asal size, jaise 30 × 20).</li>
+<li>(Ikhtiyari) <strong>Upload image (PNG/JPG)</strong>: apne naqshe ki photo background mein (5 MB tak). Ye sirf peeche dikhti hai, system is se deewarein khud nahi pehchaanta.</li>
+</ol>
+<h3 id="ch5-b-cheezein-draw-karna">B. Cheezein draw karna</h3>
+<p>Toolbar se tool chunein aur naqshe par <strong>drag</strong> karein:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Kya hai</th>
+<th>Tip</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>+ Room</strong></td>
+<td>Kamra / hall</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>+ Corridor</strong></td>
+<td>Gallery</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>+ Wall</strong></td>
+<td>Deewar (0.2 m moti)</td>
+<td>Kamron ke beech</td>
+</tr>
+<tr>
+<td><strong>+ Door</strong></td>
+<td>Darwaza</td>
+<td><strong>Deewar ke upar</strong> rakhein, warna raasta deewar paar nahi karega</td>
+</tr>
+<tr>
+<td><strong>+ Exit</strong></td>
+<td>Bahar nikalne ka darwaza</td>
+<td>Kam az kam ek zaroori</td>
+</tr>
+<tr>
+<td><strong>+ Safe zone</strong></td>
+<td>Assembly point</td>
+<td>Hara</td>
+</tr>
+<tr>
+<td><strong>+ Danger zone</strong></td>
+<td>Khatarnak jagah (boiler, fuel store)</td>
+<td>Laal</td>
+</tr>
+</tbody>
+</table></div>
+<p><img alt="Floor Plan editor" src="images/floorplan-editor.png" /></p>
+<h3 id="ch5-c-cheez-badalna">C. Cheez badalna</h3>
+<ol>
+<li><strong>Select / Move</strong> → cheez par click.</li>
+<li>Daen <strong>Selected element</strong>: naam, X, Y, Width, Height (meters).</li>
+<li>Darwaza/Exit: <strong>Blocked / closed</strong> tick = band (raasta wahan se nahi guzarega).</li>
+<li>Danger zone: <strong>Active now</strong> (abhi khatra), ya <strong>Linked camera/sensor zone</strong> mein <strong>list se zone chunein</strong> (us zone mein incident khulte hi khud active).</li>
+<li>Hilana = drag (Select / Move tool). <strong>Chhota/bara karna</strong> = selected cheez ke neeche-daen <strong>cyan kona</strong> drag karein (kisi bhi tool par), ya daen <strong>Width / Height</strong> mein meters likhein. Mitana = <code>Delete</code> key.</li>
+</ol>
+<h3 id="ch5-d-save">D. Save</h3>
+<p><strong>Save</strong> dabayein. Title par "unsaved" hat jaye. Zoom: mouse wheel ya + / − / Fit. Ek khana = 1 meter.</p>
+<hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Camera Ko Naqshe Se Jorna (Calibration)</h1>
+<p><strong>Faida:</strong> camera mein dikha insaan naqshe par khud <strong>amber nuqta</strong> ban jata hai.</p>
+<ol>
+<li>Floor Plans → naqsha kholein → <strong>Save</strong>.</li>
+<li>Daen <strong>Camera calibration</strong> → camera chunein.</li>
+<li>Camera ki snapshot <strong>Paint</strong> mein kholein. Farsh ke 4 kone chunein (koi 3 ek line mein na hon).</li>
+<li>Har kone ke liye:
+   - <strong>Camera px</strong>: Paint neeche jo x, y dikhata hai.
+   - <strong>Plan m ⌖</strong> dabayein aur naqshe par wohi kona click karein.</li>
+<li><strong>Save calibration</strong>.</li>
+</ol>
+<p><img alt="Calibration" src="images/camera-calibration.png" /></p>
+<p>Camera hil jaye to dobara karein. <strong>Remove</strong> se hata sakte hain.</p>
+<hr /></section><p class="part-label">C · Roz ka istemaal</p><section class="chapter" data-ch="7"><h1 id="ch7">7. Evacuation Raasta Dekhna</h1>
+<p><strong>Kahan:</strong> Dashboard → neeche <strong>Evacuation Route (estimate)</strong>.</p>
+<ol>
+<li>Upar list se <strong>naqsha</strong> chunein.</li>
+<li>Naqshe par wahan <strong>click</strong> karein jahan insaan hai, <strong>ya</strong> kisi <strong>amber nuqte</strong> (camera ka insaan) par.</li>
+<li>Hari teer: qareeb tareen <strong>mehfooz exit</strong> tak, saath mein "Distance 14.8 m · ~12 s".</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Halat</th>
+<th>Kya dikhega</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Aag (danger zone active)</td>
+<td>Raasta khud badal kar aag se <strong>1 m door</strong></td>
+</tr>
+<tr>
+<td>1 m door raasta mumkin nahi</td>
+<td>Laal warning: "NO route keeps the required 1 m clearance"</td>
+</tr>
+<tr>
+<td>Koi raasta nahi</td>
+<td>"No safe route…"</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pehle</th>
+<th>Aag ke baad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="Pehle" src="images/evacuation-before.png" /></td>
+<td><img alt="Baad" src="images/evacuation-after.png" /></td>
+</tr>
+</tbody>
+</table></div>
+<p>Waqt sirf <strong>andaza</strong> hai (faasla ÷ 1.2 m/s).</p>
+<hr /></section><section class="chapter" data-ch="8"><h1 id="ch8">8. Aag Ka Risk (Agle Kaun Se Kamre)</h1>
+<p><strong>Kab dikhta hai:</strong> jab naqshe ka koi danger zone <strong>active</strong> ho (zone mein incident khula ho).</p>
+<p><strong>Kahan:</strong> Evacuation Route panel, naqshe ke upar <strong>rang</strong>, aur neeche "⚠ Fire risk: Next at risk: …".</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rang</th>
+<th>Matlab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gehra laal</td>
+<td>Aag yahin hai</td>
+</tr>
+<tr>
+<td>Laal</td>
+<td>≤ 5 m (High)</td>
+</tr>
+<tr>
+<td>Narangi</td>
+<td>≤ 10 m (Medium)</td>
+</tr>
+<tr>
+<td>Peela</td>
+<td>≤ 20 m (Low)</td>
+</tr>
+<tr>
+<td>Bina rang</td>
+<td>Door, ya deewar ke peeche (darwaza nahi)</td>
+</tr>
+</tbody>
+</table></div>
+<p><img alt="Risk heatmap" src="images/fire-risk-heatmap.png" /></p>
+<p>Incident <strong>Resolve</strong> karein to heatmap khud hat jata hai. Ye rule-based <strong>andaza</strong> hai (darwazon ke raaste faasla).</p>
+<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Live Cameras Aur AI</h1>
+<p><strong>Kahan:</strong> Dashboard → <strong>Live Feeds</strong>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Matlab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Main Lobby (Ground Floor - Lobby)</strong></td>
+<td>Camera ka naam aur zone</td>
+</tr>
+<tr>
+<td>🔴 <strong>LIVE</strong> / <strong>NO AI DATA</strong></td>
+<td>AI se frames aa rahe hain / nahi aa rahe</td>
+</tr>
+<tr>
+<td>Laal dabba</td>
+<td>Aag</td>
+</tr>
+<tr>
+<td>Gray dabba</td>
+<td>Dhuwan</td>
+</tr>
+<tr>
+<td>Hara dabba</td>
+<td>Insaan</td>
+</tr>
+<tr>
+<td>Amber <strong>IN DANGER</strong></td>
+<td>Insaan khatre ke zone mein</td>
+</tr>
+<tr>
+<td>Chips <strong>HUM / DANGER / FIRE / SMOKE / SIM DATA</strong></td>
+<td>Ginti, aag ka darja, test data</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>All / CCTV / Drone</strong>: filter.</li>
+<li><strong>Heatmap</strong> tick: jahan aag/dhuwan dikha, wahan ka rang.</li>
+<li>Camera par <strong>click</strong>: bara karke dekhna.</li>
+</ul>
+<p><img alt="Video Wall" src="images/video-wall.png" /></p>
+<hr /></section><section class="chapter" data-ch="10"><h1 id="ch10">10. AI Page: Photo Par AI Chalana</h1>
+<p><strong>Kahan:</strong> Menu → <strong>AI</strong>.</p>
+<ol>
+<li>Baen: models ka haal (hara = dono loaded).</li>
+<li>Daen: <strong>Choose image…</strong> → aag ya insaan wali photo (JPG/PNG, 5 MB).</li>
+<li>Photo par dabbe aur neeche table: class, confidence, aur <strong>"Why"</strong> (AI ne kyun kaha).</li>
+</ol>
+<p><img alt="AI page" src="images/ai-tab-fire.png" /></p>
+<p>Ye sirf <strong>preview</strong> hai: koi incident, alert ya sprinkler nahi chalta.</p>
+<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Alerts, Alarm Aur Incidents</h1>
+<p><strong>Incident kab banta hai:</strong> camera par aag/dhuwan, sensor ki had paar, camera lost, ya Emergency Dispatch.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Kya hota hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Alarm</strong></td>
+<td>Koi bhi incident khula ho to <strong>lagatar</strong> bajta hai</td>
+</tr>
+<tr>
+<td><strong>Alarm band</strong></td>
+<td>Incident <strong>Resolve</strong> karein, ya 🔊 button</td>
+</tr>
+<tr>
+<td><strong>Popup</strong></td>
+<td>High/Critical par laal popup</td>
+</tr>
+<tr>
+<td><strong>Alert Logs</strong></td>
+<td>Har incident: waqt, darja, jagah, source, aag, insaan</td>
+</tr>
+<tr>
+<td><strong>Resolve</strong></td>
+<td>Incident band. Alarm tab rukta hai jab koi khula na rahe</td>
+</tr>
+<tr>
+<td><strong>Open / All</strong></td>
+<td>Sirf khule, ya sab</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Darje:</strong> Low → Medium → High → Critical. Critical / insaan danger mein = <strong>emergency</strong>: SMS, Email, Push aur Auto sprinklers.</p>
+<p><img alt="Alert logs" src="images/alert-logs.png" /></p>
+<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Emergency Dispatch (Haath Se Alert)</h1>
+<ol>
+<li>Upar laal <strong>Emergency Dispatch</strong>.</li>
+<li><strong>Zone</strong>, <strong>Severity</strong>, <strong>Message</strong> (jaise "Warehouse khaali karein").</li>
+<li>Sprinklers bhi chahiye to "Activate all sprinklers in this zone" tick.</li>
+<li><strong>Dispatch Now</strong>: foran SMS/Email/Push aur ek naya incident.</li>
+</ol>
+<p><img alt="Emergency Dispatch" src="images/dispatch-dialog.png" /></p>
+<hr /></section><section class="chapter" data-ch="13"><h1 id="ch13">13. Sensors Aur Sprinklers</h1>
+<p><strong>Sensors</strong> (daen panel): har sensor ka gauge, limit aur graph.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Halat</th>
+<th>Matlab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Normal (hara)</td>
+<td>Theek</td>
+</tr>
+<tr>
+<td>Warning (peela)</td>
+<td>Limit ke 80% tak</td>
+</tr>
+<tr>
+<td>Alarm</td>
+<td>Limit paar: High incident + Auto sprinklers</td>
+</tr>
+<tr>
+<td>Critical</td>
+<td>Bohat zyada: Critical incident + emergency alerts</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Sprinklers:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Kaam</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Switch</strong></td>
+<td>Ek sprinkler ON/OFF</td>
+</tr>
+<tr>
+<td><strong>Auto</strong></td>
+<td>System aag par khud chala sakta hai</td>
+</tr>
+<tr>
+<td><strong>Manual</strong></td>
+<td>Sirf aap chalayenge</td>
+</tr>
+<tr>
+<td><strong>Master</strong></td>
+<td>Saare ek saath ON/OFF (confirm ke baad)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Sprinkler khud OFF <strong>nahi</strong> hota: aag ke baad aap OFF karein.</p>
+<p><img alt="Sensors" src="images/sensor-panel.png" /></p>
+<hr /></section><section class="chapter" data-ch="14"><h1 id="ch14">14. Incident History Aur Logs</h1>
+<p><strong>Kahan:</strong> Dashboard → <strong>Incident History &amp; Logs</strong>.</p>
+<ol>
+<li>Upar <strong>incident</strong> chunein (ya "All incidents"), aur <strong>event type</strong>.</li>
+<li>Graph: camera incident par aag ka % (frame ka hissa), sensor incident par sensor ki readings.</li>
+<li>Logs: Opened, Escalated, FireMeasurement, PersonInDanger, EvacuationRoute, Resolved. Test data par <strong>SIMULATED</strong>, raaste par <strong>ESTIMATE</strong>.</li>
+</ol>
+<p><img alt="Incident History" src="images/incident-history.png" /></p>
+<hr /></section><section class="chapter" data-ch="15"><h1 id="ch15">15. Browser Notifications</h1>
+<ol>
+<li>Upar <strong>Enable Alerts</strong> → browser poochhe to <strong>Allow</strong>.</li>
+<li>Ab High/Critical incident par Windows ke kone mein notification aata hai, dashboard ka tab band ho tab bhi (browser chal raha ho).</li>
+</ol>
+<p>Server push ke liye <code>.env</code> mein <code>Notifications__WebPush__…</code> keys chahiye.</p>
+<hr /></section><section class="chapter" data-ch="16"><h1 id="ch16">16. Camera Lost</h1>
+<p>Koi camera (jo frames bhej raha tha) <strong>10 second</strong> chup ho jaye, jaise aag mein bijli chali gayi:</p>
+<ul>
+<li><strong>Alert Logs</strong> mein "Camera lost: no frames from … for 10 s" (source <strong>Camera lost</strong>).</li>
+<li>Us zone mein aag ka incident khula ho to <strong>High</strong>, warna <strong>Medium</strong>.</li>
+<li>Camera wapas aaye to Live Event Log: "Camera … is sending frames again". Phir incident <strong>Resolve</strong> kar dein.</li>
+</ul>
+<hr /></section><p class="part-label">D · Demo, database, yaad rakhne wali baatein aur tools</p><section class="chapter" data-ch="17"><h1 id="ch17">17. Demo Chalana (Simulator Aur Live Camera)</h1>
+<p>Asli aag ke baghair demo:</p>
+<pre><code class="language-powershell">.\start.ps1 -Simulator
+</code></pre>
+<p>Ya alag window mein:</p>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+.\.venv\Scripts\python tools\simulator.py --device-key &lt;.env ka Device__ApiKey&gt; --ignite &quot;Ground Floor - Warehouse&quot;
+</code></pre>
+<p>Cameras par nakli insaan aur Ground Floor - Warehouse mein aag. Alarm, alerts, sprinklers aur risk heatmap sab chalte hain. Har cheez par <strong>SIM DATA</strong> likha hota hai.</p>
+<blockquote>
+<p>⚠️ <code>.env</code> mein asli SMS/Email settings hon to demo <strong>asli</strong> alerts bhej dega. Pehle Safe Test Mode (user guide, chapter 4).</p>
+</blockquote>
+<h2 id="ch17-sab-se-aasan-automatic-test-ek-command">Sab se aasan: automatic test (ek command)</h2>
+<p>Ye command khud sab karti hai: aag ki video chalati hai, camera aur naqsha banati hai, AI ke incident ka intezar karti hai, raasta badalna check karti hai, aur aakhir mein <strong>PASS/FAIL</strong> ki list deti hai.</p>
+<ol>
+<li><strong>Safe Test Mode</strong> lagayein (user guide, chapter 4). Ye na ho to script khud ruk jati hai.</li>
+<li>Sab chalayein: <code>.\start.ps1</code> (simulator <strong>nahi</strong>).</li>
+<li>Nayi PowerShell window:</li>
+</ol>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
+.\.venv\Scripts\python tools\live_test.py
+</code></pre>
+<ol start="4">
+<li>Dashboard dekhte rahein. Taqreeban <strong>1–2 minute</strong> mein aisa aayega:</li>
+</ol>
+<pre><code>  PASS  camera cam-live saved (Devices): 201
+  PASS  floor plan 'Live Test' saved: 201
+  PASS  camera calibrated to the plan: 200
+  PASS  route before the fire: West exit, 5.26 m, ~4.4 s
+  PASS  AI opened a fire incident: #1 Low after 54 s
+  PASS  danger zone active: Lobby fire
+  PASS  route avoids the fire: East exit, 13.25 m
+  PASS  fire risk heatmap active: ...
+8/8 checks passed.
+</code></pre>
+<ol start="5">
+<li>Dashboard par dekhein: <strong>Live Test</strong> tile par aag ki video aur AI ke dabbe, Alert Logs mein incident, alarm, aur Evacuation Route mein <strong>Live Test</strong> naqsha chun kar raasta.</li>
+<li>Dekh liya to us window mein <strong>Ctrl+C</strong>: camera, naqsha aur test incident khud saaf ho jate hain.</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Agar ye aaye</th>
+<th>Matlab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>STOP: .env has real SMS/Email settings</code></td>
+<td>Pehle Safe Test Mode, phir API dobara chalayein</td>
+</tr>
+<tr>
+<td><code>STOP: the API / AI service is not running</code></td>
+<td><code>.\start.ps1</code> chalayein</td>
+</tr>
+<tr>
+<td><code>FAIL AI opened a fire incident</code></td>
+<td>AI service ki window dekhein; device key (<code>start.ps1</code> deta hai) zaroori hai</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>Apni video: <code>tools\live_test.py --video C:\videos\aag.mp4</code>. Video mein log hon to AI unhein bhi <strong>P1, P2</strong> ke saath track karegi.</p>
+</blockquote>
+<h2 id="ch17-haath-se-poora-live-test-asli-video-banda-track-naqsha-raast">Haath se poora live test: asli video, banda track, naqsha, raasta, aag</h2>
+<p>Is test mein <strong>sab kuch ek saath</strong> dikhta hai: camera tile par asli video, AI ke boxes aur <strong>P1, P2</strong> jaise track number, naqshe par chalta hua amber nuqta, evacuation raasta, aur aag lagne par raasta badalna.</p>
+<blockquote>
+<p>⚠️ Ye asli camera ki tarah chalta hai (SIM DATA nahi), is liye alerts aur sprinklers <strong>asli</strong> chalte hain. Pehle <strong>Safe Test Mode</strong> zaroor lagayein.</p>
+</blockquote>
+<h3 id="ch17-qadam-1-sab-chalayein">Qadam 1: Sab chalayein</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
+.\start.ps1
+</code></pre>
+<p>(Simulator <strong>na</strong> chalayein, warna nakli aag mix ho jayegi.)</p>
+<h3 id="ch17-qadam-2-test-camera-chalayein-nayi-powershell-window">Qadam 2: Test camera chalayein (nayi PowerShell window)</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
+.\.venv\Scripts\python tools\mjpeg_camera.py 0
+</code></pre>
+<ul>
+<li><code>0</code> = laptop ka webcam: aap khud camera ke saamne chalein.</li>
+<li>Ya webcam ki jagah video file: <code>tools\mjpeg_camera.py C:\videos\log-chal-rahe.mp4</code> (loop mein chalti hai).</li>
+<li>Window mein likha aayega: <code>Test camera on http://127.0.0.1:8090/video</code>. Ye window khuli rakhein.</li>
+</ul>
+<p><strong>Mobile se (ikhtiyari):</strong> Android par "IP Webcam" app → Start server → link hoga <code>http://&lt;phone-IP&gt;:8080/video</code>. Phone aur laptop ek hi WiFi par hon.</p>
+<h3 id="ch17-qadam-3-camera-dashboard-mein-daalein">Qadam 3: Camera dashboard mein daalein</h3>
+<p>Admin login → <strong>Devices</strong> → <strong>+ Camera</strong>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Likhein</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Id</td>
+<td><code>cam-live</code></td>
+</tr>
+<tr>
+<td>Name</td>
+<td>Live Test</td>
+</tr>
+<tr>
+<td>Zone</td>
+<td><code>Ground Floor - Lobby</code> (list se)</td>
+</tr>
+<tr>
+<td>Stream link</td>
+<td><code>http://127.0.0.1:8090/video</code> (ya phone wala link)</td>
+</tr>
+<tr>
+<td>Browser video format</td>
+<td><strong>Mjpeg</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Save</strong> → Dashboard. Tile par <strong>foran asli video</strong>, aur <strong>1 minute ke andar</strong> AI ke hare dabbe <strong>P1</strong> ke saath.</p>
+<h3 id="ch17-qadam-4-naqsha-banayein">Qadam 4: Naqsha banayein</h3>
+<p>Floor Plans → <strong>+ New</strong> → 20 × 10 m:</p>
+<ol>
+<li><strong>+ Corridor</strong>: poori lambai (0, 3 se 20 × 4).</li>
+<li><strong>+ Exit</strong> baen kinare (West), aur ek daen kinare (East).</li>
+<li><strong>+ Danger zone</strong> West exit ke qareeb → Linked zone list se <code>Ground Floor - Lobby</code> → <strong>Save</strong>.</li>
+</ol>
+<h3 id="ch17-qadam-5-calibration">Qadam 5: Calibration</h3>
+<p>Floor Plans → <strong>Camera calibration</strong> → <code>cam-live</code>. Camera ki tasveer mein farsh ke 4 kone chunein aur naqshe par wohi 4 jagah click karein (chapter 6) → <strong>Save calibration</strong>.</p>
+<h3 id="ch17-qadam-6-raasta-dekhein">Qadam 6: Raasta dekhein</h3>
+<p>Dashboard → <strong>Evacuation Route</strong> → naqsha chunein. Camera ke saamne chalein: naqshe par <strong>amber nuqta</strong> chalega. Nuqte par click → <strong>hari teer West exit</strong> tak.</p>
+<h3 id="ch17-qadam-7-aag">Qadam 7: Aag</h3>
+<p>Webcam ke saamne phone par <strong>aag ki video</strong> chalayein (ya Qadam 2 mein aag wali video file dein). Ya <strong>Emergency Dispatch</strong> → Zone <code>Ground Floor - Lobby</code>.</p>
+<h3 id="ch17-kya-dikhna-chahiye">✅ Kya dikhna chahiye</h3>
+<ul>
+<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> Live Test tile par asli video chal rahi hai</li>
+<li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> Banda hare dabbe mein, <strong>P1</strong> track number ke saath; chalne par bhi P1 hi rahe</li>
+<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> Naqshe par amber nuqta banda ke saath hilta hai</li>
+<li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> Nuqte par click → hara raasta + "Distance … m · ~… s"</li>
+<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> Aag par: alarm bajay, Alert Logs mein incident, danger zone laal</li>
+<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Raasta khud <strong>East exit</strong> par chala jaye (aag se 1 m door)</li>
+<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> Naqshe par risk heatmap ke rang</li>
+<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> Incident <strong>Resolve</strong> → alarm band, heatmap hat jaye</li>
+</ul>
+<p><strong>Band karna:</strong> test camera window mein <code>Ctrl+C</code>, phir Devices se <code>cam-live</code> Delete (warna "Camera lost" alert aayega).</p>
+<blockquote>
+<p>Automatic test hum ne 3 dafa chala kar dekha (test database par): 8/8 pass. Haath wale test mein AI ne camera khud uthaya, banda <strong>P1</strong> 115 frames tak wahi id raha, raasta pehle <strong>West 5.6 m</strong>, aag ke baad <strong>East 12.9 m</strong>, aur aag wali video par AI ne khud incident khola. Laptop webcam (<code>0</code>) wala hissa hum nahi chala sake.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="18"><h1 id="ch18">18. Database Doosre PC Par Le Jana</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kab</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kaam khatam</td>
+<td><code>.\database\save.ps1</code> → <code>git add -A</code> → <code>git commit -m "kaam"</code> → <code>git push</code></td>
+</tr>
+<tr>
+<td>Doosre PC par shuru</td>
+<td><code>git pull</code> → <code>.\database\load.ps1</code> → "yes"</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>load.ps1</code> database na ho to bana deta hai, ho to <strong>poora badal</strong> deta hai. Ek waqt mein ek hi PC par kaam karein.</p>
+<hr /></section><section class="chapter" data-ch="19"><h1 id="ch19">19. Yaad Rakhne Wali Baatein</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>✅ Karein</th>
+<th>❌ Na karein</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Demo se pehle purane incidents Resolve karein (warna alarm bajta rahega)</td>
+<td>Ise asli fire alarm ki jagah lagana</td>
+</tr>
+<tr>
+<td>Camera, sensor aur naqshe mein <strong>ek hi zone</strong> list se chunein</td>
+<td>Camera ka Id badalna (AI isi se frames bhejti hai)</td>
+</tr>
+<tr>
+<td>Camera hile to calibration dobara</td>
+<td>Camera password <code>config.json</code> ya chat mein likhna</td>
+</tr>
+<tr>
+<td>Test se pehle Safe Test Mode</td>
+<td>Asli sprinkler/alarm bina ijazat jorna</td>
+</tr>
+</tbody>
+</table></div></section><section class="chapter" data-ch="20"><h1 id="ch20">20. Tools: Kab Kaunsa Chalayein</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Aap ko kya karna hai</th>
+<th>Tool</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sab kuch chalana</td>
+<td><code>start.ps1</code></td>
+<td><code>.\start.ps1</code></td>
+</tr>
+<tr>
+<td>Aag ka nakli demo</td>
+<td>Simulator</td>
+<td><code>.\start.ps1 -Simulator</code></td>
+</tr>
+<tr>
+<td>Laptop webcam ko camera banana</td>
+<td><code>mjpeg_camera.py</code></td>
+<td><code>cd ai-service; .\.venv\Scripts\python tools\mjpeg_camera.py 0</code></td>
+</tr>
+<tr>
+<td>Ek command mein poora test</td>
+<td><code>live_test.py</code></td>
+<td><code>cd ai-service; .\.venv\Scripts\python tools\live_test.py</code></td>
+</tr>
+<tr>
+<td>Database doosre PC par</td>
+<td><code>save.ps1</code> / <code>load.ps1</code></td>
+<td>chapter 18</td>
+</tr>
+<tr>
+<td>Purane zone naam badalna</td>
+<td><code>rename-zones.sql</code></td>
+<td><code>sqlcmd -S localhost -E -C -d SentinelDb -i database\rename-zones.sql</code></td>
+</tr>
+<tr>
+<td>AI ki accuracy naapna</td>
+<td><code>evaluate.py</code></td>
+<td>Project guide, chapter 27</td>
+</tr>
+<tr>
+<td>Andhera/dhund mein AI kaisi hai</td>
+<td><code>degrade.py</code> + <code>evaluate.py</code></td>
+<td>Project guide, chapter 27</td>
+</tr>
+<tr>
+<td>Browser mein screens check</td>
+<td>Playwright</td>
+<td><code>cd frontend; npm run e2e</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Har tool ki poori tafseel: <strong>Project guide v5, chapter 27</strong>.</p></section>
+    <p id="noresult" class="hidden">Kuch nahi mila. Doosra lafz try karein.</p>
+  </main>
+</div>
+<button class="icon" id="totop" aria-label="Upar jayein">↑ Upar</button>
+<script>
+(() => {
+  const root = document.documentElement, store = (k, v) => { try { v === undefined ? null : localStorage.setItem(k, v); return localStorage.getItem(k); } catch { return null; } };
+  const saved = store('sentinel-theme'); if (saved) root.dataset.theme = saved;
+  document.getElementById('theme').onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark'; store('sentinel-theme', root.dataset.theme);
+  };
+  document.getElementById('menu').onclick = () => document.body.classList.toggle('toc-open');
+  document.querySelectorAll('nav.toc a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('toc-open')));
+  document.getElementById('totop').onclick = () => scrollTo({ top: 0 });
+  // Test checkboxes: ticks are kept in this browser (localStorage) and shown as progress in the banner.
+  const tasks = [...document.querySelectorAll('li.task input')], tickKey = 'sentinel-ticks-features';
+  if (tasks.length) {
+    let done = {}; try { done = JSON.parse(localStorage.getItem(tickKey) || '{}'); } catch { done = {}; }
+    const bar = document.getElementById('progress');
+    const show = () => { const n = tasks.filter(t => t.checked).length; bar.querySelector('span').textContent = `Tests: ${n} / ${tasks.length} ho gaye`; bar.querySelector('b').style.width = (100 * n / tasks.length) + '%'; };
+    tasks.forEach(t => { t.checked = !!done[t.dataset.task]; t.addEventListener('change', () => { done[t.dataset.task] = t.checked; try { localStorage.setItem(tickKey, JSON.stringify(done)); } catch {} show(); }); });
+    document.getElementById('reset').onclick = () => { done = {}; try { localStorage.removeItem(tickKey); } catch {} tasks.forEach(t => t.checked = false); show(); };
+    bar.classList.remove('hidden'); show();
+  }
+  document.querySelectorAll('pre').forEach(pre => {
+    const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'Copy';
+    b.onclick = async () => { try { await navigator.clipboard.writeText(pre.innerText.replace(/Copy$/, '').trim()); b.textContent = 'Copied ✓'; } catch { b.textContent = 'Copy nahi hua'; } setTimeout(() => b.textContent = 'Copy', 1500); };
+    pre.appendChild(b);
+  });
+  // Highlight the chapter being read in the sidebar.
+  const links = new Map([...document.querySelectorAll('nav.toc a')].map(a => [a.dataset.ch, a]));
+  let ticking = false;
+  const markActive = () => {
+    ticking = false;
+    const current = [...document.querySelectorAll('section.chapter:not(.hidden)')].filter(s => s.getBoundingClientRect().top <= 160).pop();
+    links.forEach(l => l.classList.remove('active'));
+    if (current) links.get(current.dataset.ch)?.classList.add('active');
+  };
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(markActive); } }, { passive: true });
+  markActive();
+  // Search: show only chapters that contain every typed word.
+  const q = document.getElementById('q'), sections = [...document.querySelectorAll('section.chapter')], labels = [...document.querySelectorAll('.part-label')];
+  const clearMarks = () => document.querySelectorAll('mark').forEach(m => m.replaceWith(m.textContent));
+  q.addEventListener('input', () => {
+    clearMarks(); document.querySelectorAll('section.chapter').forEach(s => s.normalize());
+    const words = q.value.toLowerCase().split(/\s+/).filter(Boolean); let shown = 0;
+    sections.forEach(s => {
+      const hit = !words.length || words.every(w => s.textContent.toLowerCase().includes(w));
+      s.classList.toggle('hidden', !hit); links.get(s.dataset.ch)?.parentElement.classList.toggle('hidden', !hit); shown += hit;
+      if (hit && words.length) {
+        const walker = document.createTreeWalker(s, NodeFilter.SHOW_TEXT), nodes = [];
+        while (walker.nextNode()) if (!walker.currentNode.parentElement.closest('pre, button')) nodes.push(walker.currentNode);
+        const rx = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+        nodes.forEach(n => { if (!rx.test(n.nodeValue)) return; rx.lastIndex = 0; const span = document.createElement('span'); span.innerHTML = n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(rx, '<mark>$1</mark>'); n.replaceWith(...span.childNodes); });
+      }
+    });
+    labels.forEach(l => l.classList.toggle('hidden', words.length > 0));
+    document.querySelectorAll('nav.toc li.part').forEach(p => p.classList.toggle('hidden', words.length > 0));
+    document.getElementById('noresult').classList.toggle('hidden', shown > 0);
+  });
+})();
+</script>
+</body>
+</html>

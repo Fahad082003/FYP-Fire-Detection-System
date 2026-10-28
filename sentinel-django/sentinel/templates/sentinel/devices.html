@@ -1,0 +1,80 @@
+{% extends "sentinel/shell.html" %}
+{% block title %}Devices · FireVision AI{% endblock %}
+{% block page %}
+<main class="page page-devices">
+  <section class="panel" aria-labelledby="cams-title">
+    <header class="panel-head">
+      <h2 id="cams-title" class="panel-title">Cameras</h2>
+      {% if user.is_admin %}<a class="btn btn-sm btn-success" href="{% url 'devices' %}?add">+ Camera</a>{% endif %}
+    </header>
+    <div class="scroll">
+      <table class="data">
+        <thead><tr><th>Id</th><th>Name</th><th>Type</th><th>Zone</th><th>Stream</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>
+          {% for camera, masked_url in cameras %}
+            <tr>
+              <td class="mono tiny">{{ camera.id }}</td>
+              <td class="strong">{{ camera.name }}</td>
+              <td>{{ camera.feed_type }}</td>
+              <td>{{ camera.location_zone }}</td>
+              <td class="tiny dim">{{ camera.stream_format }}{% if masked_url %} · <span class="mono">{{ masked_url }}</span>{% endif %}</td>
+              <td class="tiny {% if camera.status == 'Offline' %}text-red{% else %}text-green{% endif %}">{{ camera.status }}</td>
+              <td class="nowrap" style="text-align:right">
+                {% if user.is_admin %}
+                  <a class="btn btn-sm" href="{% url 'devices' %}?edit={{ camera.id|urlencode }}">Edit</a>
+                  <form method="post" style="display:inline" data-confirm="Delete camera?"
+                        data-confirm-text="&quot;{{ camera.name }}&quot; is removed. Its old incidents stay in the history." data-confirm-label="Delete">
+                    {% csrf_token %}<button type="submit" name="delete" value="{{ camera.id }}" class="btn btn-sm btn-ghost btn-text-red">Delete</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="empty">No camera yet.{% if user.is_admin %} Press <b>+ Camera</b>.{% endif %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if not user.is_admin %}<p class="panel-body tiny text-amber">Only an Admin can add, edit or delete cameras.</p>{% endif %}
+  </section>
+
+  {% if form %}
+    <form method="post" class="panel panel-body stack" aria-label="Camera form" novalidate>
+      {% csrf_token %}
+      <h3 class="panel-title">{% if editing %}Edit {{ editing.id }}{% else %}Add camera{% endif %}</h3>
+      {% for error in form.non_field_errors %}<p class="alert-box" role="alert">{{ error }}</p>{% endfor %}
+      <label class="field"><span>Id (letters, digits, - or _; cannot change later)</span>
+        <input class="input mono" name="id" value="{{ form.id.value|default_if_none:'' }}" placeholder="e.g. cam-gate" maxlength="64"
+               {% if editing %}disabled{% else %}required{% endif %} {% if form.id.errors %}aria-invalid="true"{% endif %}>
+        {% for e in form.id.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+      <label class="field"><span>Name</span>
+        <input class="input" name="name" value="{{ form.name.value|default_if_none:'' }}" placeholder="e.g. Main Gate" maxlength="120" required
+               {% if form.name.errors %}aria-invalid="true"{% endif %}>
+        {% for e in form.name.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+      <label class="field"><span>Type</span>
+        <select class="input" name="feed_type">{% for value, label in feed_types %}
+          <option value="{{ value }}" {% if form.feed_type.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        {% for e in form.feed_type.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+      <label class="field"><span>Zone: "Floor - Area" (pick one, or type a new one once)</span>
+        <input class="input" name="location_zone" list="zone-list" value="{{ form.location_zone.value|default_if_none:'' }}"
+               placeholder="e.g. First Floor - Kitchen" maxlength="64" required {% if form.location_zone.errors %}aria-invalid="true"{% endif %}>
+        <datalist id="zone-list">{% for z in zones %}<option value="{{ z }}"></option>{% endfor %}</datalist>
+        {% for e in form.location_zone.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+      <label class="field"><span>Stream link (empty = simulated feed)</span>
+        <input class="input mono small" name="stream_url" value="{{ form.stream_url.value|default_if_none:'' }}"
+               placeholder="rtsp://user:pass@192.168.1.20/live" maxlength="500" {% if form.stream_url.errors %}aria-invalid="true"{% endif %}>
+        {% for e in form.stream_url.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+      <label class="field"><span>Browser video format</span>
+        <select class="input" name="stream_format">{% for value, label in formats %}
+          <option value="{{ value }}" {% if form.stream_format.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        {% for e in form.stream_format.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+      <p class="tiny muted">RTSP cameras: keep <b>Simulated</b> (browsers cannot play RTSP; the tile shows the AI boxes). The AI service reads the
+        stream link by itself within a minute. A link shown as <code>rtsp://***@…</code> keeps its saved password.</p>
+      <div class="row">
+        <button type="submit" class="btn btn-sm btn-success">Save</button>
+        <a class="btn btn-sm btn-ghost" href="{% url 'devices' %}">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,1393 @@
+<!doctype html>
+<html lang="ur-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FireVision AI User Guide</title>
+<style>
+:root {
+  --bg: #f7f8fa; --panel: #ffffff; --text: #1e293b; --muted: #64748b; --line: #e2e8f0;
+  --accent: #dc2626; --accent-soft: #fef2f2; --link: #1d4ed8; --code-bg: #f1f5f9; --code-text: #9f1239;
+  --pre-bg: #0b1220; --pre-text: #e2e8f0; --th-bg: #0f172a; --th-text: #ffffff; --row-alt: #f8fafc;
+  --note-bg: #fff7ed; --note-line: #f59e0b; --mark: #fde68a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f17; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937;
+    --accent: #f87171; --accent-soft: #2a1215; --link: #93c5fd; --code-bg: #1f2937; --code-text: #fda4af;
+    --pre-bg: #030712; --pre-text: #e5e7eb; --th-bg: #1f2937; --th-text: #f9fafb; --row-alt: #0f1623;
+    --note-bg: #2a1d0a; --note-line: #f59e0b; --mark: #854d0e;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f17; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937;
+  --accent: #f87171; --accent-soft: #2a1215; --link: #93c5fd; --code-bg: #1f2937; --code-text: #fda4af;
+  --pre-bg: #030712; --pre-text: #e5e7eb; --th-bg: #1f2937; --th-text: #f9fafb; --row-alt: #0f1623;
+  --note-bg: #2a1d0a; --note-line: #f59e0b; --mark: #854d0e;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 "Segoe UI", system-ui, -apple-system, Arial, sans-serif; }
+a { color: var(--link); }
+header.top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--panel); border-bottom: 1px solid var(--line); }
+header.top .brand { font-weight: 800; letter-spacing: .12em; color: var(--accent); white-space: nowrap; }
+header.top .sub { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+header.top .spacer { flex: 1; }
+header.top input { width: min(320px, 40vw); padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
+button.icon { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 14px; }
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
+nav.toc { position: sticky; top: 57px; height: calc(100vh - 57px); overflow-y: auto; padding: 16px 12px 40px 16px; border-right: 1px solid var(--line); }
+nav.toc ul { list-style: none; margin: 0; padding: 0; }
+nav.toc li.part { margin: 16px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+nav.toc a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.4; }
+nav.toc a:hover { background: var(--accent-soft); }
+nav.toc a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+main { padding: 24px 40px 80px; min-width: 0; }
+.hero { background: linear-gradient(135deg, #0b1220, #2a0f12); color: #f1f5f9; border-radius: 14px; padding: 28px; margin-bottom: 28px; }
+.hero h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: .14em; border: 0; color: #fff; }
+.hero p { margin: 0; color: #cbd5e1; max-width: 760px; }
+.hero .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px; }
+.hero .stats div { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.hero .stats b { display: block; color: #fff; font-size: 18px; }
+.part-label { margin: 40px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+section.chapter { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 28px 20px; margin: 14px 0 22px; }
+h1 { font-size: 26px; margin: 18px 0 12px; padding-bottom: 8px; border-bottom: 3px solid var(--accent); }
+h2 { font-size: 20px; margin: 26px 0 8px; }
+h3 { font-size: 17px; margin: 22px 0 6px; color: var(--accent); }
+p, li { overflow-wrap: anywhere; }
+code { font-family: "Cascadia Code", Consolas, monospace; font-size: .88em; background: var(--code-bg); color: var(--code-text); padding: 1px 5px; border-radius: 4px; }
+pre { position: relative; background: var(--pre-bg); color: var(--pre-text); border-radius: 8px; padding: 14px 16px; overflow-x: auto; border-left: 3px solid var(--accent); font-size: 13.5px; line-height: 1.5; }
+pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+pre button.copy { position: absolute; top: 8px; right: 8px; font-size: 12px; padding: 3px 8px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; opacity: .8; }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th { background: var(--th-bg); color: var(--th-text); text-align: left; padding: 8px 10px; white-space: nowrap; }
+td { padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+tr:nth-child(even) td { background: var(--row-alt); }
+blockquote { margin: 0 0 14px; padding: 10px 14px; background: var(--note-bg); border-left: 4px solid var(--note-line); border-radius: 6px; }
+blockquote p { margin: 4px 0; }
+img { max-width: 100%; height: auto; display: block; margin: 8px auto 16px; border-radius: 8px; border: 1px solid var(--line); }
+td img { margin: 0; }
+mark { background: var(--mark); color: inherit; padding: 0 2px; border-radius: 3px; }
+.hidden { display: none !important; }
+#noresult { color: var(--muted); padding: 20px 0; }
+li.task { list-style: none; margin-left: -22px; }
+li.task input { width: 17px; height: 17px; margin: 0 6px 0 0; vertical-align: -3px; accent-color: #16a34a; cursor: pointer; }
+li.task:has(input:checked) { color: var(--muted); text-decoration: line-through; }
+.progress { display: flex; align-items: center; gap: 12px; margin-top: 16px; font-size: 14px; color: #e2e8f0; flex-wrap: wrap; }
+.progress i { flex: 1; min-width: 120px; height: 8px; background: rgba(255,255,255,.15); border-radius: 99px; overflow: hidden; }
+.progress i b { display: block; height: 100%; width: 0; background: #22c55e; transition: width .3s; }
+.progress .icon { background: transparent; color: #e2e8f0; border-color: rgba(255,255,255,.25); }
+#totop { position: fixed; right: 16px; bottom: 16px; z-index: 30; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  nav.toc { position: static; height: auto; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); display: none; }
+  body.toc-open nav.toc { display: block; }
+  main { padding: 16px 16px 72px; }
+  section.chapter { padding: 4px 16px 14px; }
+  header.top .sub { display: none; }
+  header.top input { width: 100%; }
+  .hero { padding: 20px; } .hero h1 { font-size: 26px; }
+}
+@media (min-width: 901px) { #menu { display: none; } }
+@media print { header.top, nav.toc, #totop, pre button.copy { display: none !important; } .layout { display: block; } section.chapter { break-inside: auto; border: 0; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="icon" id="menu" aria-label="Fehrist dikhayein">☰</button>
+  <span class="brand">FIREVISION AI</span>
+  <span class="sub">User Guide · Istemaal aur Testing · Roman Urdu</span>
+  <span class="spacer"></span>
+  <input id="q" type="search" placeholder="Search… (jaise: login, sprinkler, calibration)" aria-label="Guide mein search">
+  <button class="icon" id="theme" aria-label="Dark ya light mode">◐</button>
+</header>
+<div class="layout">
+  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru karne se pehle</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kis Ke Liye Hai?</a></li><li><a href="#ch2" data-ch="2">2. Pehli Dafa: Zaroori Software Install Karna</a></li><li><a href="#ch3" data-ch="3">3. Pehli Dafa: Project Ka Setup</a></li><li><a href="#ch4" data-ch="4">4. Safe Test Mode (Test Se Pehle Zaroor)</a></li><li class="part">B · Roz ka istemaal</li><li><a href="#ch5" data-ch="5">5. Roz Ka Kaam: System Chalana</a></li><li><a href="#ch6" data-ch="6">6. Login Karna</a></li><li><a href="#ch7" data-ch="7">7. Dashboard Ka Tour (Har Hissa Kya Hai)</a></li><li class="part">C · Har feature ka test</li><li><a href="#ch8" data-ch="8">8. Test 1: Aag Ka Demo (Simulator)</a></li><li><a href="#ch9" data-ch="9">9. Test 2: AI Ko Photo Dikhana (AI Page)</a></li><li><a href="#ch10" data-ch="10">10. Test 3: Sensor Ko Garam Karna (PowerShell)</a></li><li><a href="#ch11" data-ch="11">11. Test 4: Sprinklers</a></li><li><a href="#ch12" data-ch="12">12. Test 5: Emergency Dispatch Aur Resolve</a></li><li><a href="#ch13" data-ch="13">13. Test 6: Naqsha Banana Aur Evacuation Raasta</a></li><li><a href="#ch14" data-ch="14">14. Test 7: Incident History Aur Logs</a></li><li><a href="#ch15" data-ch="15">15. Test 8: AI Ko Video Se Camera Ki Tarah Chalana</a></li><li><a href="#ch16" data-ch="16">16. Test 9: Browser Notifications</a></li><li class="part">D · Masle, hifazat aur checklist</li><li><a href="#ch17" data-ch="17">17. Automatic Tests (Ek Click Mein Sab Check)</a></li><li><a href="#ch18" data-ch="18">18. Masle Aur Un Ka Hal</a></li><li><a href="#ch19" data-ch="19">19. Kya Kabhi Na Karein</a></li><li><a href="#ch20" data-ch="20">20. Test Checklist (Print Karke Tick Karein)</a></li></ul></nav>
+  <main>
+    <div class="hero">
+      <h1>FIREVISION AI</h1>
+      <p>Aam istemaal karne wale ke liye qadam ba qadam: install, roz chalana, login, dashboard ka har hissa, aur har feature ka test, ke screen par kya dikhna chahiye. Test ki boxes yahin tick karein: tick is browser mein yaad rehti hai.</p>
+      <div class="stats"><div><b>2 windows</b>Server (API + Dashboard) · AI service</div><div><b>9 tests</b>Aag demo se camera calibration tak</div><div><b>Safe Test Mode</b>Test mein asli SMS/Email band</div><div><b>Checklist</b>Tick karein, progress upar dikhe</div></div>
+      <div id="progress" class="progress hidden"><span></span><i><b></b></i><button class="icon" id="reset">Ticks saaf karein</button></div>
+    </div>
+    <p class="part-label">A · Shuru karne se pehle</p><section class="chapter" data-ch="1"><h1 id="ch1">1. Ye Guide Kis Ke Liye Hai?</h1>
+<p>Ye guide <strong>aam istemaal karne wale</strong> ke liye hai, programmer hona zaroori nahi. Is mein qadam ba qadam likha hai:</p>
+<ol>
+<li>FireVision AI ko pehli dafa computer par kaise <strong>install</strong> karein.</li>
+<li>Roz kaise <strong>chalayein</strong> (start) aur band karein.</li>
+<li>Website (dashboard) ka <strong>har hissa</strong> kya karta hai.</li>
+<li>Har feature ko <strong>khud test</strong> kaise karein, aur test ke baad screen par <strong>kya dikhna chahiye</strong>.</li>
+<li>Masla aaye to <strong>kya karein</strong>.</li>
+</ol>
+<h3 id="ch1-firevision-ai-ek-line-mein">FireVision AI ek line mein</h3>
+<p>FireVision AI building ka <strong>"smart chowkidar"</strong> hai. Camera mein AI aag, dhuwan aur insaan pehchaanta hai. Sensors garmi aur dhuwan napte hain. Khatra ho to screen par alarm aata hai, SMS/Email/Push jaate hain, sprinklers chal sakte hain, aur naqshe par <strong>mehfooz raasta</strong> dikhta hai.</p>
+<h3 id="ch1-guide-kaise-parhein">Guide kaise parhein</h3>
+<ul>
+<li><code>Is tarah ke dabbe</code> mein jo likha hai, wo <strong>computer mein type</strong> karna hai (ya copy-paste).</li>
+<li>✅ = test pass hone par yehi dikhna chahiye.</li>
+<li>⚠️ = dhyan dein, zaroori baat.</li>
+<li><code>&lt;project&gt;</code> ka matlab hai project ka folder, is computer par: <code>C:\Users\m_fahad\Desktop\Project</code>.</li>
+</ul>
+<blockquote>
+<p>ℹ️ <strong>Note (2026-10-26 se):</strong> project ab <strong>Django</strong> par chalta hai (folder <code>sentinel-django\</code>): ek hi server dashboard, API aur live updates deta hai, address <strong>http://localhost:5291</strong>. Purana ASP.NET Core + Angular wala hissa hata diya gaya hai. Is guide ki tasveerein (screenshots) purane Angular dashboard se li gayi thin; Django dashboard mein wohi panels hain, bas thora sa design ka farq ho sakta hai.</p>
+</blockquote>
+<h3 id="ch1-3-hifazati-usool-pehle-parh-lein">3 hifazati usool (pehle parh lein)</h3>
+<blockquote>
+<p>⚠️ <strong>1.</strong> Ye system <strong>test aur demo</strong> ke liye hai. Ise asli fire alarm ki jagah <strong>na</strong> lagayein. Asli building mein smoke detectors aur fire panel zaroori hain.</p>
+<p>⚠️ <strong>2.</strong> Test se pehle <strong>"Safe Test Mode"</strong> (Chapter 4) zaroor karein, warna test ke dauran <strong>asli SMS aur Email</strong> chale jayenge.</p>
+<p>⚠️ <strong>3.</strong> Kisi <strong>asli sprinkler, alarm ya camera</strong> ko bina ijazat aur bina safe tareeqe ke system se na jorein.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Pehli Dafa: Zaroori Software Install Karna</h1>
+<p>Ye kaam <strong>sirf ek dafa</strong> karna hai. Har software ki official website se download karein.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Software</th>
+<th>Kahan se</th>
+<th>Kyun</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Python 3.13</strong></td>
+<td>python.org (install mein "py launcher" tick rehne dein)</td>
+<td>Server (dashboard + API) aur AI service, dono ke liye</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>SQL Server</strong> 2019 ya naya (Developer, Express ya LocalDB, free)</td>
+<td>microsoft.com/sql-server</td>
+<td>Database</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>ODBC Driver 18 for SQL Server</strong></td>
+<td>learn.microsoft.com (search: "ODBC Driver 18 for SQL Server")</td>
+<td>Python ko SQL Server se jorne ke liye</td>
+</tr>
+</tbody>
+</table></div>
+<p>.NET SDK, Node.js, Angular CLI ya dotnet-ef ki <strong>ab zaroorat nahi</strong>. (Sirf browser wale automatic tests ke liye Node/npm chahiye, Chapter 17; ye zaroori nahi.)</p>
+<p><strong>Check karein ke Python install ho gaya:</strong></p>
+<pre><code class="language-powershell">py -3.13 --version      # Python 3.13.x
+</code></pre>
+<p>✅ Version number dikhe, error nahi. ODBC Driver check: Start → "ODBC Data Sources (64-bit)" → <strong>Drivers</strong> tab mein "ODBC Driver 18 for SQL Server" ho.</p>
+<p><strong>PowerShell kaise kholein:</strong> Start menu → "PowerShell" likhein → <strong>Windows PowerShell</strong> par click.</p>
+<hr /></section><section class="chapter" data-ch="3"><h1 id="ch3">3. Pehli Dafa: Project Ka Setup</h1>
+<p>Ye bhi <strong>sirf ek dafa</strong>.</p>
+<h3 id="ch3-qadam-1-env-file-banana-settings-aur-passwords">Qadam 1: <code>.env</code> file banana (settings aur passwords)</h3>
+<ol>
+<li>Project folder kholein: <code>C:\Users\m_fahad\Desktop\Project</code>.</li>
+<li><code>.env.example</code> file ki copy banayein aur naam <code>.env</code> rakhein (is computer par <code>.env</code> pehle se bani hui hai).</li>
+<li><code>.env</code> ko Notepad mein kholein aur ye bharein:</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Line</th>
+<th>Kya likhna hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Jwt__SigningKey=</code></td>
+<td>Lambi random chaabi (neeche command se banayein)</td>
+</tr>
+<tr>
+<td><code>Device__ApiKey=</code></td>
+<td>Ek aur random chaabi (machines ka password)</td>
+</tr>
+<tr>
+<td><code>Seed__AdminEmail=</code></td>
+<td>Login email, jaise <code>admin@sentinel.local</code></td>
+</tr>
+<tr>
+<td><code>Seed__AdminPassword=</code></td>
+<td>Apna login password. Khali chhoda to Server pehli dafa ek random password <strong>Server window mein print</strong> karega (sirf ek dafa)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Random chaabi banane ki command (PowerShell):</strong></p>
+<pre><code class="language-powershell">[Convert]::ToBase64String((1..48 | % {Get-Random -Max 256}))
+</code></pre>
+<p>Jo text aaye, copy karke <code>=</code> ke baad paste karein. <code>Device__ApiKey</code> ke liye dobara chalayein.</p>
+<blockquote>
+<p>⚠️ <code>.env</code> mein passwords hain. Ise <strong>kisi ko na bhejein</strong>, na internet par daalein.</p>
+</blockquote>
+<h3 id="ch3-qadam-2-database-banana">Qadam 2: Server (Django) ke packages</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+py -3.13 -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+</code></pre>
+<p>✅ Kuch minute baad bina laal "ERROR" ke khatam ho, aur <code>sentinel-django\.venv\</code> folder ban jaye.</p>
+<h3 id="ch3-qadam-3-website-ke-packages">Qadam 3: Database</h3>
+<ul>
+<li><strong><code>SentinelDb</code> pehle se hai</strong> (is computer par hai): kuch nahi karna, server usi ko waise hi istemaal karta hai.</li>
+<li><strong>Bilkul naya, khali database:</strong> pehle SQL Server mein <code>SentinelDb</code> naam ka <strong>khali</strong> database banayein (misaal SQL Server Management Studio → Databases → New Database), phir:</li>
+</ul>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+.\.venv\Scripts\python manage.py create_schema
+</code></pre>
+<p>✅ Ye line aaye: <strong><code>Created the Sentinel tables in 'SentinelDb' …</code></strong>. Ye saari tables bana deta hai. Agar tables pehle se hon to ye <strong>mana kar deta hai</strong> (data mehfooz rehta hai).</p>
+<blockquote>
+<p>⚠️ <code>SentinelDb</code> par <code>manage.py migrate</code> <strong>kabhi na</strong> chalayein. (System khud bhi ise rok deta hai.)</p>
+</blockquote>
+<p><strong>Doosre PC ka data chahiye</strong> (misaal office wala data ghar par)? To <code>create_schema</code> ke bajaye <code>.\database\load.ps1</code> chalayein (Chapter 5, "Database doosre PC se").</p>
+<h3 id="ch3-qadam-4-ai-service-ka-setup">Qadam 4: AI service ka setup</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
+py -3.13 -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+</code></pre>
+<ul>
+<li>Dono AI models repo ke saath aate hain, kuch download nahi karna.</li>
+<li>Agar <code>ai-service\models\</code> mein koi <code>.onnx</code> file na ho, to <code>.\.venv\Scripts\python tools\download_models.py</code> person model official website se laata hai (sha256 check ke saath).</li>
+</ul>
+<p>✅ <code>ai-service\models\</code> folder mein ye 3 files hon: <code>models.json</code>, <code>yolox_tiny.onnx</code>, <code>fire_smoke_yolox.onnx</code>.</p>
+<hr /></section><section class="chapter" data-ch="4"><h1 id="ch4">4. Safe Test Mode (Test Se Pehle Zaroor)</h1>
+<p><strong>Masla:</strong> is computer ki <code>.env</code> mein <strong>asli</strong> Twilio (SMS) aur Email ki settings hain. Test mein aag ya emergency bani to system <strong>asli logon ko asli SMS/Email</strong> bhej dega.</p>
+<p><strong>Hal: test ke dauran SMS aur Email band karna</strong></p>
+<ol>
+<li><code>.env</code> Notepad mein kholein.</li>
+<li>In lines ke shuru mein <code>#</code> laga dein (<code>#</code> wali line system parhta hi nahi):</li>
+</ol>
+<pre><code>#Notifications__Sms__TwilioAccountSid=...
+#Notifications__Sms__TwilioAuthToken=...
+#Notifications__Sms__FromNumber=...
+#Notifications__Sms__Recipients=...
+#Notifications__Email__SmtpHost=...
+</code></pre>
+<ol start="3">
+<li>Save karein. Server chal raha ho to band karke dobara chalayein (Chapter 5).</li>
+</ol>
+<p><strong>Is ke baad kya hoga:</strong></p>
+<ul>
+<li>SMS: Live Event Log mein "<strong>skipped (not configured)</strong>". Koi SMS nahi jayega.</li>
+<li>Email: asal mein nahi jayega. Us ka poora text <strong>Server wali PowerShell window</strong> mein print hoga ("console mode"). Test ke liye ye behtareen hai.</li>
+<li>Browser Push: sirf usi browser par jahan aap ne khud <strong>Enable Alerts</strong> dabaya ho.</li>
+</ul>
+<p><strong>Test khatam hone ke baad</strong> <code>#</code> hata dein taake asli alerts dobara chalein.</p>
+<hr /></section><p class="part-label">B · Roz ka istemaal</p><section class="chapter" data-ch="5"><h1 id="ch5">5. Roz Ka Kaam: System Chalana</h1>
+<h3 id="ch5-sab-se-aasan-ek-click">Sab se aasan: ek click</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
+.\start.ps1
+</code></pre>
+<p>Do windows khud khul jati hain (Server = API + Dashboard, aur AI service). ~30 second baad browser mein <strong>http://localhost:5291</strong> kholein. Aag ka demo bhi chahiye to <code>.\start.ps1 -Simulator</code> (teesri window simulator ki). Purana <code>-Django</code> option bhi chalta hai, lekin ab zaroori nahi.</p>
+<blockquote>
+<p>Script block ho to: <code>powershell -ExecutionPolicy Bypass -File .\start.ps1</code>. Band karne ke liye har window band kar dein.</p>
+</blockquote>
+<h3 id="ch5-ya-haath-se-har-hissa-alag-window-mein">Ya haath se (har hissa alag window mein)</h3>
+<p>Windows band na karein jab tak system istemaal ho raha ho.</p>
+<h3 id="ch5-window-1-backend-api">Window 1: Server (API + Dashboard)</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+.\.venv\Scripts\python -m uvicorn config.asgi:application --host 127.0.0.1 --port 5291
+</code></pre>
+<p>✅ Ye line aaye: <strong><code>Uvicorn running on http://127.0.0.1:5291</code></strong></p>
+<p>⚠️ <code>manage.py runserver</code> istemaal na karein: wo live updates nahi bhej sakta. Server sirf <strong>ek</strong> hi chalayein.</p>
+<h3 id="ch5-window-3-ai-service">Window 2: AI Service</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
+$env:SENTINEL_DEVICE_KEY = &#39;&lt;yahan Device__ApiKey&gt;&#39;
+.\.venv\Scripts\python -m sentinel_ai
+</code></pre>
+<p>✅ Ye line aaye: <strong><code>models loaded: ['person', 'fire_smoke'], missing: []</code></strong></p>
+<h3 id="ch5-window-4-sirf-demo-ke-waqt-simulator">Window 3 (sirf demo ke waqt): Simulator</h3>
+<p>Simulator <strong>nakli</strong> cameras, sensors aur aag banata hai, taake asli aag ke baghair demo ho sake (Chapter 8).</p>
+<h3 id="ch5-system-band-karna">System band karna</h3>
+<p>Har window mein <strong>Ctrl + C</strong> dabayein, ya window band kar dein. Data database mein mehfooz rehta hai.</p>
+<h3 id="ch5-database-doosre-pc-se-office-ghar">Database doosre PC se (office ↔ ghar)</h3>
+<p>Dono PCs par ek jaisa data rakhne ke liye database ek backup file (<code>database\SentinelDb.bak</code>) ban kar git se jata hai.</p>
+<p><strong>Kaam khatam karte waqt (jis PC par kaam kiya):</strong></p>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
+.\database\save.ps1
+git add database\SentinelDb.bak
+git commit -m &quot;db: update&quot;
+git push
+</code></pre>
+<p><strong>Doosre PC par kaam shuru karte waqt</strong> (pehle Server band karein):</p>
+<pre><code class="language-powershell">git pull
+.\database\load.ps1
+</code></pre>
+<p>"yes" likhein. ✅ "Restored SentinelDb…" aaye. Database na ho to ban jata hai, ho to <strong>poora badal</strong> jata hai.</p>
+<blockquote>
+<p>⚠️ Ek waqt mein <strong>ek hi PC</strong> par kaam karein. Dono jagah data badla aur save/load bhool gaye, to ek jagah ka kaam mit jayega. Login wohi email/password chalta hai jo pehle PC par tha.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Login Karna</h1>
+<ol>
+<li>Browser (Chrome/Edge) kholein: <strong>http://localhost:5291</strong></li>
+<li><strong>Email:</strong> <code>.env</code> wala <code>Seed__AdminEmail</code> (jaise <code>admin@sentinel.local</code>).</li>
+<li><strong>Password:</strong> <code>.env</code> wala <code>Seed__AdminPassword</code>. Khali chhoda tha to pehli dafa Server ki window mein <strong>sirf ek dafa</strong> print hua tha ("GENERATED password").</li>
+<li><strong>Sign in</strong> dabayein.</li>
+</ol>
+<p><img alt="Login screen" src="images/login.png" /></p>
+<p>✅ Dashboard khul jaye aur upar dayen taraf <strong>Live</strong> (hara nukta) likha ho.</p>
+<p><strong>Ghalat password:</strong> laal message aayega. Login 8 ghante tak chalta hai, phir dobara login.</p>
+<hr /></section><section class="chapter" data-ch="7"><h1 id="ch7">7. Dashboard Ka Tour (Har Hissa Kya Hai)</h1>
+<p><img alt="Dashboard" src="images/dashboard-fire.png" /></p>
+<h3 id="ch7-upar-ki-patti-top-bar">Upar ki patti (Top bar)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Cheez</th>
+<th>Matlab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dashboard · Floor Plans · AI</strong></td>
+<td>Teen pages ke beech jana</td>
+</tr>
+<tr>
+<td><strong>Beech ka pill</strong></td>
+<td>Hara <strong>"ALL SYSTEMS NOMINAL"</strong> = sab theek <strong>aur</strong> AI chal rahi hai. Peela <strong>"MONITORING DEGRADED · AI OFFLINE"</strong> (ya AI MODEL MISSING / CAMERA OFFLINE / AI DATA STALE / LIVE LINK DOWN; har 10 second, aur AI ke frames 8 second ruk jayein to foran). Incident khula ho to wajah saath likhi jati hai, jaise "ELEVATED RISK · 1 OPEN · AI OFFLINE" = koi incident nahi, lekin <strong>nigrani adhoori hai</strong>: is ka matlab "aag nahi" nahi, balke "dekha hi nahi ja raha". Peela "ELEVATED RISK" / laal "CRITICAL ALERT" = khule incidents</td>
+</tr>
+<tr>
+<td><strong>Live / Offline</strong></td>
+<td>Server se live connection hai ya nahi</td>
+</tr>
+<tr>
+<td><strong>Ghari</strong></td>
+<td>Abhi ka asli waqt, AM/PM ke saath (Windows jaisa)</td>
+</tr>
+<tr>
+<td><strong>🔊 button</strong></td>
+<td>Alarm ki awaaz band/chalu. Koi bhi incident khula ho to alarm <strong>lagatar</strong> bajta hai, jab tak incident <strong>Resolve</strong> na karein ya ye button na dabayein</td>
+</tr>
+<tr>
+<td><strong>Enable Alerts</strong></td>
+<td>Is browser par Push notifications on karna</td>
+</tr>
+<tr>
+<td><strong>Emergency Dispatch</strong> (laal)</td>
+<td>Haath se emergency elaan (Chapter 12)</td>
+</tr>
+<tr>
+<td><strong>Logout</strong></td>
+<td>Bahar nikalna</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ch7-dashboard-ke-hisse">Dashboard ke hisse</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Hissa</th>
+<th>Kya dikhata hai</th>
+<th>Aap kya kar sakte hain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>KPI patti</strong> (4 dabbe)</td>
+<td>Khule incidents, insaan, sab se zyada garmi, sab se zyada dhuwan</td>
+<td>Sirf dekhna</td>
+</tr>
+<tr>
+<td><strong>Live Feeds</strong> (cameras)</td>
+<td>Har camera, AI ke boxes aur zones</td>
+<td>All/CCTV/Drone filter, Heatmap on/off, camera par click = bara</td>
+</tr>
+<tr>
+<td><strong>Sensor Telemetry</strong></td>
+<td>6 sensors ke gauges (dhuwan ppm, garmi °C)</td>
+<td>Dekhna</td>
+</tr>
+<tr>
+<td><strong>Smart Sprinklers</strong></td>
+<td>Har sprinkler ON/OFF, Auto/Manual</td>
+<td>Switch, Auto/Manual, Master</td>
+</tr>
+<tr>
+<td><strong>Alert Logs</strong></td>
+<td>Incidents ki list</td>
+<td>Open/All filter, <strong>Resolve</strong></td>
+</tr>
+<tr>
+<td><strong>Live Event Log</strong></td>
+<td>Har waqia (SMS gaya, sprinkler chala…)</td>
+<td>Dekhna</td>
+</tr>
+<tr>
+<td><strong>Incident History &amp; Logs</strong></td>
+<td>Aag ka graph aur history</td>
+<td>Incident aur event type ka filter</td>
+</tr>
+<tr>
+<td><strong>Evacuation Route (estimate)</strong></td>
+<td>Naqsha, mehfooz raasta, aur aag lagne par <strong>risk heatmap</strong></td>
+<td>Naqshe par click = raasta</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ch7-camera-tile-par-rang">Camera tile par rang</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rang</th>
+<th>Matlab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 Laal dabba (dhadakta)</td>
+<td>Aag</td>
+</tr>
+<tr>
+<td>⚪ Gray dabba</td>
+<td>Dhuwan</td>
+</tr>
+<tr>
+<td>🟢 Hara dabba</td>
+<td>Mehfooz insaan</td>
+</tr>
+<tr>
+<td>🟠 Amber "IN DANGER"</td>
+<td>Insaan khatre ke zone mein</td>
+</tr>
+<tr>
+<td>🔴 Laal dashed shakal</td>
+<td>Danger zone</td>
+</tr>
+<tr>
+<td>🟢 Hari shakal</td>
+<td>Safe zone (assembly point)</td>
+</tr>
+<tr>
+<td><strong>SIM DATA</strong> chip</td>
+<td>Data nakli (test) hai</td>
+</tr>
+<tr>
+<td><strong>NO AI DATA</strong></td>
+<td>AI se 1.5 second se data nahi aaya</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ch7-severity-khatre-ka-darja">Severity (khatre ka darja)</h3>
+<p><strong>Low</strong> (halka) → <strong>Medium</strong> → <strong>High</strong> (zyada) → <strong>Critical</strong> (sab se khatarnak).</p>
+<hr /></section><p class="part-label">C · Har feature ka test</p><section class="chapter" data-ch="8"><h1 id="ch8">8. Test 1: Aag Ka Demo (Simulator)</h1>
+<p><strong>Maqsad:</strong> dekhna ke aag lagne par poora system kaise react karta hai.</p>
+<blockquote>
+<p>⚠️ Pehle <strong>Safe Test Mode</strong> (Chapter 4) karein. Is demo mein insaan danger zone mein aate hain, jo <strong>emergency</strong> hai, aur SMS/Email chalte hain.</p>
+</blockquote>
+<p><strong>Qadam:</strong></p>
+<ol>
+<li>Window 1 (Server) chal rahi ho. Login karein.</li>
+<li><code>.env</code> se apni <code>Device__ApiKey</code> copy karein.</li>
+<li>Nayi PowerShell window (Window 3):</li>
+</ol>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+.\.venv\Scripts\python tools\simulator.py --device-key &lt;yahan Device__ApiKey&gt; --ignite &quot;Ground Floor - Warehouse&quot;
+</code></pre>
+<p>(Ya seedha <code>.\start.ps1 -Simulator</code>: ye simulator ki window khud khol deta hai.)</p>
+<ol start="4">
+<li>Browser mein Dashboard dekhein.</li>
+</ol>
+<p><strong>✅ Kya dikhna chahiye (1–2 minute mein):</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> Cameras par boxes hilte hue. <strong>SIM DATA</strong> chip.</li>
+<li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> <strong>Warehouse Floor</strong> (Ground Floor - Warehouse) camera par laal aag ka dabba aur laal danger zone, hari "assembly point".</li>
+<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> Upar pill laal: <strong>CRITICAL ALERT</strong>. Alarm <strong>lagatar</strong> bajta hai (Resolve karne ya 🔊 dabane tak).</li>
+<li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> <strong>Alert Logs</strong> mein naya incident, Location "Ground Floor - Warehouse", Severity High/Critical.</li>
+<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> <strong>Live Event Log</strong> mein lines: incident khula, SMS "skipped", email (Server window mein print).</li>
+<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Ground Floor - Warehouse ke garmi/dhuwan gauges barhte hue.</li>
+<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> Ground Floor - Warehouse ke <strong>Auto</strong> sprinklers <strong>khud chal jaate hain</strong> ("spraying"). Demo setting (<code>SENTINEL_DEBUG</code>, ya <code>Alerts__AutoSprinklerOnSimulatedData=true</code>) mein simulated data par bhi chalte hain; asli hardware nahi, sirf database.</li>
+</ul>
+<p><strong>Band karna:</strong> Window 3 mein <strong>Ctrl + C</strong>.</p>
+<p><strong>Camera lost check (simulator band karne ke baad):</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> ~10–12 second baad <strong>Alert Logs</strong> mein har camera ke liye ek incident, Source <strong>Camera lost</strong>: "Camera lost: no frames from … for 10 s".</li>
+<li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> Ground Floor - Warehouse ke cameras (jahan aag thi) <strong>High</strong>, baqi <strong>Medium</strong>.</li>
+<li class="task"><input type="checkbox" data-task="10" aria-label="Ho gaya"> Simulator dobara chalayein: Live Event Log mein "Camera … is sending frames again". Phir purane "Camera lost" incidents <strong>Resolve</strong> kar dein.</li>
+</ul>
+<p><strong>Simulator ke options:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Kaam</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--ignite "Ground Floor - Lobby"</code></td>
+<td>Us zone mein foran aag (kai dafa likh sakte hain)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>--fps 2</code></td>
+<td>Har camera ke frames per second</td>
+<td>5</td>
+</tr>
+<tr>
+<td><code>--fire-probability 0</code></td>
+<td>Khud se random aag band</td>
+<td>0.004</td>
+</tr>
+<tr>
+<td><code>--telemetry-interval 5</code></td>
+<td>Sensors kitne second baad</td>
+<td>2</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Test 2: AI Ko Photo Dikhana (AI Page)</h1>
+<p><strong>Maqsad:</strong> dekhna ke AI models asal mein aag, dhuwan aur insaan pehchaante hain.</p>
+<p><strong>Test photo kahan se:</strong> aag wali koi bhi photo (JPG/PNG, 5 MB tak). D-Fire dataset ki test photos <code>Desktop\sentinel-colab\D-Fire.zip</code> ke andar <code>test\images\</code> mein hain (misaal <code>AoF07831.jpg</code>). Insaan wali koi bhi photo.</p>
+<p><strong>Qadam:</strong></p>
+<ol>
+<li>Window 1 (Server) aur Window 2 (AI service) chal rahi hon.</li>
+<li>Upar menu mein <strong>AI</strong> par click.</li>
+<li>Baen taraf dekhein: hara <strong>ONLINE · all models loaded</strong>, dono models (<code>person</code>, <code>fire_smoke</code>) ke aage hara nukta.</li>
+<li>Daen taraf <strong>Choose image…</strong> dabayein aur photo chunein.</li>
+<li>1–3 second intezar.</li>
+</ol>
+<p><img alt="AI page" src="images/ai-tab-fire.png" /></p>
+<p><strong>✅ Kya dikhna chahiye:</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="11" aria-label="Ho gaya"> Photo par dabbe: aag <strong>laal</strong>, dhuwan <strong>gray</strong>, insaan <strong>hara</strong>.</li>
+<li class="task"><input type="checkbox" data-task="12" aria-label="Ho gaya"> Neeche line: model ke naam, kitne ms lage, "fire Medium", "smoke yes", "people 0".</li>
+<li class="task"><input type="checkbox" data-task="13" aria-label="Ho gaya"> Table: Class, Confidence (jaise 83%), Box, aur <strong>Why (evidence)</strong> yaani AI ne kyun kaha.</li>
+<li class="task"><input type="checkbox" data-task="14" aria-label="Ho gaya"> Bina aag wali photo par aag ka dabba <strong>na</strong> aaye.</li>
+</ul>
+<p><strong>Yaad rakhein:</strong></p>
+<ul>
+<li>Ye sirf <strong>preview</strong> hai: koi incident, alert ya sprinkler <strong>nahi</strong> chalta.</li>
+<li>AI se kabhi galti ho sakti hai. Kuch na mile to iska matlab ye nahi ke jagah mehfooz hai.</li>
+</ul>
+<p><strong>Masla:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Screen par</th>
+<th>Matlab</th>
+<th>Hal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Laal <strong>OFFLINE</strong></td>
+<td>AI service band hai</td>
+<td>Window 2 chalayein</td>
+</tr>
+<tr>
+<td>Peela "some models missing"</td>
+<td>Koi model file nahi</td>
+<td><code>ai-service\models\</code> check (Chapter 3, Qadam 4)</td>
+</tr>
+<tr>
+<td>"sha256 mismatch"</td>
+<td>Model file badli ya kharab</td>
+<td>Sahi file dobara copy karein</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></section><section class="chapter" data-ch="10"><h1 id="ch10">10. Test 3: Sensor Ko Garam Karna (PowerShell)</h1>
+<p><strong>Maqsad:</strong> dekhna ke garmi barhne par Warning, Alarm aur Critical sahi waqt par aate hain.</p>
+<p>Pehle ye kaam Swagger page se hota tha; Django mein <strong>Swagger page nahi hai</strong>. Ab hum PowerShell se seedha sensor ki reading bhejte hain, bilkul waise jaise asli sensor (machine) bhejta hai: <code>X-Device-Key</code> header mein <code>.env</code> wali <code>Device__ApiKey</code>.</p>
+<p>Neeche purani tasveer sirf hawale ke liye hai (Swagger ab nahi hai):</p>
+<p><img alt="Swagger" src="images/swagger.png" /></p>
+<p><strong>Qadam A: tayyari</strong></p>
+<ol>
+<li>Window 1 (Server) chal rahi ho aur browser mein Dashboard khula ho.</li>
+<li>Nayi PowerShell window kholein aur apni device key rakhein:</li>
+</ol>
+<pre><code class="language-powershell">$key = &#39;&lt;yahan Device__ApiKey&gt;&#39;
+</code></pre>
+<p><strong>Qadam B: garmi bhejna</strong></p>
+<ol>
+<li>Sensor <strong><code>temp-b1</code></strong> (Ground Floor - Warehouse ka temperature sensor; threshold 57°C). Ye command ek reading bhejti hai (yahan <code>30</code>):</li>
+</ol>
+<pre><code class="language-powershell">Invoke-RestMethod -Method Post -Uri http://localhost:5291/api/iot/sensors/temp-b1/readings -Headers @{ &#39;X-Device-Key&#39; = $key } -ContentType &#39;application/json&#39; -Body &#39;{ &quot;value&quot;: 30 }&#39;
+</code></pre>
+<p>✅ Jawab mein sensor ka haal aaye: <code>id</code> = <code>temp-b1</code>, <code>currentValue</code> = <code>30</code>, <code>state</code> = <code>Normal</code>. Ghalat key par <strong>401</strong> error.</p>
+<ol start="2">
+<li>Ab <code>-Body</code> mein ek ek karke ye values bhejein (sirf number badlein), har dafa Dashboard dekhein:</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Kya hona chahiye</th>
+<th>Hisaab</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>{ "value": 30 }</code></td>
+<td>✅ Normal, kuch nahi</td>
+<td>45.6 se kam</td>
+</tr>
+<tr>
+<td><code>{ "value": 50 }</code></td>
+<td>✅ Gauge <strong>peela</strong> (Warning), Live Event Log mein "Normal → Warning", incident nahi</td>
+<td>≥ 57 × 0.8 = 45.6</td>
+</tr>
+<tr>
+<td><code>{ "value": 60 }</code></td>
+<td>✅ <strong>High</strong> incident + Ground Floor - Warehouse ke <strong>Auto</strong> sprinklers ON</td>
+<td>≥ 57</td>
+</tr>
+<tr>
+<td><code>{ "value": 75 }</code></td>
+<td>✅ <strong>Critical</strong> incident + <strong>emergency</strong> notifications + sprinklers</td>
+<td>≥ 57 × 1.25 = 71.25</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Sensor IDs</strong> (ye demo data ke sensors hain, jo pehli dafa start par bante hain jab demo data on ho, <code>Seed__DemoData</code> ya <code>SENTINEL_DEBUG</code>; na milein to jawab mein "Sensor '…' not found"):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Zone</th>
+<th>Dhuwan (threshold 300 ppm)</th>
+<th>Garmi (threshold 57°C)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ground Floor - Lobby</td>
+<td><code>smoke-a1</code></td>
+<td><code>temp-a1</code></td>
+</tr>
+<tr>
+<td>Ground Floor - Warehouse</td>
+<td><code>smoke-b1</code></td>
+<td><code>temp-b1</code></td>
+</tr>
+<tr>
+<td>First Floor - Server Hall</td>
+<td><code>smoke-c1</code></td>
+<td><code>temp-c1</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Dhuwan ke liye Critical = 300 × 1.5 = <strong>450 ppm</strong>.</p>
+<blockquote>
+<p>⚠️ Sensor ka data <strong>asli</strong> maana jata hai (SIMULATED nahi), is liye Alarm/Critical par Auto sprinklers <strong>chal jate hain</strong>. Is project mein sprinklers sirf database mein hain, koi asli hardware nahi. Test ke baad unhein OFF karein (Chapter 11).</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Test 4: Sprinklers</h1>
+<p><strong>Dashboard → Smart Sprinklers</strong> panel.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Kaam</th>
+<th>Kaise</th>
+<th>✅ Kya dikhe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ek sprinkler ON/OFF</td>
+<td>Us ka switch dabayein</td>
+<td>Switch badle, Live Event Log mein line</td>
+</tr>
+<tr>
+<td><strong>Auto</strong> mode</td>
+<td>"Auto" button</td>
+<td>Alarm/emergency par system khud chala sakta hai</td>
+</tr>
+<tr>
+<td><strong>Manual</strong> mode</td>
+<td>"Manual" button</td>
+<td>System khud nahi chalayega, sirf aap</td>
+</tr>
+<tr>
+<td><strong>Master</strong></td>
+<td>Upar "Master" switch → confirm</td>
+<td>Saare sprinklers ek saath ON/OFF</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Check:</strong> ek sprinkler <strong>Manual</strong> karein, phir Test 3 mein <code>75</code> bhejein. ✅ Manual wala sprinkler <strong>OFF</strong> rehna chahiye. Auto wale ON.</p>
+<p><strong>Yaad rakhein:</strong> sprinkler khud OFF <strong>nahi</strong> hota. Aag ke baad aap OFF karein.</p>
+<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Test 5: Emergency Dispatch Aur Resolve</h1>
+<p><strong>Maqsad:</strong> haath se emergency elaan karna, phir incident band karna.</p>
+<blockquote>
+<p>⚠️ Dispatch <strong>foran</strong> SMS/Email/Push bhejta hai. Pehle Safe Test Mode (Chapter 4).</p>
+</blockquote>
+<p><strong>Qadam:</strong></p>
+<ol>
+<li>Upar laal <strong>Emergency Dispatch</strong>.</li>
+<li>Form:<ul>
+<li><strong>Zone:</strong> jaise <code>Ground Floor - Warehouse</code></li>
+<li><strong>Severity:</strong> Low / Medium / High / Critical</li>
+<li><strong>Message:</strong> jaise "Test: Ground Floor - Warehouse khaali karein" (500 huroof tak)</li>
+<li><strong>Activate all sprinklers in this zone:</strong> tick sirf agar sprinklers chalane hon</li>
+</ul>
+</li>
+<li><strong>Dispatch Now</strong> dabayein.</li>
+</ol>
+<p><img alt="Emergency Dispatch" src="images/dispatch-dialog.png" /></p>
+<p><strong>✅ Kya dikhna chahiye:</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="15" aria-label="Ho gaya"> Alert Logs mein naya incident (Source: Manual).</li>
+<li class="task"><input type="checkbox" data-task="16" aria-label="Ho gaya"> Live Event Log: SMS skipped, email Server window mein.</li>
+</ul>
+<p><strong>Resolve (band karna):</strong></p>
+<ol>
+<li><strong>Alert Logs</strong> mein us incident ki line par <strong>Resolve</strong>.</li>
+<li>✅ Incident "Open" list se hat jaye ("All" mein Resolved dikhe). History mein <code>Resolved</code> log.</li>
+</ol>
+<hr /></section><section class="chapter" data-ch="13"><h1 id="ch13">13. Test 6: Naqsha Banana Aur Evacuation Raasta</h1>
+<h3 id="ch13-a-naqsha-banana">A. Naqsha banana</h3>
+<ol>
+<li>Upar <strong>Floor Plans</strong> → <strong>+ New</strong>.</li>
+<li>Daen taraf <strong>Plan settings</strong>: Name ("Ground Floor"), Building ("Warehouse"), Floor (0), <strong>Width aur Height meters mein</strong> (jaise 30 × 20).</li>
+<li>(Ikhtiyari) <strong>Upload image (PNG/JPG)</strong>: apne naqshe ki photo background mein (5 MB tak).</li>
+<li>Toolbar se drag karke banayein:</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Kya banana hai</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>+ Room</strong></td>
+<td>Kamre / halls</td>
+</tr>
+<tr>
+<td><strong>+ Corridor</strong></td>
+<td>Gallery</td>
+</tr>
+<tr>
+<td><strong>+ Wall</strong></td>
+<td>Deewarein (kamron ke beech)</td>
+</tr>
+<tr>
+<td><strong>+ Door</strong></td>
+<td>Deewar par darwaza (darwaze ke baghair raasta deewar paar nahi karta)</td>
+</tr>
+<tr>
+<td><strong>+ Exit</strong></td>
+<td>Bahar nikalne ke darwaze (kam az kam ek)</td>
+</tr>
+<tr>
+<td><strong>+ Safe zone</strong></td>
+<td>Assembly point</td>
+</tr>
+<tr>
+<td><strong>+ Danger zone</strong></td>
+<td>Boiler room / khatarnak jagah</td>
+</tr>
+</tbody>
+</table></div>
+<ol start="5">
+<li><strong>Select / Move</strong> se kisi cheez par click → daen panel mein naam, size badlein. Delete key = mitana.</li>
+<li>Danger zone chunein → <strong>Linked camera/sensor zone</strong> mein list se <code>Ground Floor - Warehouse</code> chunein (likhne ki zaroorat nahi, spelling galat nahi hogi) (Ground Floor - Warehouse mein incident khula ho to ye khud active).</li>
+<li><strong>Save</strong>. ✅ "Floor plan saved" message, title se "unsaved" hat jaye.</li>
+</ol>
+<p><img alt="Floor Plan editor" src="images/floorplan-editor.png" /></p>
+<p><strong>Zoom:</strong> mouse wheel ya + / − / Fit. Ek khana = 1 meter.</p>
+<h3 id="ch13-b-raasta-dekhna">B. Raasta dekhna</h3>
+<ol>
+<li><strong>Dashboard</strong> → neeche <strong>Evacuation Route (estimate)</strong> panel → floor plan chunein.</li>
+<li>Naqshe par wahan <strong>click</strong> karein jahan insaan khara hai.</li>
+<li>✅ <strong>Hari teer</strong> qareeb tareen exit tak, "Distance 14.8 m · ~12 s" jaisa likha.</li>
+</ol>
+<h3 id="ch13-c-aag-mein-raasta-badalna">C. Aag mein raasta badalna</h3>
+<ol>
+<li>Ground Floor - Warehouse ke danger zone ke paas wala raasta dekh lein.</li>
+<li>Test 1 (simulator <code>--ignite "Ground Floor - Warehouse"</code>) ya Test 3 (<code>temp-b1</code> = 75) chalayein.</li>
+<li>✅ Danger zone laal/active, aur raasta <strong>khud badal</strong> kar doosre exit ki taraf, danger se kam az kam 1 m door.</li>
+<li>Koi raasta na bache to ✅ saaf message: "No safe route…"</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pehle</th>
+<th>Aag ke baad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="Pehle" src="images/evacuation-before.png" /></td>
+<td><img alt="Baad" src="images/evacuation-after.png" /></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Yaad rakhein:</strong> waqt sirf andaza hai (faasla ÷ 1.2 m/s). Dhuwan, bheer, seedhiyan shamil nahi.</p>
+<h3 id="ch13-d-aag-kahan-phailegi-risk-heatmap">D. Aag kahan phailegi (risk heatmap)</h3>
+<p><strong>Maqsad:</strong> aag lagne par dekhna ki system bataye <strong>agle kaun se kamre khatre mein hain</strong>.</p>
+<ol>
+<li>Naqshe mein kam az kam 2 kamre, unke beech deewar aur ek <strong>darwaza</strong> hon. Danger zone ka <strong>Linked zone</strong> = <code>Ground Floor - Warehouse</code> (A hisse wala naqsha).</li>
+<li>Ground Floor - Warehouse mein incident kholein: <strong>Emergency Dispatch</strong> (Ground Floor - Warehouse), ya simulator <code>--ignite "Ground Floor - Warehouse"</code>.</li>
+<li>Dashboard → <strong>Evacuation Route</strong> → wohi naqsha.</li>
+</ol>
+<p><strong>✅ Kya dikhna chahiye:</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="17" aria-label="Ho gaya"> Naqshe par rang: aag wala kamra <strong>gehra laal</strong>, paas wale <strong>laal/narangi</strong>, door wale <strong>peele</strong>.</li>
+<li class="task"><input type="checkbox" data-task="18" aria-label="Ho gaya"> Jis kamre ke aur aag ke beech <strong>poori deewar</strong> hai (darwaza nahi), wo <strong>bina rang</strong> ke (mehfooz).</li>
+<li class="task"><input type="checkbox" data-task="19" aria-label="Ho gaya"> Naqshe ke neeche: "⚠ Fire risk: Next at risk: … (x m from the fire, Medium)" aur har kamre ka darja.</li>
+<li class="task"><input type="checkbox" data-task="20" aria-label="Ho gaya"> Incident <strong>Resolve</strong> karein: heatmap aur list khud gayab.</li>
+</ul>
+<p><img alt="Risk heatmap" src="images/fire-risk-heatmap.png" /></p>
+<p><strong>Yaad rakhein:</strong> ye <strong>andaza</strong> hai (darwazon ke raaste faasla). Asal aag hawa, saman aur dhuwen se alag tarah bhi phail sakti hai.</p>
+<h3 id="ch13-e-camera-ko-naqshe-se-jorna-camera-ka-insaan-khud-naqshe-par">E. Camera ko naqshe se jorna (camera ka insaan khud naqshe par)</h3>
+<p><strong>Maqsad:</strong> camera mein dikha insaan naqshe par khud <strong>amber nuqta</strong> ban kar aaye, aur us par click se raasta nikle.</p>
+<p><strong>Ek dafa ki tayyari:</strong> camera ki ek <strong>snapshot</strong> (photo) jis mein farsh ke 4 kone saaf dikhein, misaal kamre ke 4 kone.</p>
+<ol>
+<li><strong>Floor Plans</strong> → naqsha kholein → pehle <strong>Save</strong> (title par "unsaved" na ho).</li>
+<li>Daen taraf <strong>Camera calibration</strong> → camera chunein (misaal <code>Warehouse Floor (cam-warehouse)</code>).</li>
+<li>Snapshot ko <strong>Paint</strong> mein kholein. Pehle kone par mouse rakhein: Paint neeche x, y pixel dikhata hai. Ye <strong>Camera px</strong> mein likhein.</li>
+<li>Usi kone ke liye <strong>Plan m ⌖</strong> dabayein aur naqshe par wohi kona click karein (ya meters khud likhein).</li>
+<li>Baqi 3 kono ke liye yehi. Koi 3 kone <strong>ek seedhi line</strong> mein na hon.</li>
+<li><strong>Save calibration</strong>. ✅ "Camera calibrated" message, aur list mein camera ke aage "calibrated here".</li>
+</ol>
+<p><img alt="Camera calibration panel" src="images/camera-calibration.png" /></p>
+<p><strong>Check:</strong></p>
+<ol>
+<li>Simulator chalayein (Test 1) ya AI camera (Test 8).</li>
+<li>Dashboard → <strong>Evacuation Route</strong> → wohi naqsha.</li>
+<li>✅ Naqshe par <strong>amber nuqte</strong>: camera ke insaan, unke pairon ki jagah par.</li>
+<li>Kisi nuqte par click → ✅ <strong>hari teer</strong> usi jagah se exit tak.</li>
+</ol>
+<p><img alt="Amber nuqte aur ek nuqte se raasta" src="images/evacuation-camera-people.png" /></p>
+<p><strong>Masle:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Screen par</th>
+<th>Matlab</th>
+<th>Hal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Three of the 4 points lie on one line"</td>
+<td>3 kone ek line mein</td>
+<td>Alag alag kone chunein</td>
+</tr>
+<tr>
+<td>"A point lies outside…"</td>
+<td>Naqshe se bahar ka point</td>
+<td>Naqshe ke andar ke meters</td>
+</tr>
+<tr>
+<td>"Save the plan first"</td>
+<td>Naqsha save nahi</td>
+<td>Pehle <strong>Save</strong></td>
+</tr>
+<tr>
+<td>Nuqte nahi aate</td>
+<td>Camera se frames nahi, ya ghalat naqsha chuna</td>
+<td>Simulator/AI chalayein, wohi naqsha chunein</td>
+</tr>
+<tr>
+<td>Nuqte ghalat jagah</td>
+<td>Points ki tarteeb ulti (camera ka kona 1 ≠ naqshe ka kona 1)</td>
+<td>Dono taraf <strong>ek hi kona</strong> ek hi number par</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠️ Camera <strong>hila</strong> to dobara calibrate karein. Nuqta andaza hai, aur seedhiyon par khade insaan ke liye ghalat ho sakta hai.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="14"><h1 id="ch14">14. Test 7: Incident History Aur Logs</h1>
+<ol>
+<li>Dashboard → <strong>Incident History &amp; Logs</strong>.</li>
+<li>Upar se ek <strong>incident</strong> chunein (ya "All incidents"), aur event type ("All event types").</li>
+<li>✅ Dikhe:<ul>
+<li class="task"><input type="checkbox" data-task="21" aria-label="Ho gaya"> Camera wale incident par <strong>aag ka graph</strong> (frame ka %), sensor wale par <strong>sensor ka graph</strong>.</li>
+<li class="task"><input type="checkbox" data-task="22" aria-label="Ho gaya"> Logs: <code>Opened</code>, <code>Escalated</code>, <code>FireMeasurement</code>, <code>PersonInDanger</code>, <code>EvacuationRoute</code>, <code>Resolved</code>.</li>
+<li class="task"><input type="checkbox" data-task="23" aria-label="Ho gaya"> Test data par jamni <strong>SIMULATED</strong>, raaste par neela <strong>ESTIMATE</strong>.</li>
+</ul>
+</li>
+</ol>
+<p><img alt="Incident History" src="images/incident-history.png" /></p>
+<hr /></section><section class="chapter" data-ch="15"><h1 id="ch15">15. Test 8: AI Ko Video Se Camera Ki Tarah Chalana</h1>
+<p><strong>Maqsad:</strong> AI ko lagatar frames dena, jaise asli camera, aur dekhna ke wo khud incident banata hai.</p>
+<h3 id="ch15-sab-se-aasan-devices-page-se-admin">Sab se aasan: Devices page se (Admin)</h3>
+<ol>
+<li>Menu → <strong>Devices</strong> → <strong>+ Camera</strong>.</li>
+<li>Id <code>cam-gate</code>, Name "Main Gate", Zone list se chunein, <strong>Stream link</strong> mein camera ka <code>rtsp://…</code> (ya <code>http://…</code> video), format <strong>Simulated</strong> → <strong>Save</strong>.</li>
+<li>AI service <code>.\start.ps1</code> se chal rahi ho to <strong>1 minute ke andar</strong> ye camera khud uthati hai.</li>
+</ol>
+<p><strong>✅ Kya dikhna chahiye:</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="24" aria-label="Ho gaya"> Dashboard par "Main Gate (Ground Floor - Gate)" tile.</li>
+<li class="task"><input type="checkbox" data-task="25" aria-label="Ho gaya"> AI page → Camera sources mein <code>cam-gate · stream · running</code>.</li>
+<li class="task"><input type="checkbox" data-task="26" aria-label="Ho gaya"> Aag dikhe to Alert Logs mein "Main Gate" ka incident.</li>
+<li class="task"><input type="checkbox" data-task="27" aria-label="Ho gaya"> Camera delete karein to ~1 minute mein AI page se bhi hat jaye.</li>
+</ul>
+<blockquote>
+<p>Dashboard par link <code>rtsp://***@…</code> dikhta hai: password sirf AI service ko jata hai.</p>
+</blockquote>
+<h3 id="ch15-ya-config-json-se-video-file-ke-liye">Ya <code>config.json</code> se (video file ke liye)</h3>
+<p><strong>Qadam:</strong></p>
+<ol>
+<li>Aag ki ek <strong>video file</strong> (MP4/AVI) computer par rakhein.</li>
+<li><code>ai-service\config.example.json</code> ki copy banayein, naam <strong><code>config.json</code></strong>.</li>
+<li>Notepad mein <code>cameras</code> hissa aisa karein (apna path likhein, <code>\</code> ki jagah <code>/</code>):</li>
+</ol>
+<pre><code class="language-json">{
+  &quot;api&quot;: &quot;http://localhost:5291&quot;,
+  &quot;listen&quot;: &quot;127.0.0.1:8008&quot;,
+  &quot;cameras&quot;: [
+    { &quot;cameraId&quot;: &quot;cam-warehouse&quot;, &quot;source&quot;: &quot;C:/Users/m_fahad/Videos/fire-test.mp4&quot;, &quot;fps&quot;: 2, &quot;loop&quot;: false, &quot;enabled&quot;: true }
+  ]
+}
+</code></pre>
+<ol start="4">
+<li>Window 2 (AI service) band karein (Ctrl + C), phir device key de kar dobara chalayein:</li>
+</ol>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
+$env:SENTINEL_DEVICE_KEY = &quot;&lt;yahan Device__ApiKey&gt;&quot;
+.\.venv\Scripts\python -m sentinel_ai
+</code></pre>
+<p><strong>✅ Kya dikhna chahiye:</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="28" aria-label="Ho gaya"> AI page → Camera sources: <code>cam-warehouse · file · SIMULATED / TEST INPUT · running · sent …</code></li>
+<li class="task"><input type="checkbox" data-task="29" aria-label="Ho gaya"> Dashboard ke Warehouse camera par AI ke boxes.</li>
+<li class="task"><input type="checkbox" data-task="30" aria-label="Ho gaya"> Aag <strong>3 frames</strong> tak lagatar dikhe to incident, <strong>SIMULATED DATA</strong> label ke saath.</li>
+<li class="task"><input type="checkbox" data-task="31" aria-label="Ho gaya"> Demo setting mein Auto sprinklers khud chal jaate hain (simulated data par bhi).</li>
+</ul>
+<p><strong>Yaad rakhein:</strong></p>
+<ul>
+<li>Video <strong>file</strong> hamesha SIMULATED maani jati hai.</li>
+<li>Agar video mein manzar har frame badalta ho (photos ka slideshow), to aag "confirm" nahi hogi. <code>fps</code> barha kar (jaise 4) dobara try karein.</li>
+<li>Is purane computer par kul ~1–2 frame per second ka budget hai.</li>
+<li><strong>Asli camera</strong> (<code>rtsp://…</code>) jorne se pehle Safe Test Mode aur ijazat zaroori. Camera ka password config mein nahi, environment variable mein rakhein.</li>
+</ul>
+<hr /></section><section class="chapter" data-ch="16"><h1 id="ch16">16. Test 9: Browser Notifications</h1>
+<ol>
+<li>Upar <strong>Enable Alerts</strong> dabayein → browser poochhe to <strong>Allow</strong>.</li>
+<li>Test 1 ya Test 5 chalayein.</li>
+<li>✅ Windows ke kone mein FireVision AI ka notification aaye (dashboard ka tab band ho tab bhi, jab tak browser background mein chal raha ho).</li>
+</ol>
+<p>Ye sirf tab kaam karta hai jab <code>.env</code> mein <code>Notifications__WebPush__…</code> (VAPID) keys bhari hon <strong>aur</strong> server ke venv mein <code>pywebpush</code> install ho:</p>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+.\.venv\Scripts\python -m pip install pywebpush
+</code></pre>
+<p>VAPID keys kisi bhi tool se banayein, misaal (Node.js ho to): <code>npx web-push generate-vapid-keys</code>. Keys <code>.env</code> mein daal kar Server dobara chalayein.</p>
+<hr /></section><p class="part-label">D · Masle, hifazat aur checklist</p><section class="chapter" data-ch="17"><h1 id="ch17">17. Automatic Tests (Ek Click Mein Sab Check)</h1>
+<p>Ye tests code khud check karte hain. Koi test <strong>fail</strong> nahi hona chahiye. Ye apne <strong>alag, waqti</strong> <code>test_*</code> databases istemaal karte hain aur <code>.env</code> nahi parhte, is liye asli data aur asli SMS/Email mehfooz rehte hain.</p>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
+.\.venv\Scripts\python manage.py test --noinput   # ✅ 76 tests, sab pass (2026-10-26)
+
+# Browser tests (installed Edge). Pehli dafa sirf ek baar (is ke liye Node/npm chahiye):
+cd e2e; npm install --offline; cd ..
+.\.venv\Scripts\python e2e\run.py                 # ✅ 10/10 pass (2026-10-26)
+
+# Asli AI service ke saath poora camera lifecycle (~8 minute):
+.\.venv\Scripts\python e2e\lifecycle.py           # ✅ 18/18 ek run mein (2026-10-26)
+
+cd C:\Users\m_fahad\Desktop\Project\ai-service
+.\.venv\Scripts\python -m unittest discover -s tests    # ✅ Ran 25 tests ... OK
+</code></pre>
+<p><strong>AI ki accuracy dobara napna</strong> (D-Fire test folder ka path chahiye, ~20 minute):</p>
+<pre><code class="language-powershell">.\.venv\Scripts\python tools\evaluate.py --data &lt;D-Fire\test folder&gt; --classes 0=Smoke,1=Fire --sweep 0.25,0.3,0.35,0.4,0.5 --out reports\meri-jaanch
+</code></pre>
+<p>✅ Threshold 0.4 par fire image recall ~0.93 aur smoke ~0.92 aana chahiye.</p>
+<hr /></section><section class="chapter" data-ch="18"><h1 id="ch18">18. Masle Aur Un Ka Hal</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Masla</th>
+<th>Wajah</th>
+<th>Hal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top bar par <strong>Offline / Reconnecting</strong></td>
+<td>Server band hai</td>
+<td>Window 1 chalayein</td>
+</tr>
+<tr>
+<td>Login par "network error"</td>
+<td>Server band, ya port 5291 mein masla</td>
+<td>Window 1 check, <code>http://localhost:5291/health</code> kholein: <code>"status":"ok"</code> aana chahiye</td>
+</tr>
+<tr>
+<td>Ghalat password</td>
+<td><code>.env</code> ka password</td>
+<td><code>.env</code> mein <code>Seed__AdminPassword</code> dekhein. Users table pehle se ho to wohi purana password</td>
+</tr>
+<tr>
+<td>Server SQL Server se connect nahi hota (connection / login timeout error)</td>
+<td>SQL Server band</td>
+<td>Start → "Services" → <strong>SQL Server (MSSQLSERVER)</strong> → Start</td>
+</tr>
+<tr>
+<td>Server error: "Invalid object name" ya "Invalid column name …"</td>
+<td>Database khali ya purana (tables poori nahi)</td>
+<td>Khali database ho to <code>.\.venv\Scripts\python manage.py create_schema</code> (Chapter 3). Purana database ho to doosre PC se <code>.\database\load.ps1</code>. <code>manage.py migrate</code> na chalayein</td>
+</tr>
+<tr>
+<td>Server: ODBC / "Data source name not found" / driver error</td>
+<td>ODBC Driver 18 install nahi</td>
+<td>"ODBC Driver 18 for SQL Server" install karein (Chapter 2)</td>
+</tr>
+<tr>
+<td>Cameras par <strong>NO AI DATA</strong></td>
+<td>AI/simulator data nahi bhej raha</td>
+<td>Simulator (Test 1) ya AI camera (Test 8) chalayein</td>
+</tr>
+<tr>
+<td>AI page <strong>OFFLINE</strong></td>
+<td>AI service band</td>
+<td>Window 3 chalayein</td>
+</tr>
+<tr>
+<td>AI "some models missing"</td>
+<td><code>.onnx</code> file nahi</td>
+<td>Chapter 3, Qadam 4</td>
+</tr>
+<tr>
+<td>AI camera "API HTTP 401"</td>
+<td>Device key ghalat ya nahi di</td>
+<td><code>$env:SENTINEL_DEVICE_KEY</code> = <code>.env</code> ka <code>Device__ApiKey</code></td>
+</tr>
+<tr>
+<td>Simulator "401"</td>
+<td>Device key ghalat</td>
+<td><code>--device-key</code> mein sahi key</td>
+</tr>
+<tr>
+<td><code>py -3.13</code>: "not recognized" ya Python 3.13 nahi mila</td>
+<td>Python 3.13 install nahi ya PowerShell purani</td>
+<td>Chapter 2, phir <strong>nayi</strong> PowerShell kholein</td>
+</tr>
+<tr>
+<td><code>start.ps1</code>: "sentinel-django\.venv is missing" ya <code>.\.venv\Scripts\python</code> nahi mila</td>
+<td>Server ka venv nahi bana</td>
+<td>Chapter 3, Qadam 2 (<code>py -3.13 -m venv .venv</code> + <code>pip install</code>)</td>
+</tr>
+<tr>
+<td>Port 5291 "already in use" / "address already in use"</td>
+<td>Server pehle se chal raha hai</td>
+<td>Purani Server window band karein, ya computer restart</td>
+</tr>
+<tr>
+<td>SMS/Email nahi aate</td>
+<td>Safe Test Mode on, ya settings ghalat</td>
+<td><code>#</code> hatayein (Chapter 4), Live Event Log mein error dekhein</td>
+</tr>
+<tr>
+<td><code>load.ps1</code>: "Cannot open server" ya "network-related"</td>
+<td>SQL Server band, ya Express naam se install</td>
+<td>SQL Server start karein; Express ho to <code>.\database\load.ps1 -Server "localhost\SQLEXPRESS"</code> aur <code>.env</code> mein bhi wohi naam</td>
+</tr>
+<tr>
+<td><code>load.ps1</code>: version wala error</td>
+<td>Doosre PC par SQL Server purana</td>
+<td>SQL Server 2022 ya naya install karein</td>
+</tr>
+<tr>
+<td>PowerShell: "running scripts is disabled"</td>
+<td>Script chalane ki ijazat band</td>
+<td><code>powershell -ExecutionPolicy Bypass -File .\database\load.ps1</code></td>
+</tr>
+<tr>
+<td>Floor plan save par laal message</td>
+<td>Koi cheez naqshe se bahar</td>
+<td>Message mein naam likha hota hai, us ko andar karein</td>
+</tr>
+<tr>
+<td>Raasta: "Start point is not inside…"</td>
+<td>Click kamre/corridor se bahar</td>
+<td>Room/Corridor ke andar click karein</td>
+</tr>
+</tbody>
+</table></div>
+<hr /></section><section class="chapter" data-ch="19"><h1 id="ch19">19. Kya Kabhi Na Karein</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>❌ Na karein</th>
+<th>Kyun</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ise asli fire alarm ki jagah lagana</td>
+<td>Ye test aur lab mein check hua hai, certified nahi</td>
+</tr>
+<tr>
+<td>Bina Safe Test Mode ke aag ka test</td>
+<td>Asli logon ko asli SMS/Email chale jayenge</td>
+</tr>
+<tr>
+<td>Asli sprinkler/alarm hardware bina ijazat jorna</td>
+<td>Paani ya ghabrahat se nuqsan</td>
+</tr>
+<tr>
+<td><code>.env</code> kisi ko bhejna ya internet par daalna</td>
+<td>Is mein passwords aur keys hain</td>
+</tr>
+<tr>
+<td>AI ke "kuch nahi mila" ko "sab mehfooz" samajhna</td>
+<td>AI se galti ho sakti hai</td>
+</tr>
+<tr>
+<td>Camera ka password <code>config.json</code> mein likhna</td>
+<td>Environment variable mein rakhein</td>
+</tr>
+<tr>
+<td>Model files (<code>.onnx</code>) badalna</td>
+<td>Fingerprint match nahi hoga, model band ho jayega</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Yaad rakhein:</strong> aag mein bijli jaye to camera band ho sakte hain. Cameras ko UPS/PoE backup par rakhein, aur hamesha smoke detectors aur fire panel istemaal karein.</p>
+<hr /></section><section class="chapter" data-ch="20"><h1 id="ch20">20. Test Checklist (Print Karke Tick Karein)</h1>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>Chapter</th>
+<th>✅ / ❌</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Software install, versions dikhe</td>
+<td>2</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>.env</code>, database, packages, AI setup</td>
+<td>3</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Safe Test Mode on</td>
+<td>4</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Dono windows chalin (Server 5291, AI service 8008)</td>
+<td>5</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Login hua, "Live" hara</td>
+<td>6</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Simulator: Ground Floor - Warehouse mein aag, CRITICAL, incident, alarm lagatar, Ground Floor - Warehouse sprinklers khud chale</td>
+<td>8</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>6b</td>
+<td>Simulator band: ~10 sec baad "Camera lost" (Ground Floor - Warehouse High)</td>
+<td>8</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td>AI page: aag ki photo par laal dabba</td>
+<td>9</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td>AI page: bina aag photo par aag nahi</td>
+<td>9</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Sensor 50 = Warning, 60 = High, 75 = Critical</td>
+<td>10</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>10</td>
+<td>Sprinkler: Manual wala khud nahi chala</td>
+<td>11</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>Emergency Dispatch + Resolve</td>
+<td>12</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td>Naqsha bana aur save hua</td>
+<td>13</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>Raasta + waqt dikha</td>
+<td>13</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>14</td>
+<td>Aag mein raasta khud badla</td>
+<td>13</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>14b</td>
+<td>Aag par risk heatmap aur "Next at risk", deewar ke peeche wala kamra mehfooz</td>
+<td>13</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>14c</td>
+<td>Camera calibrate hua, naqshe par amber nuqte, nuqte se raasta</td>
+<td>13</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>History mein graph aur logs</td>
+<td>14</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>16</td>
+<td>AI video camera: SIMULATED incident</td>
+<td>15</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>17</td>
+<td>Browser notification aaya</td>
+<td>16</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>18</td>
+<td>Automatic tests: Django 76 + AI service 25, aur 10 browser tests pass</td>
+<td>17</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>19</td>
+<td>Safe Test Mode <strong>band</strong> kiya (<code>#</code> hataye)</td>
+<td>4</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>20</td>
+<td><code>save.ps1</code> → push → doosre PC par pull → <code>load.ps1</code></td>
+<td>5</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>21</td>
+<td><code>start.ps1</code> se dono windows khulin</td>
+<td>5</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>22</td>
+<td>Devices page: camera add, edit, delete (Admin)</td>
+<td>15</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Tester ka naam:</strong> .................................... <strong>Tareekh:</strong> ....................</p></section>
+    <p id="noresult" class="hidden">Kuch nahi mila. Doosra lafz try karein.</p>
+  </main>
+</div>
+<button class="icon" id="totop" aria-label="Upar jayein">↑ Upar</button>
+<script>
+(() => {
+  const root = document.documentElement, store = (k, v) => { try { v === undefined ? null : localStorage.setItem(k, v); return localStorage.getItem(k); } catch { return null; } };
+  const saved = store('sentinel-theme'); if (saved) root.dataset.theme = saved;
+  document.getElementById('theme').onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark'; store('sentinel-theme', root.dataset.theme);
+  };
+  document.getElementById('menu').onclick = () => document.body.classList.toggle('toc-open');
+  document.querySelectorAll('nav.toc a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('toc-open')));
+  document.getElementById('totop').onclick = () => scrollTo({ top: 0 });
+  // Test checkboxes: ticks are kept in this browser (localStorage) and shown as progress in the banner.
+  const tasks = [...document.querySelectorAll('li.task input')], tickKey = 'sentinel-ticks-user';
+  if (tasks.length) {
+    let done = {}; try { done = JSON.parse(localStorage.getItem(tickKey) || '{}'); } catch { done = {}; }
+    const bar = document.getElementById('progress');
+    const show = () => { const n = tasks.filter(t => t.checked).length; bar.querySelector('span').textContent = `Tests: ${n} / ${tasks.length} ho gaye`; bar.querySelector('b').style.width = (100 * n / tasks.length) + '%'; };
+    tasks.forEach(t => { t.checked = !!done[t.dataset.task]; t.addEventListener('change', () => { done[t.dataset.task] = t.checked; try { localStorage.setItem(tickKey, JSON.stringify(done)); } catch {} show(); }); });
+    document.getElementById('reset').onclick = () => { done = {}; try { localStorage.removeItem(tickKey); } catch {} tasks.forEach(t => t.checked = false); show(); };
+    bar.classList.remove('hidden'); show();
+  }
+  document.querySelectorAll('pre').forEach(pre => {
+    const b = document.createElement('button'); b.className = 'copy'; b.textContent = 'Copy';
+    b.onclick = async () => { try { await navigator.clipboard.writeText(pre.innerText.replace(/Copy$/, '').trim()); b.textContent = 'Copied ✓'; } catch { b.textContent = 'Copy nahi hua'; } setTimeout(() => b.textContent = 'Copy', 1500); };
+    pre.appendChild(b);
+  });
+  // Highlight the chapter being read in the sidebar.
+  const links = new Map([...document.querySelectorAll('nav.toc a')].map(a => [a.dataset.ch, a]));
+  let ticking = false;
+  const markActive = () => {
+    ticking = false;
+    const current = [...document.querySelectorAll('section.chapter:not(.hidden)')].filter(s => s.getBoundingClientRect().top <= 160).pop();
+    links.forEach(l => l.classList.remove('active'));
+    if (current) links.get(current.dataset.ch)?.classList.add('active');
+  };
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(markActive); } }, { passive: true });
+  markActive();
+  // Search: show only chapters that contain every typed word.
+  const q = document.getElementById('q'), sections = [...document.querySelectorAll('section.chapter')], labels = [...document.querySelectorAll('.part-label')];
+  const clearMarks = () => document.querySelectorAll('mark').forEach(m => m.replaceWith(m.textContent));
+  q.addEventListener('input', () => {
+    clearMarks(); document.querySelectorAll('section.chapter').forEach(s => s.normalize());
+    const words = q.value.toLowerCase().split(/\s+/).filter(Boolean); let shown = 0;
+    sections.forEach(s => {
+      const hit = !words.length || words.every(w => s.textContent.toLowerCase().includes(w));
+      s.classList.toggle('hidden', !hit); links.get(s.dataset.ch)?.parentElement.classList.toggle('hidden', !hit); shown += hit;
+      if (hit && words.length) {
+        const walker = document.createTreeWalker(s, NodeFilter.SHOW_TEXT), nodes = [];
+        while (walker.nextNode()) if (!walker.currentNode.parentElement.closest('pre, button')) nodes.push(walker.currentNode);
+        const rx = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+        nodes.forEach(n => { if (!rx.test(n.nodeValue)) return; rx.lastIndex = 0; const span = document.createElement('span'); span.innerHTML = n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(rx, '<mark>$1</mark>'); n.replaceWith(...span.childNodes); });
+      }
+    });
+    labels.forEach(l => l.classList.toggle('hidden', words.length > 0));
+    document.querySelectorAll('nav.toc li.part').forEach(p => p.classList.toggle('hidden', words.length > 0));
+    document.getElementById('noresult').classList.toggle('hidden', shown > 0);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+App_Data/
+staticfiles/
+e2e/node_modules/
+e2e/lifecycle-logs/
+e2e/server.log

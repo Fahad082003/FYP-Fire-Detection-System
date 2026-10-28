@@ -1,0 +1,91 @@
+{% extends "sentinel/shell.html" %}
+{% load static %}
+{% block title %}Command Center · FireVision AI{% endblock %}
+{% block page %}
+<main class="page page-dashboard">
+  <div class="col">
+    <section class="panel" aria-labelledby="feeds-title">
+      <header class="panel-head">
+        <h2 id="feeds-title" class="panel-title">Live Feeds</h2>
+        <div class="seg" role="tablist" aria-label="Feed filter" id="feed-filter">
+          <button type="button" role="tab" class="seg-btn" aria-selected="true" data-filter="all">All</button>
+          <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="CCTV">CCTV</button>
+          <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="Drone">Drone</button>
+        </div>
+        <label class="row small dim"><input type="checkbox" id="heatmap-toggle" checked> Heatmap</label>
+      </header>
+      <div id="video-wall"><p class="empty">Loading camera feeds…</p></div>
+    </section>
+
+    <section class="panel" aria-labelledby="alerts-title">
+      <header class="panel-head">
+        <h2 id="alerts-title" class="panel-title">Alert Logs</h2>
+        <div class="seg" role="tablist" aria-label="Incident filter" id="incident-filter">
+          <button type="button" role="tab" class="seg-btn" aria-selected="true" data-filter="open">Open (<span id="open-count">0</span>)</button>
+          <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="all">All</button>
+        </div>
+      </header>
+      <div class="scroll scroll-460">
+        <table class="data">
+          <thead><tr><th>#</th><th>Time</th><th>Severity</th><th>Location</th><th>Source</th>
+            <th title="Estimated from the share of the image covered by fire boxes, not a calibrated physical size">Fire (est.)</th>
+            <th class="num">Humans</th><th class="num">In danger</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <tbody id="incident-rows"><tr><td colspan="10" class="empty">Loading incidents…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <header class="panel-head">
+        <h2 id="history-title" class="panel-title">Incident History &amp; Logs</h2>
+        <select class="input input-sm" id="history-incident" aria-label="Incident"><option value="">All incidents</option></select>
+        <select class="input input-sm" id="history-type" aria-label="Event type">
+          <option value="">All event types</option>
+          <option>Opened</option><option>Escalated</option><option>Resolved</option><option>FireMeasurement</option>
+          <option>PersonInDanger</option><option>EvacuationRoute</option>
+        </select>
+      </header>
+      <div id="history-chart"></div>
+      <div class="scroll scroll-360" id="history-table"><p class="empty">Loading history…</p></div>
+    </section>
+
+    <section class="panel" aria-labelledby="evac-title">
+      <header class="panel-head">
+        <h2 id="evac-title" class="panel-title">Evacuation Route (estimate)</h2>
+        <select class="input input-sm hidden" id="evac-plan" aria-label="Floor plan"></select>
+        <a class="btn btn-sm btn-ghost" href="{% url 'floor_plans' %}">Edit plans</a>
+      </header>
+      <div id="evacuation"><p class="empty">Loading floor plans…</p></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="kpis" aria-label="Key metrics" id="kpis"></section>
+
+    <section class="panel" aria-labelledby="sensor-title">
+      <header class="panel-head">
+        <h2 id="sensor-title" class="panel-title">Sensor Telemetry</h2>
+        <span class="small muted" id="sensor-count"></span>
+      </header>
+      <div id="sensors"><p class="empty">Awaiting telemetry…</p></div>
+      <header class="panel-head" style="border-top:1px solid var(--ink-700)">
+        <h2 class="panel-title">Smart Sprinklers <span class="muted" style="text-transform:none;letter-spacing:0">(<span id="active-relays">0</span> active)</span></h2>
+        <label class="switch-label" title="System-wide sprinkler activation">
+          <input type="checkbox" role="switch" class="sr-only master" id="master-switch" aria-label="Master sprinkler switch">
+          <span class="switch"></span><span class="small dim strong">Master</span>
+        </label>
+      </header>
+      <ul class="relays" id="relays"></ul>
+    </section>
+
+    <section class="panel" aria-labelledby="activity-title" style="display:flex;flex-direction:column">
+      <header class="panel-head">
+        <h2 id="activity-title" class="panel-title">Live Event Log</h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="clear-activity">Clear</button>
+      </header>
+      <ol class="activity" id="activity" aria-live="polite"><li class="empty" style="display:block">Waiting for events…</li></ol>
+    </section>
+  </div>
+</main>
+{% endblock %}
+{% block scripts %}{{ block.super }}<script type="module" src="{% static 'sentinel/js/dashboard.js' %}"></script>{% endblock %}

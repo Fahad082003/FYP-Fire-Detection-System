@@ -1,0 +1,7 @@
+{
+  "name": "sentinel-django-e2e",
+  "private": true,
+  "description": "Browser tests for the Django dashboard (installed Microsoft Edge, no browser download).",
+  "type": "module",
+    "devDependencies": { "playwright-core": "1.63.0" }
+}

@@ -1,0 +1,30 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}FireVision AI · Command Center{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#05080f">
+  <link rel="icon" href="{% static 'sentinel/favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'sentinel/css/app.css' %}">
+</head>
+<body>
+  {% block body %}{% endblock %}
+  <div class="toasts" id="toasts" aria-live="assertive">
+    {% for message in messages %}<button type="button" class="toast toast-{{ message.tags }}" role="status"><strong>{{ message }}</strong></button>{% endfor %}
+  </div>
+  <dialog class="small" id="confirm-dialog">
+    <div class="dialog-body">
+      <h2 data-title></h2>
+      <p class="dim" data-text></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" value="cancel" data-answer="no">Cancel</button>
+        <button type="button" class="btn btn-danger" data-answer="yes" data-confirm-label>Confirm</button>
+      </div>
+    </div>
+  </dialog>
+  <script type="module" src="{% static 'sentinel/js/core.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
