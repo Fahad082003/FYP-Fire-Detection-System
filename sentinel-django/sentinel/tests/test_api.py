@@ -45,6 +45,16 @@ class ApiTests(SentinelTestCase):
         self.assertEqual((len(snapshot["cameras"]), len(snapshot["sensors"]), len(snapshot["sprinklers"])), (4, 6, 5))
         self.assertEqual(snapshot["system"], {"level": "nominal", "openIncidents": 0, "activeSprinklers": 0})
 
+    def test_snapshot_keeps_an_old_open_incident_behind_50_newer_ones(self):
+        """The dashboard derives its banner, KPIs and alarm from the snapshot's list; an open incident must never drop out."""
+        old = IncidentAlert.objects.create(zone="Ground Floor - Lobby", severity="High", message="old open",
+                                           timestamp=timezone.now() - timedelta(days=1))
+        IncidentAlert.objects.bulk_create([IncidentAlert(zone="Ground Floor - Lobby", message=f"newer {n}", is_resolved=True)
+                                           for n in range(55)])
+        ids = [i["id"] for i in self.op.get("/api/dashboard/snapshot").json()["incidents"]]
+        self.assertIn(old.id, ids)
+        self.assertEqual(len(ids), 51)  # the 50 most recent plus the open one
+
     def test_wrong_device_key_is_rejected(self):
         self.assertEqual(APIClient(HTTP_X_DEVICE_KEY="nope").get("/api/iot/sensors").status_code, 401)
 
@@ -137,6 +147,15 @@ class ApiTests(SentinelTestCase):
         self.assertEqual(IncidentLog.objects.filter(incident=incident, type=IncidentLogType.FIRE_MEASUREMENT).count(), 1)
         self.assertEqual(IncidentAlert.objects.count(), 1)
         self.assertEqual(notifications.jobs.qsize(), 0)  # a Low fire is no emergency: nothing is sent
+
+    def test_resolving_a_stale_copy_keeps_the_escalation_that_happened_since(self):
+        """resolve_incident re-reads the incident under the alert engine's lock instead of saving an old copy over it."""
+        self.post_frame(**fire("cam-server", "Medium"))
+        stale = IncidentAlert.objects.get()
+        self.post_frame(**fire("cam-server", "Critical"))  # escalates the same open incident
+        services.resolve_incident(stale, "test")
+        incident = IncidentAlert.objects.get()
+        self.assertEqual((incident.is_resolved, incident.severity), (True, "Critical"))
 
     def test_simulated_sensor_alarm_is_labelled_and_never_opens_sprinklers(self):
         r = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-b1", "value": 80.0}], "simulated": True}, format="json")
@@ -370,6 +389,20 @@ class CameraTests(SentinelTestCase):
         self.assertIn("cam-dead", lost)
         self.assertEqual(self.status("cam-dead"), "Offline")
         self.assertNotIn("cam-lobby", lost)  # demo camera without a stream link: never watched at start-up
+
+    def test_after_a_restart_a_watched_stream_camera_stays_offline_until_its_first_frame(self):
+        self.assertEqual(self.admin_client.post("/api/cameras", {
+            "id": "cam-dead", "name": "cam-dead", "feedType": "CCTV", "streamUrl": "rtsp://10.0.0.99/live", "streamFormat": "Simulated",
+            "locationZone": "Ground Floor - Store"}, format="json").status_code, 201)
+        CameraFeed.objects.filter(pk="cam-dead").update(status="Offline")
+        restarted = Watchdog()
+        start = timezone.now()
+        restarted.watch_streaming_cameras(start)
+        restarted.check(start + timedelta(seconds=5))  # inside the grace period, no frame yet
+        self.assertEqual(self.status("cam-dead"), "Offline")
+        restarted.frame_received("cam-dead")
+        restarted.check(timezone.now())
+        self.assertEqual(self.status("cam-dead"), "Online")
 
     def test_frames_from_an_unknown_camera_change_nothing_and_do_not_fail(self):
         watchdog.frame_received("cam-not-registered")

@@ -1,142 +1,135 @@
-# FireVision AI — Django Migration ki Aakhri Audit (2026-10-26)
+# FireVision AI — Aakhri Report (Django version)
 
-Yeh report batati hai ke migration ke aakhir mein kya kiya gaya, kya test hua (asal output ke saath), aur kya abhi baqi ya untested hai. Har test nateeja isi tareekh ke asal run ka hai; purane nateeje "history" likh kar alag kiye gaye hain.
+**Taaza update: 2026-10-28.** Is report mein har nateeja asal mein chalaye gaye test ka hai. Jo test nahi hua, use "nahi hua" likha gaya hai.
+Migration ki tafseel (kya kahan gaya) [sentinel-django/MIGRATION.md](sentinel-django/MIGRATION.md) mein hai. Yeh project FYP/demo ke liye hai, production ke liye nahi.
 
-## 1. Aakhri architecture
+## 1. Project ka current architecture
 
-- **Django hi wahid server hai**: `sentinel-django/` (Django 5.2, Django REST Framework, `mssql-django`, `uvicorn`, port 5291). Yahi dashboard pages, REST API (purane paths aur JSON) aur live updates (`GET /api/events`, Server-Sent Events) deta hai.
-- **Database**: wahi SQL Server `SentinelDb`, schema bina badle (`sentinel-django/schema/sentinel.sql`). Models unmanaged; `SentinelDb` par `migrate` router se band.
-- **AI service**: `ai-service/` (Python, ONNX Runtime, port 8008) — is migration mein bilkul nahi badli.
-- **Start**: project folder se `.\start.ps1` (Server + AI service), `-Simulator` aag ke demo ke liye. Purana `-Django` switch ab bhi qubool hai.
+```
+AI service / IoT gateway ──(X-Device-Key, REST)──► Django (uvicorn, :5291) ──► Django ORM ──► SQL Server (SentinelDb)
+  ai-service/, tools/simulator.py                    │  alert engine → notification worker → SMS / Email / Push
+                                                     │  camera watchdog (camera lost, Online/Offline), sprinklers
+                                                     ▼
+                         Browser ◄── Django pages + /api/events (Server-Sent Events, live updates) ── session cookie
+```
 
-Parity check (2026-10-26, code se): purane 10 controllers ke **har route aur HTTP method** ka Django mein `sentinel/urls.py` + `sentinel/api.py` mein milan hua. SignalR hub `/hubs/monitoring` ki jagah `/api/events`. Jaan boojh kar chhoray gaye: Swagger, CORS, `generate-vapid-keys` CLI, JWT issuer/audience (sessions ne jagah li). Tafseel: [sentinel-django/MIGRATION.md](sentinel-django/MIGRATION.md).
+| Hissa | Kya hai | Folder |
+|---|---|---|
+| Server (dashboard + API + live updates) | Django 5.2, Django REST Framework, `uvicorn` — **ek hi process** | `sentinel-django/` |
+| Database | SQL Server `SentinelDb`, schema `sentinel-django/schema/sentinel.sql` (Django schema nahi badalta) | `database/` (backup scripts) |
+| AI | Python + ONNX Runtime, port 8008; models `fire_smoke_yolox.onnx`, `yolox_tiny.onnx` | `ai-service/` |
+| Docs | Roman Urdu guides (HTML + PDF) | `docs/` |
+| Start | `.\start.ps1` (Server + AI), `.\start.ps1 -Simulator` (demo) | project root |
 
-## 2. Delete ki gayi legacy directories
+Purana ASP.NET Core backend aur Angular frontend 2026-10-26 ko delete ho chuke hain. Woh sirf purani git history mein hain.
 
-| Path | Kya tha | Tracked files | Saath mein mitay (ignored, dobara ban sakte) |
-|---|---|---|---|
-| `backend/` | ASP.NET Core 8 API (`Sentinel.Api`), `Sentinel.Api.Tests`, `Sentinel.Simulator`, `Sentinel.slnx` | 82 | `bin/`, `obj/` (folder takreeban 308 MB) |
-| `frontend/` | Angular 22 dashboard (`angular.json`, `src/`, `e2e/`) | 78 | `node_modules/`, `dist/`, `.angular/`, `test-results/` |
-
-Delete se pehle ki jaanch:
-- Pehchaan: `backend/Sentinel.slnx` + `Sentinel.Api/Program.cs`, `frontend/angular.json` maujood thay.
-- In folders mein koi untracked user file nahi thi (sirf build artifacts).
-- Data loss ka khatra nahi: `backend/Sentinel.Api/App_Data/floorplans` khali tha, aur `SentinelDb` ke wahid floor plan ka `ImageFileName` NULL hai (read-only query).
-- Django ya AI code ka koi runtime hissa in folders par depend nahi karta (sirf "kahan se port hua" wale comments).
-- `appsettings.json` ke defaults `sentinel-django/config/settings.py` (`SENTINEL`) mein milaye gaye.
-- Dono folders git mein mehfooz hain: purane commits aur branch `feature/dotnet-angular-rebuild`.
-
-## 3. Mehfooz rakhi gayi directories aur assets
-
-- `sentinel-django/` (server, tests, schema, simulator, e2e).
-- `ai-service/` — koi file nahi badli; model files ke sha256 run se pehle aur baad same.
-- `database/` (`SentinelDb.bak`, `save.ps1`, `load.ps1`, `rename-zones.sql`) — sirf `load.ps1` ka ek message badla.
-- `docs/` (guides, PDFs, `images/`).
-- `.env` (asli secrets) — **nahi chhedi**, commit bhi nahi hoti.
-- `docs/PROJECT_GUIDE_ROMAN_URDU.md` — yeh file is migration se pehle hi commit `6bc2190` mein delete ho chuki thi; na chhedi, na dobara banayi.
-
-## 4. Update ki gayi reports aur guides
+## 2. Update ki gayi documentation (2026-10-28)
 
 | File | Kya badla |
 |---|---|
-| `README.md` | Poora Roman Urdu mein, sirf Django architecture, setup, tests, history alag |
-| `sentinel-django/README.md` | Roman Urdu; D-18 "fixed"; race fixes; taaza lifecycle naap; hadein |
-| `sentinel-django/MIGRATION.md` | Roman Urdu; historical tables mehfooz; deletion status aur migration ke dauran ke fixes |
-| `docs/FIREVISION_AI_GUIDE_ROMAN_URDU_v5.html` | Architecture diagram, tech table, flow, alert engine, setup, tests, API (chapter 23 "API Aur Live Events (SSE)"), file map — sab Django par |
-| `docs/FIREVISION_AI_USER_GUIDE_ROMAN_URDU.html` | Prerequisites, setup, start (2 windows, :5291), Test 3 ab PowerShell se (Swagger nahi), web push, tests, troubleshooting |
-| `docs/FIREVISION_AI_FEATURES_GUIDE_ROMAN_URDU.html` | Start ki windows, :5291, simulator command, screenshots note |
-| `docs/FIREVISION_AI_HARDWARE_GUIDE_ROMAN_URDU.html` | Network par server (`SENTINEL_ALLOWED_HOSTS`, uvicorn `--host 0.0.0.0`), VAPID keys |
-| `docs/FIREVISION_AI_GUIDE_ROMAN_URDU_v5.pdf`, `docs/FIREVISION_AI_USER_GUIDE_ROMAN_URDU.pdf` | Updated HTML se Edge headless (Chromium "Skia/PDF", wahi engine jo purane PDFs ka tha) se dobara bane: 55 aur 32 pages |
-| `start.ps1`, `.env.example`, `database/load.ps1`, `sentinel-django/config/settings.py` (ek comment) | Sirf-Django; `.env.example` se CORS line hati, VAPID tareeqa naya |
-| `FINAL_DJANGO_MIGRATION_AUDIT.md` | Yeh report (naya) |
+| `ai-service/README.md` | Roman Urdu mein; .NET/SignalR/Angular ki jagah Django; `AiService__BaseUrl`, `start.ps1` aur camera sync ka zikr |
+| `ai-service/reports/README.md`, `ai-service/reports/2026-10-19-AUDIT.md` | Upar "Historical note" — yeh purane stack ki reports hain; content nahi badla |
+| `docs/images/` | **15 tasveerein** naye Django dashboard ki (neeche list) |
+| 3 HTML guides + `README.md` | Tasveeron wala note; tests ke taaza numbers |
+| `docs/*_GUIDE_ROMAN_URDU_v5.pdf`, `docs/*_USER_GUIDE_ROMAN_URDU.pdf` | Updated HTML se dobara bane (Edge, 55 aur 32 pages) |
+| `FINAL_DJANGO_MIGRATION_AUDIT.md` | Yeh report |
 
-Jo **nahi** badla (aur kyun): `ai-service/README.md` aur `ai-service/reports/*` — `ai-service/` ko chhedna mana tha; un mein purane .NET API ke hawale hain (audit report historical hai). Guides ki tasveerein (`docs/images/`) purane Angular dashboard ki hain; har guide mein iska note likha hai.
+**Nayi tasveerein kaise li gayin:** test database (`test_SentinelDb_e2e`) par Django server, **asli AI service aur asli models**, `fire-test.avi` ka test MJPEG camera, aur simulator. Asli `SentinelDb` ya `.env` istemal nahi hua. Tasveeron mein jo AI detections hain woh asli model ki hain (raat ke video mein kuch "PERSON" ghalat detections bhi hain — yeh model ka asal output hai).
 
-## 5. Implement kiye gaye fixes (is migration ke dauran)
+Nayi: `login`, `dashboard-fire`, `video-wall`, `live-mjpeg-tile`, `kpis`, `sensor-panel`, `alert-logs`, `incident-history`, `activity`, `evacuation-after`, `fire-risk-heatmap`, `dispatch-dialog`, `ai-tab-fire`, `floorplan-editor`, `camera-calibration`.
+Abhi purani (Angular): `evacuation-before`, `evacuation-camera-people`, `camera-safe-danger-zones`, `swagger` (Swagger ab maujood hi nahi; tasveer sirf hawale ke liye).
 
-| Masla | Fix | File |
-|---|---|---|
-| D-18: smoke ke foran baad Low fire frame 2 s throttle mein gum | har throttle window ka pehla fire frame guzarta hai; severity rules nahi badle | `sentinel/alerts.py` (`evaluate_detection`) |
-| Camera delete vs in-flight frame: "Unassigned" incident ya FK error | `process_detection` aur `delete_camera` ek per-camera lock (`camera:<id>`) | `sentinel/services.py` |
-| Watchdog `camera_lost` vs delete: `FK_IncidentAlerts_CameraFeeds_CameraId` IntegrityError | `camera_lost` bhi wahi lock | `sentinel/alerts.py` |
-| Lifecycle test ki timing races (check 10, check 11b) | AI ke frames drain hone ka intezar; delete se pehle bane incident ko AI rukne ke baad resolve; assertions bina badle | `sentinel-django/e2e/lifecycle.py` |
+## 3. Theek kiye gaye bugs
 
-Regression tests: D-18 ke 2, frame/delete race ke 3, watchdog/delete race ka 1 (`sentinel/tests/test_api.py`). Race tests purane code par fail aur fix ke baad pass hue.
+Code review mein mile; har bug code parh kar confirm kiya, phir chhota sa fix.
 
-## 6. Test commands aur asal nateeje (2026-10-26, legacy delete hone ke **baad**)
+| # | Bug (asaan lafzon mein) | Fix | File | Test |
+|---|---|---|---|---|
+| 1 | 50 se zyada naye incidents ke baad koi **purana khula incident dashboard se ghayab** ho jata (banner "nominal" dikh sakta tha, Resolve button nahi) | Snapshot mein saare khule incidents + aakhri 50 | `sentinel/services.py` (`snapshot`) | `test_snapshot_keeps_an_old_open_incident_behind_50_newer_ones` |
+| 2 | Incident **Resolve** karte waqt agar usi waqt naya AI frame aaye to resolve ulta ho sakta tha, aur purani copy save hone se nayi escalation mit jati | Resolve ab alert engine wala lock leta hai aur incident dobara parhta hai | `sentinel/services.py` (`resolve_incident`) | `test_resolving_a_stale_copy_keeps_the_escalation_that_happened_since` |
+| 3 | Server restart ke baad stream wala camera **bina frame ke 60 s "Online"** dikhta | Watchdog pehle frame tak status nahi badalta | `sentinel/watchdog.py` | `test_after_a_restart_a_watched_stream_camera_stays_offline_until_its_first_frame` |
+| 4 | Dashboard ke floor plan par active danger zone **laal sirf click ke baad**; bina naam wala zone kabhi laal nahi | Risk map ke active zones bhi istemal; naam ke baghair zone = "Danger zone" | `static/.../dashboard.js`, `planmap.js` | browser tests (10/10) |
+| 5 | Floor-plan editor mein plan badalne par **pichle plan ka calibration** form mein reh jata (ghalat plan par save ho sakta tha) | Plan badalne par calibration form saaf | `static/.../floorplans.js` (`open`) | browser tests (10/10) |
+| 6 | AI page par fire/person ka **box tasveer se bahar** ban raha tha (overlay tasveer se zyada chaura) | Overlay wrapper ab tasveer jitna chaura | `templates/sentinel/ai.html` | nayi `ai-tab-fire.png` mein box aag par (aankh se check) |
 
-Sab tests disposable databases (`test_SentinelDb_django`, `test_SentinelDb_e2e`) par; `SENTINEL_NO_DOTENV=1`; koi env secret set nahi tha.
+Pehle se maujood fixes bhi qaim hain: D-18 (smoke ke baad Low aag), camera delete vs frame race, watchdog `camera_lost` vs delete race. In ke saare tests pass hue (neeche).
 
-| Command (folder `sentinel-django`) | Nateeja | Exit |
-|---|---|---|
-| `.\.venv\Scripts\python manage.py test --noinput` | **76 tests, OK** (40.0 s) | 0 |
-| `.\.venv\Scripts\python e2e\run.py` | **10/10 pass**, 0 fail, 0 skip (105.6 s); server log mein koi 5xx nahi | 0 |
-| `.\.venv\Scripts\python e2e\lifecycle.py` | **18/18 checks** (310.8 s) | 0 |
-| `manage.py check` (dummy key) | no issues | 0 |
-| `manage.py check --deploy` (dummy key) | 5 warnings: HSTS, SSL redirect, secure cookies (local HTTP par expected; `SENTINEL_HTTPS=true` inhein on karta hai) aur W009 (sirf dummy key ki wajah se) | — |
-| `pip check` | No broken requirements | 0 |
-| `start.ps1`, `database/load.ps1` PowerShell parser | 0 parse errors; `start.ps1 [-Simulator] [-Django]` | — |
+Ek apni ghalti bhi theek ki: beech ke git kaam mein `sentinel-django/e2e/node_modules/playwright-core` adhoora reh gaya tha (browser tests nahi chal sakte thay); session backup se wapas rakha (version 1.63.0, lockfile ke mutabiq).
 
-Deletion se pehle (parity gate) bhi: Django 76/76 aur browser 10/10 pass hue thay.
+## 4. Test commands aur asal nateeje (2026-10-28)
 
-**Nahi chalaya ("not run")**:
-- `.\start.ps1` asal mein — yeh asli `.env` aur asli `SentinelDb` istemal karta (server start par seed bhi likh sakta hai); sirf parse kiya. Server start aur `/health` browser e2e mein test DB par verify hue.
-- AI service ke tests (`ai-service`, `unittest`) — aakhri report: 25/25 (2026-10-21), is migration mein dobara nahi.
+Saare database tests disposable `test_*` databases par; `SENTINEL_NO_DOTENV=1`; koi asli SMS/email/push, camera ya sprinkler nahi.
 
-## 7. Startup, build aur API verification
-
-Browser e2e ne asli `uvicorn` server (test DB par) chala kar yeh verify kiya: `GET /health` 200, login (validation, ghalat password, sign-in), dashboard, live banner (SSE), incidents live + resolve, camera tile overlay, Devices (add/edit/delete), AI page, floor plans + evacuation route, har page ke routes aur phone width. Lifecycle ne asli AI service + models ke saath detections, watchdog, restart, delete aur `ai-service/tools/live_test.py` (8/8) chalaye. Django ko build step ki zaroorat nahi.
-
-Is lifecycle run ke naap: camera add → frames 60.5 s; asli aag → fire incident 3.8 s; camera band → camera-lost 10.7 s (High); restart ke baad camera-lost 60.6 s (start-up grace); delete → AI ruki 0.6 s, 20 s mein koi jhoota alarm nahi; `live_test.py` fire incident 72 s, route West exit 5.26 m → East exit 13.25 m. Is run mein delete wali race bani hi nahi (`resolved 0 …`), is liye race fixes ka saboot unit tests hain, yeh run nahi.
-
-## 8. Database aur AI safety
-
-- Har run se pehle aur baad `sys.databases` mein sirf `SentinelDb`; test databases drop hue.
-- `SentinelDb` (sirf read-only queries): test users 0, incidents 1 (pehle jaisa), `sys.dm_db_index_usage_stats` mein kisi table par user write nahi (SQL Server ke aakhri restart se).
-- `ai-service/models/fire_smoke_yolox.onnx`, `yolox_tiny.onnx`, `models.json` ke sha256 pehle wale se same. `ai-service/` mein koi file nahi badli.
-- Koi asli CCTV, sprinkler, alarm, SMS, email ya push nahi chala. Koi naya dependency install ya download nahi hua.
-- Koi chalta hua process band nahi kiya; tests ke baad ports 5291, 5399, 8018, 8019, 8095, 8096 khali.
-
-## 9. Baqi kaam (A/B/C/D)
-
-**A. Must fix:** koi khula nahi. (Startup, primary features aur regression tests sab pass.)
-
-**B. Should fix**
-
-| File / function | Masla | Asar | Agla qadam |
+| Test | Command (folder) | Nateeja | Waqt |
 |---|---|---|---|
-| `config/settings.py` `CACHES` (`LocMemCache`) | 300 entries ki had; bharne par 1/3 random entries mitti hain — deleted-camera marker ya notification cooldown waqt se pehle mit sakti hai | kuch late "Unassigned" frames ya ek duplicate notification | `OPTIONS: {"MAX_ENTRIES": …}` barhana ya alag cache; approval ke baad |
-| `ai-service/tools/live_test.py` fire wait | Fire detection ka waqt runs mein 3.6–110 s; had 150 s | lifecycle check 12 kabhi flaky ho sakta hai | kai runs ka record; zaroorat ho to had (approval se) |
-| `ai-service/README.md`, `ai-service/reports/*` | Purane .NET API ka zikr | sirf documentation | `ai-service/` badalne ki ijazat milne par |
-| `.env` (local) | Purane comments aur `Cors__AllowedOrigins__0` | koi asar nahi (Django ignore karta hai) | user khud saaf kar sakta hai |
-| `docs/images/*` | Angular dashboard ki tasveerein | guide aur asal UI mein chhota farq | Django dashboard ke naye screenshots |
-| `e2e/lifecycle.py` | `%TEMP%\sentinel-lifecycle-*` folders nahi mitata | temp folders jama hote hain (sirf test login) | cleanup ka ek line |
-| HTTPS | `check --deploy` warnings | network par password saaf jata hai | network par chalane se pehle `SENTINEL_HTTPS` + reverse proxy |
+| Django unit/API (D-18, delete race, watchdog race aur 3 naye tests samet) | `.\.venv\Scripts\python manage.py test --noinput` (`sentinel-django`) | **79/79 pass** | 38 s |
+| Browser (Edge: login, dashboard, live alerts, banner, devices, AI page, floor plans, mobile) | `.\.venv\Scripts\python e2e\run.py` (`sentinel-django`) | **10/10 pass** | 107 s |
+| Lifecycle run 1 (asli AI + models + test camera) | `.\.venv\Scripts\python e2e\lifecycle.py` | **15/18** ❌ | 390 s |
+| Lifecycle run 2 | wahi | **18/18** ✅ (aag 16.1 s mein) | 307 s |
+| Lifecycle run 3 | wahi | **18/18** ✅ (aag 1.2 s mein) | 294 s |
+| AI service unit tests (mock-based) | `.\.venv\Scripts\python -m unittest discover -s tests` (`ai-service`) | **25/25 pass** | 9 s |
 
-**C. Optional:** `alerts._locks` dictionary har camera id par barhti hai (bohat kam asar); code comments mein ".NET se port" ke hawale (history ke taur par theek); `-Django` switch ab sirf compatibility ke liye.
+**Lifecycle run 1 kyun fail hua:** asli AI ne `fire-test.avi` mein aag **150 s ke andar confirm nahi ki**. Is wajah se 3 checks fail hue: "fire incident", "camera-lost High severity" (High ke liye khula fire incident chahiye) aur "reconnect ke baad fire incident khula" — teeno ek hi wajah. Isi run mein server ne 330 frames accept kiye, koi error nahi tha, aur aakhir mein `live_test.py` ne usi video mein aag pakri (8/8). Wajah AI ka 3-frame confirmation hai: D-Fire video ke frames mein aag ke box har frame uchhalte hain, is liye confirmation ka waqt qismat par hai (ab tak 1.2 s se >150 s). Fix ke liye AI ke thresholds/confirmation ya test ki 150 s had badalni parti — dono is kaam mein mana/kamzori hain, is liye **pending** (neeche B-1).
 
-**D. Not verified**
-- Asli RTSP/IP CCTV, fog/steam/IR footage.
+Har lifecycle run mein: D-17 restart ke baad camera-lost 59.5 / 60.6 / 60.8 s (grace sahi), camera delete ke baad koi jhoota alarm nahi, `live_test.py` 8/8.
+
+## 5. Startup aur configuration checks
+
+| Check | Nateeja |
+|---|---|
+| `manage.py check` (dummy key, DB se connect nahi) | No issues |
+| `pip check` — `sentinel-django\.venv` aur `ai-service\.venv` | Dono: no broken requirements |
+| `start.ps1`, `database\load.ps1`, `database\save.ps1` (PowerShell parser) | 0 parse errors |
+| `start.ps1` ki zaroori cheezen: dono venvs, `tools\simulator.py`, `config\asgi.py` | Sab maujood |
+| Imports: `uvicorn` 0.54.0, Django, DRF, `mssql`; AI: `onnxruntime` 1.31.0, `cv2`, `numpy` | OK |
+| `.env` mein `Device__ApiKey` aur 32+ characters ki `Jwt__SigningKey` | Maujood (values nahi dekhi) |
+| `.env.example` | Sirf khali/default values; Django ke mutabiq |
+| Startup command (`uvicorn config.asgi:application --port 5291`) aur AI command asal mein chale | Haan — browser aur lifecycle tests mein, test DB par |
+
+**`.\start.ps1` khud nahi chalaya:** yeh asli `.env` parhta hai aur server start par asli `SentinelDb` se jur kar seed chalata hai. Asli database ko na chhoone ki shart ki wajah se ise chalana mumkin nahi tha. Upar wale checks aur test DB par wahi commands chalne se yeh hissa cover hai.
+
+## 6. Baqi bugs aur hadein
+
+- **Lifecycle ka aag wala check kabhi kabhi fail** (upar dekhein).
+- **Runtime par add kiya camera watchdog mein nahi aata** (`sentinel/services.py` `save_camera`): ghalat RTSP link wala naya camera "Online" hi dikhta hai aur camera-lost alert nahi deta, jab tak server restart na ho. Fix pending, kyunke AI ka camera sync khud ~60 s leta hai — 60 s grace dene se naye sahi camera par bhi jhoota camera-lost alarm aa sakta hai.
+- **Sirf ek server process:** camera locks, cache, watchdog aur live events ek hi process mein. Kai `uvicorn` workers ya servers par yeh guarantees khatam ho jati hain. Is ke liye database-level locking chahiye (kaam nahi kiya).
+- **Cache (`LocMemCache`, 300 entries):** bharne par entries mit sakti hain (deleted-camera marker, notification cooldown). Marker 600 s aur restart par khatam.
+- **HTTPS nahi:** network par password aur device key saaf jate hain. Network par chalane se pehle `SENTINEL_HTTPS=true`, reverse proxy aur certificate chahiye; `SENTINEL_ALLOWED_HOSTS` mein PC ka IP.
+- **4 purani tasveerein** (upar list).
+
+## 7. Kaam ki list
+
+**A. Zaroori (main functionality tootne wale bugs):** koi khula nahi. Is review mein mile 6 bugs theek ho gaye aur tests pass hain.
+
+**B. Behtar karne wale**
+
+| # | File/path | Masla | Asar | Mashwara |
+|---|---|---|---|---|
+| B-1 | `sentinel-django/e2e/lifecycle.py` (check 3), `ai-service` confirmation | Aag ki confirmation 1.2 s se >150 s | Lifecycle kabhi 15/18 | Video jisme aag ka box stable ho, ya had ke baare mein faisla (approval ke saath) |
+| B-2 | `sentinel/services.py` `save_camera` + `watchdog.py` | Naya camera watchdog mein nahi | Ghalat link wala camera "Online" | AI sync ke saath mila kar grace (jaise 120 s) tay karna, phir test |
+| B-3 | `docs/images/` | 4 purani tasveerein | Guide mein thora farq | Calibration + logon wale frames ke saath dobara lena |
+| B-4 | `sentinel-django/e2e/lifecycle.py` | `%TEMP%\sentinel-lifecycle-*` folders nahi mitata | Temp folders jama | Cleanup line |
+| B-5 | `config/settings.py` `CACHES` | 300 entries ki had | Kabhi duplicate notification | `MAX_ENTRIES` barhana |
+
+**C. Future ke liye optional:** kai server processes ke liye DB-level locking; HTTPS deployment; asli hardware (ESP32, relays) ke saath end-to-end; ghalat "PERSON" detections kam karne ke liye person model ka raat ke footage par evaluation.
+
+## 8. Git status (2026-10-28, koi commit/push nahi kiya)
+
+Branch `main`, GitHub (`origin/main`) ke barabar + yeh **32 files modified** (commit nahi):
+- Code: `sentinel-django/sentinel/services.py`, `watchdog.py`, `templates/sentinel/ai.html`, `static/sentinel/js/dashboard.js`, `floorplans.js`, `planmap.js`, `tests/test_api.py`.
+- Docs: `README.md`, `FINAL_DJANGO_MIGRATION_AUDIT.md`, `ai-service/README.md`, `ai-service/reports/README.md`, `ai-service/reports/2026-10-19-AUDIT.md`, 3 HTML guides, 2 PDFs, 15 tasveerein (`docs/images/`).
+- `docs/PROJECT_GUIDE_ROMAN_URDU.md` maujood nahi aur nahi chheri/banayi. Purana .NET/Angular dobara nahi bana.
+
+Safety: asli `SentinelDb` mein koi write nahi (test users 0, incidents 1, koi table write nahi); saare test databases drop; model hashes (`fire_smoke_yolox.onnx`, `yolox_tiny.onnx`, `models.json`) pehle jaise; koi process ya port khula nahi bacha; koi asli SMS/email/push nahi gaya (logs mein "skipped (not configured)").
+
+## 9. Jo abhi verify nahi hua
+
+- Asli RTSP/IP CCTV camera, raat/dhund/steam/IR footage.
 - Asli hardware: ESP32 sensors, sprinkler relays.
-- Asli Twilio SMS, SMTP email, Web Push delivery.
-- Kai server processes (`--workers`) — locks, watchdog aur SSE sirf ek process ke liye.
-- Doosre PC se network par dashboard (hardware guide ka qadam) — test nahi hua.
-- `.\start.ps1` asli `.env` ke saath end-to-end.
-- Naye PDFs page-by-page visually (machine par PDF renderer nahi; HTML render check kiya gaya).
+- Asli SMS, email aur push ka pahunchna.
+- Doosre PC se network par dashboard; HTTPS.
+- Kai server processes.
+- `.\start.ps1` asli `.env` + asli `SentinelDb` ke saath.
+- Fix 4, 5 (JavaScript) ka alag automatic test nahi — sirf browser tests ka 10/10 aur code review.
 
-## 10. Asli CCTV, hardware aur multi-process hadein
-
-Saare live tests prerecorded video (`fire-test.avi`) aur local MJPEG test camera par hue. Race fixes in-process locks hain: **ek hi `uvicorn` process** ki shart par sahi. Kai processes mein DB-level locking chahiye hogi (scope se bahar).
-
-## 11. Git ka khulasa
-
-Is migration ki commit mein:
-- **Delete**: `backend/` (82 files), `frontend/` (78 files).
-- **Naya**: `sentinel-django/` (69 source files; `.venv`, `node_modules`, logs, `__pycache__` ignored), `FINAL_DJANGO_MIGRATION_AUDIT.md`.
-- **Modified**: `README.md`, `.env.example`, `start.ps1`, `database/load.ps1`, 4 HTML guides, 2 PDFs.
-- `.env` aur `ai-service/.venv` git se bahar (`.git/info/exclude`).
-
-## 12. Kya project tayyar hai?
-
-- **Local development aur FYP demo ke liye: haan.** Ek command (`.\start.ps1`) se server aur AI chalte hain; 76 unit/API tests, 10 browser tests aur 18 live lifecycle checks aaj pass hue.
-- **Production ke liye: nahi.** Safety-certified nahi; asli CCTV, hardware aur notification channels untested; sirf ek process; HTTPS ke baghair. Lifecycle ka pass hona reliability ya safety ki guarantee nahi.
+**Nateeja:** local chalane aur FYP demo ke liye project tayyar hai. Production ya asli building ke liye abhi tayyar nahi (safety-certified nahi).

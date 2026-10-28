@@ -114,7 +114,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
     </div>
     <p class="part-label">A · Taaruf aur poora flow</p><section class="chapter" data-ch="1"><h1 id="ch1">1. FireVision AI Kya Hai?</h1>
 <blockquote>
-<p><strong>Note (2026-10-26):</strong> is tareekh se project <strong>Django</strong> par chalta hai (<code>sentinel-django/</code>): ek hi server (port 5291) dashboard ke pages, REST API aur live updates sab deta hai. Purana ASP.NET Core API (<code>backend/</code>) aur Angular dashboard (<code>frontend/</code>) delete ho chuke hain, sirf git history mein hain. Is guide ki <strong>screenshots purane Angular dashboard</strong> ki hain; Django dashboard mein wohi panels hain, lekin chhote visual farq ho sakte hain.</p>
+<p><strong>Note (2026-10-26):</strong> is tareekh se project <strong>Django</strong> par chalta hai (<code>sentinel-django/</code>): ek hi server (port 5291) dashboard ke pages, REST API aur live updates sab deta hai. Purana ASP.NET Core API (<code>backend/</code>) aur Angular dashboard (<code>frontend/</code>) delete ho chuke hain, sirf git history mein hain. Zyada tar tasveerein (2026-10-28 se) naye <strong>Django dashboard</strong> ki hain, jo test database, asli AI models aur test video ke saath li gayin. Yeh kuch abhi purane Angular dashboard ki hain: <code>evacuation-before.png</code>, <code>evacuation-camera-people.png</code>, <code>camera-safe-danger-zones.png</code> (aur <code>swagger.png</code>, jo ab maujood hi nahi).</p>
 </blockquote>
 <p><strong>Ek line mein:</strong> FireVision AI ek <strong>fire-safety control room software</strong> hai. Ye building ke cameras (CCTV aur drone), dhuwen/garmi ke sensors aur smart sprinklers ko ek screen par jorta hai. <strong>AI</strong> camera mein aag, dhuwan aur insaan pehchaanta hai. Khatra ho to system khud:</p>
 <ul>
@@ -1789,7 +1789,7 @@ python export_onnx.py --exp yolox_tiny_dfire.py --ckpt best_ckpt.pth --out ..\mo
 - Saaf tasveeron par stretch ka chhota nuqsan: aag ke ghalat alarm thore barhe aur dabbe kam tight.
 - <strong>Faisla:</strong> abhi live system mein <strong>band</strong>. Pehle asli dhund ya bhaap ki footage par test, phir sirf dhund wale cameras ke liye setting.</p></section><section class="chapter" data-ch="19"><h1 id="ch19">19. End-to-End Test: Poora System Ek Saath</h1>
 <p><strong>Maqsad:</strong> model akela nahi, <strong>poora system</strong> check karna: AI service → API → database → live events → dashboard.</p>
-<p><strong>History:</strong> neeche wala test <strong>purane .NET version</strong> par 2026-10-15 ko hua tha (us waqt live events SignalR se jate the). Django version ka live test alag hai: <code>e2e\lifecycle.py</code> (asli AI service ke saath), 2026-10-26 ko ek run mein 18/18 pass (Chapter 22).</p>
+<p><strong>History:</strong> neeche wala test <strong>purane .NET version</strong> par 2026-10-15 ko hua tha (us waqt live events SignalR se jate the). Django version ka live test alag hai: <code>e2e\lifecycle.py</code> (asli AI service ke saath), 2026-10-28 ko 3 runs: 15/18, 18/18, 18/18 (pehle run mein asli AI ne 150 s ke andar aag confirm nahi ki — timing ka masla, report dekhein) (Chapter 22).</p>
 <p><strong>Hifazat:</strong></p>
 <ul>
 <li>Alag test database <code>SentinelDb_E2E_20261015</code>, baad mein <strong>delete</strong>. Asli <code>SentinelDb</code> ko nahi chhua.</li>
@@ -2049,18 +2049,18 @@ git pull
 <tbody>
 <tr>
 <td>Django tests (<code>manage.py test</code>)</td>
-<td><strong>76</strong></td>
-<td>Alert rules aur evacuation router (<code>test_rules.py</code>), API, camera lost/status/delete, floor plans + logs (<code>test_api.py</code>), AI client + rate limit (<code>test_ai.py</code>), login, CSRF, roles, purane password hash, live events (<code>test_security.py</code>). Sab 2026-10-26 ko pass</td>
+<td><strong>79</strong></td>
+<td>Alert rules aur evacuation router (<code>test_rules.py</code>), API, camera lost/status/delete, floor plans + logs (<code>test_api.py</code>), AI client + rate limit (<code>test_ai.py</code>), login, CSRF, roles, purane password hash, live events (<code>test_security.py</code>). Sab 2026-10-28 ko pass</td>
 </tr>
 <tr>
 <td>Browser tests (<code>e2e\run.py</code>, Edge)</td>
 <td><strong>10</strong></td>
-<td>Asli Django server + test database + nakli (stub) AI service par dashboard ki screens. 10/10 pass, 2026-10-26</td>
+<td>Asli Django server + test database + nakli (stub) AI service par dashboard ki screens. 10/10 pass, 2026-10-28</td>
 </tr>
 <tr>
 <td>Live lifecycle (<code>e2e\lifecycle.py</code>)</td>
 <td><strong>18</strong> checks</td>
-<td>Asli AI service aur models ke saath camera add, aag, camera band/wapas, AI band/restart, server restart, camera delete. 2026-10-26 ko ek run mein 18/18 pass (pehle runs mein test ki apni race thi, jo theek ho gayi)</td>
+<td>Asli AI service aur models ke saath camera add, aag, camera band/wapas, AI band/restart, server restart, camera delete. 2026-10-28 ko 3 runs: 15/18, 18/18, 18/18 (pehle run mein asli AI ne 150 s ke andar aag confirm nahi ki — timing ka masla, report dekhein)</td>
 </tr>
 <tr>
 <td>AI service (unittest)</td>
@@ -2767,7 +2767,7 @@ cd ..\ai-service; .\.venv\Scripts\python -m unittest discover -s tests
 </thead>
 <tbody>
 <tr>
-<td>Django tests (76)</td>
+<td>Django tests (79)</td>
 <td>API, alerts, sprinklers, naqsha, cameras, rate limit, login/security, live events</td>
 <td><code>cd sentinel-django; .\.venv\Scripts\python manage.py test --noinput</code></td>
 </tr>

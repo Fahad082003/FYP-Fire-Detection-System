@@ -94,7 +94,7 @@ export class PlanMap {
     const label = Math.max(p.width, p.height) / 60;
     const handle = this.view.w / 60;
     const isBlockedOpening = (e) => e.isBlocked && (e.type === 'Door' || e.type === 'Exit');
-    const fill = (e) => (e.type === 'DangerZone' && (e.isActive || p.activeDanger.includes(e.name)) ? 'rgba(239,68,68,0.38)'
+    const fill = (e) => (e.type === 'DangerZone' && (e.isActive || p.activeDanger.includes(e.name?.trim() ? e.name : 'Danger zone')) ? 'rgba(239,68,68,0.38)'
       : isBlockedOpening(e) ? 'rgba(239,68,68,0.45)' : STYLE[e.type].fill);
     const sorted = p.elements.map((e, i) => ({ e, i })).sort((a, b) => DRAW_ORDER.indexOf(a.e.type) - DRAW_ORDER.indexOf(b.e.type));
     const parts = [`<defs><pattern id="${this.uid}-grid" width="1" height="1" patternUnits="userSpaceOnUse">

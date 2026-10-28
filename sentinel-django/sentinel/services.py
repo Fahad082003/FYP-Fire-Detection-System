@@ -206,11 +206,15 @@ def list_logs(incident_id: int | None, log_type: str | None, limit: int) -> list
 
 
 def resolve_incident(incident: IncidentAlert, actor: str) -> IncidentAlert:
-    if incident.is_resolved:
-        return incident
-    incident.is_resolved = True
-    incident.resolved_at = incident.updated_at = timezone.now()
-    incident.save()
+    # The alert engine updates open incidents under this lock with a full save: without it (and a fresh copy) a frame
+    # arriving during the resolve wrote is_resolved=False back, and a stale copy undid the frame's escalation.
+    with alerts._lock_for(f"{incident.source}:{incident.zone}:{incident.camera_id or incident.sensor_id or '-'}"):
+        incident.refresh_from_db()
+        if incident.is_resolved:
+            return incident
+        incident.is_resolved = True
+        incident.resolved_at = incident.updated_at = timezone.now()
+        incident.save()
     events.publish("incident", {"action": "resolved", "incident": dto.incident(incident)})
     events.activity("success", f"Incident #{incident.id} resolved by {actor}", incident.zone)
     alerts.add_log(IncidentLog(incident=incident, type=IncidentLogType.RESOLVED, zone=incident.zone, details=f"Resolved by {actor}"))
@@ -242,11 +246,14 @@ def snapshot() -> dict:
     states = {sensor_state(s) for s in sensor_list}
     level = ("critical" if any(rank(s) >= rank("High") for s in open_severities) or states & {"Alarm", "Critical"}
              else "elevated" if open_severities or "Warning" in states else "nominal")
+    # Every open incident (the dashboard derives its banner, KPIs and alarm from this list) plus the 50 most recent ones.
+    q = IncidentAlert.objects.select_related("camera").order_by("-timestamp")
+    incidents = {i.id: i for i in [*q.filter(is_resolved=False), *q[:50]]}
     return {
         "cameras": [dto.camera(c) for c in cameras()],
         "sensors": sensor_dtos,
         "sprinklers": [dto.sprinkler(s) for s in sprinkler_list],
-        "incidents": [dto.incident(i) for i in IncidentAlert.objects.select_related("camera").order_by("-timestamp")[:50]],
+        "incidents": [dto.incident(i) for i in sorted(incidents.values(), key=lambda i: i.timestamp, reverse=True)],
         "system": {"level": level, "openIncidents": len(open_severities), "activeSprinklers": sum(s.is_active for s in sprinkler_list)},
         "serverTime": timezone.now(),
     }

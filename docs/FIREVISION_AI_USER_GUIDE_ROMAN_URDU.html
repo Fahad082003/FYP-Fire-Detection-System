@@ -131,7 +131,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <li><code>&lt;project&gt;</code> ka matlab hai project ka folder, is computer par: <code>C:\Users\m_fahad\Desktop\Project</code>.</li>
 </ul>
 <blockquote>
-<p>ℹ️ <strong>Note (2026-10-26 se):</strong> project ab <strong>Django</strong> par chalta hai (folder <code>sentinel-django\</code>): ek hi server dashboard, API aur live updates deta hai, address <strong>http://localhost:5291</strong>. Purana ASP.NET Core + Angular wala hissa hata diya gaya hai. Is guide ki tasveerein (screenshots) purane Angular dashboard se li gayi thin; Django dashboard mein wohi panels hain, bas thora sa design ka farq ho sakta hai.</p>
+<p>ℹ️ <strong>Note (2026-10-26 se):</strong> project ab <strong>Django</strong> par chalta hai (folder <code>sentinel-django\</code>): ek hi server dashboard, API aur live updates deta hai, address <strong>http://localhost:5291</strong>. Purana ASP.NET Core + Angular wala hissa hata diya gaya hai. Zyada tar tasveerein (2026-10-28 se) naye <strong>Django dashboard</strong> ki hain, jo test database, asli AI models aur test video ke saath li gayin. Yeh kuch abhi purane Angular dashboard ki hain: <code>evacuation-before.png</code>, <code>evacuation-camera-people.png</code>, <code>camera-safe-danger-zones.png</code> (aur <code>swagger.png</code>, jo ab maujood hi nahi).</p>
 </blockquote>
 <h3 id="ch1-3-hifazati-usool-pehle-parh-lein">3 hifazati usool (pehle parh lein)</h3>
 <blockquote>
@@ -968,14 +968,14 @@ $env:SENTINEL_DEVICE_KEY = &quot;&lt;yahan Device__ApiKey&gt;&quot;
 <hr /></section><p class="part-label">D · Masle, hifazat aur checklist</p><section class="chapter" data-ch="17"><h1 id="ch17">17. Automatic Tests (Ek Click Mein Sab Check)</h1>
 <p>Ye tests code khud check karte hain. Koi test <strong>fail</strong> nahi hona chahiye. Ye apne <strong>alag, waqti</strong> <code>test_*</code> databases istemaal karte hain aur <code>.env</code> nahi parhte, is liye asli data aur asli SMS/Email mehfooz rehte hain.</p>
 <pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python manage.py test --noinput   # ✅ 76 tests, sab pass (2026-10-26)
+.\.venv\Scripts\python manage.py test --noinput   # ✅ 79 tests, sab pass (2026-10-28)
 
 # Browser tests (installed Edge). Pehli dafa sirf ek baar (is ke liye Node/npm chahiye):
 cd e2e; npm install --offline; cd ..
-.\.venv\Scripts\python e2e\run.py                 # ✅ 10/10 pass (2026-10-26)
+.\.venv\Scripts\python e2e\run.py                 # ✅ 10/10 pass (2026-10-28)
 
 # Asli AI service ke saath poora camera lifecycle (~8 minute):
-.\.venv\Scripts\python e2e\lifecycle.py           # ✅ 18/18 ek run mein (2026-10-26)
+.\.venv\Scripts\python e2e\lifecycle.py           # 2026-10-28: 3 runs mein 15/18, 18/18, 18/18 (aag ki AI confirmation ka waqt badalta hai)
 
 cd C:\Users\m_fahad\Desktop\Project\ai-service
 .\.venv\Scripts\python -m unittest discover -s tests    # ✅ Ran 25 tests ... OK
@@ -1290,7 +1290,7 @@ cd C:\Users\m_fahad\Desktop\Project\ai-service
 </tr>
 <tr>
 <td>18</td>
-<td>Automatic tests: Django 76 + AI service 25, aur 10 browser tests pass</td>
+<td>Automatic tests: Django 79 + AI service 25, aur 10 browser tests pass</td>
 <td>17</td>
 <td></td>
 <td></td>

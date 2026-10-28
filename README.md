@@ -99,7 +99,7 @@ cd e2e; npm install --offline; cd ..                 # ek dafa: browser tests ke
 cd ..\ai-service; .\.venv\Scripts\python -m unittest discover -s tests   # AI service (mock-based)
 ```
 
-Taaza nateeje (2026-10-26): Django **76/76**, browser **10/10**. Lifecycle ka aakhri run **18/18** tha (ek run). AI service ke tests is migration mein dobara nahi chalaye gaye (aakhri report: 25/25, 2026-10-21). Tafseel: [FINAL_DJANGO_MIGRATION_AUDIT.md](FINAL_DJANGO_MIGRATION_AUDIT.md).
+Taaza nateeje (2026-10-28): Django **79/79**, browser **10/10**, lifecycle 3 runs: **15/18, 18/18, 18/18** (pehle run mein asli AI ne 150 s ke andar aag confirm nahi ki; wajah report mein). AI service ke unit tests **25/25**. Tafseel: [FINAL_DJANGO_MIGRATION_AUDIT.md](FINAL_DJANGO_MIGRATION_AUDIT.md).
 
 > Tareekh: 2026-10-21 ko purane stack par yeh pass hue thay: backend 74, frontend 32, AI service 25, browser 9. Woh stack ab delete ho chuka hai.
 
@@ -121,6 +121,6 @@ Nateeje aur poori AI audit: [ai-service/reports](ai-service/reports/README.md).
 - **[docs/FIREVISION_AI_FEATURES_GUIDE_ROMAN_URDU.html](docs/FIREVISION_AI_FEATURES_GUIDE_ROMAN_URDU.html)**: har feature kaise istemal karein.
 - **[docs/FIREVISION_AI_HARDWARE_GUIDE_ROMAN_URDU.html](docs/FIREVISION_AI_HARDWARE_GUIDE_ROMAN_URDU.html)**: asli hardware jorna — RTSP cameras, ESP32 sensors (`/api/iot/telemetry`), sprinkler relays (`/api/iot/sprinklers`), Twilio, SMTP aur Web Push.
 
-Guides ki tasveerein purane Angular dashboard ki hain; Django dashboard mein wahi panels hain, chhota sa visual farq ho sakta hai.
+Guides ki zyada tar tasveerein naye Django dashboard ki hain (2026-10-28); 3 abhi purane Angular dashboard ki hain (list `FINAL_DJANGO_MIGRATION_AUDIT.md` mein).
 
 **Production-ready ya safety-certified nahi.** Asli RTSP CCTV, asli hardware aur notification channels abhi test nahi hue.

@@ -506,7 +506,7 @@ function renderEvacuation() {
     evac.map = new PlanMap(box.querySelector('[data-map]'), onPlanPointer);
   }
   evac.map.set({ width: plan.widthMeters, height: plan.heightMeters, elements: plan.elements, imageUrl: evac.imageUrl, route: evac.result?.path ?? null,
-    start: evac.start, people: evac.people, riskLayer: evac.riskLayerCache ?? null, activeDanger: evac.result?.activeDangerZones ?? [] });
+    start: evac.start, people: evac.people, riskLayer: evac.riskLayerCache ?? null, activeDanger: evac.result?.activeDangerZones ?? evac.risk?.activeDangerZones ?? [] });
 
   const rk = evac.risk;
   box.querySelector('[data-risk]').innerHTML = rk?.active ? `<div class="risk-box" role="status"><p class="strong text-orange">⚠ Fire risk: ${esc(rk.message)}</p>

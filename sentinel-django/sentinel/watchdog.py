@@ -29,10 +29,12 @@ class Watchdog:
         self._last_frame: dict[str, datetime] = {}
         self._lost: set[str] = set()
         self._online: set[str] = set()  # status already written as Online by this process
+        self._seeded: set[str] = set()  # watched since start-up but no frame yet: its status must not turn Online
 
     def frame_received(self, camera_id: str, now: datetime | None = None) -> None:
         with self._lock:
             self._last_frame[camera_id] = now or timezone.now()
+            self._seeded.discard(camera_id)
 
     def watch_streaming_cameras(self, now: datetime) -> None:
         """Start-up reconciliation: a camera that died while the server was down is otherwise never watched (D-17)."""
@@ -41,7 +43,9 @@ class Watchdog:
         ids = CameraFeed.objects.exclude(stream_url="").values_list("id", flat=True)
         with self._lock:
             for camera_id in ids:
-                self._last_frame.setdefault(camera_id, seen_at)  # a real frame already received wins
+                if camera_id not in self._last_frame:  # a real frame already received wins
+                    self._last_frame[camera_id] = seen_at
+                    self._seeded.add(camera_id)
 
     def check(self, now: datetime) -> None:
         """Raises one alert per silent period and announces when the camera sends again."""
@@ -61,7 +65,7 @@ class Watchdog:
             with self._lock:
                 recovered = camera_id in self._lost
                 self._lost.discard(camera_id)
-                needs_write = camera_id not in self._online
+                needs_write = camera_id not in self._online and camera_id not in self._seeded
             if recovered:
                 events.activity("success", f"Camera {camera_id} is sending frames again.")
             # Once per process and after every loss, so a status left Offline before a restart is corrected too.

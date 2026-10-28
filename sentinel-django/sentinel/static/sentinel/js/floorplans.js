@@ -97,6 +97,10 @@ function setImage(url) {
 }
 
 async function open(plan, reloadImage) {
+  if (ed.current?.id !== plan.id) { // another plan: never keep the previous plan's calibration points
+    ed.calib = { camera: null, image: [], plan: [], pick: null };
+    $('calib-camera').value = '';
+  }
   ed.current = plan;
   for (const k of ['name', 'building', 'floorNumber', 'widthMeters', 'heightMeters']) form.elements[k].value = plan[k];
   ed.elements = plan.elements.map((e) => ({ ...e }));

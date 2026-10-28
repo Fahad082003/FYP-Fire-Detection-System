@@ -1,43 +1,49 @@
 # sentinel-ai: AI inference service
 
-A separate Python process that runs ONNX models on CPU and feeds the existing Sentinel API. The .NET API never runs inference itself, so request handlers are never blocked by slow models.
+Ek alag Python process jo CPU par ONNX models chalata hai aur nateeje Django server (`sentinel-django/`) ko bhejta hai. Server khud kabhi inference nahi karta, is liye dheema model kabhi server ki requests ko nahi rokta.
 
 ```
 camera / video / test image ─► sentinel_ai (ONNX Runtime, CPU)
    preprocess (letterbox) → YOLOX inference → decode + confidence filter + NMS
-   → IoU tracking (track ids) → fire/smoke confirmation over N frames → severity from fire-box area %
-   → AI danger zones around confirmed fire → detection-density heatmap → explanation per detection
-   ─► POST /api/detections (X-Device-Key)  ─► existing pipeline: validation, danger-zone person check,
-      incidents + dedupe, IncidentLogs, notifications, sprinkler rules, SignalR → Angular dashboard
+   → IoU tracking (track ids) → N frames tak fire/smoke confirmation → fire-box area % se severity
+   → confirmed aag ke gird AI danger zones → detection-density heatmap → har detection ki explanation
+   ─► POST /api/detections (X-Device-Key) ─► Django server: validation, danger-zone mein insaan ka check,
+      incidents + dedupe, IncidentLogs, notifications, sprinkler rules, live updates (/api/events, SSE) → dashboard
 ```
 
-## Models
-| Name | File | Source | License | Status |
-|---|---|---|---|---|
-| person | `yolox_tiny.onnx` (COCO, class `person` only) | https://github.com/Megvii-BaseDetection/YOLOX/releases/tag/0.1.1rc0 | Apache-2.0 | In the repo. If it is missing, `tools/download_models.py` fetches it from the official URL and checks its sha256 |
-| fire_smoke | `fire_smoke_yolox.onnx` | Fine-tune it yourself: see [training/README.md](training/README.md) (D-Fire, CC0) | YOLOX Apache-2.0 + D-Fire CC0 | Installed 2026-10-15 (YOLOX-Tiny @ 416, trained on D-Fire). In the repo; it can be re-exported from the checkpoint with training/export_onnx.py. Metrics: [reports/README.md](reports/README.md) |
+> Tareekh: 2026-10-26 se pehle yahi frames ASP.NET Core API ko jate thay aur dashboard Angular tha (SignalR). Ab dono ki jagah Django hai; is service ka code nahi badla.
 
-There is no fire-spread prediction model (requirement 3.3). The heatmap is a decaying map of **where fire/smoke was detected**. It is not a prediction of where fire will go.
+## Models
+| Naam | File | Kahan se | License | Haalat |
+|---|---|---|---|---|
+| person | `yolox_tiny.onnx` (COCO, sirf class `person`) | https://github.com/Megvii-BaseDetection/YOLOX/releases/tag/0.1.1rc0 | Apache-2.0 | Repo mein hai. Ghayab ho to `tools/download_models.py` official URL se la kar sha256 check karta hai |
+| fire_smoke | `fire_smoke_yolox.onnx` | Khud fine-tune karein: [training/README.md](training/README.md) (D-Fire, CC0) | YOLOX Apache-2.0 + D-Fire CC0 | 2026-10-15 ko install hua (YOLOX-Tiny @ 416, D-Fire par trained). Repo mein hai; checkpoint se `training/export_onnx.py` dobara export kar sakta hai. Metrics: [reports/README.md](reports/README.md). Iska koi download URL nahi |
+
+Aag phailne ka andaza lagane wala koi model nahi (requirement 3.3). Heatmap sirf yeh dikhata hai ke aag/dhuwan **kahan dekha gaya**; yeh nahi batata ke aag kahan jayegi. (Kamron tak aag pohanchne ka rule-based andaza Django server ka "risk map" karta hai.)
 
 ## Hardware
-- **CPU only.** Verified on a Xeon W3520 without AVX: numpy 2.5.4, opencv-python-headless 5.0.0.93 and onnxruntime 1.31.0 all run.
-- About 0.5 GB RAM.
-- GPU: none needed for inference. Training needs a CUDA GPU.
+- **Sirf CPU.** Xeon W3520 (AVX ke baghair) par check hua: numpy 2.5.4, opencv-python-headless 5.0.0.93 aur onnxruntime 1.31.0 chalte hain.
+- Takreeban 0.5 GB RAM.
+- Inference ke liye GPU nahi chahiye. Training ke liye CUDA GPU chahiye.
 
-## Install and run (Windows PowerShell)
+## Install aur chalana (Windows PowerShell)
 ```powershell
 cd C:\Users\m_fahad\Desktop\Project\ai-service
 py -3.13 -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements.txt
-.\.venv\Scripts\python tools\download_models.py         # only if models\ is missing a file (official URLs, sha256 checked)
-Copy-Item config.example.json config.json               # then enable cameras; keep secrets in env vars
-$env:SENTINEL_DEVICE_KEY = "<same value as Device__ApiKey in the API .env>"   # only needed when cameras are enabled
+.\.venv\Scripts\python tools\download_models.py         # sirf agar models\ mein koi file na ho (official URLs, sha256 check)
+Copy-Item config.example.json config.json               # marzi: config.json mein apne cameras; secrets env vars mein rakhein
+$env:SENTINEL_DEVICE_KEY = "<project .env ka Device__ApiKey>"
 .\.venv\Scripts\python -m sentinel_ai                   # http://127.0.0.1:8008/health
 ```
-The API reads `AiService:BaseUrl` (default `http://localhost:8008`). The dashboard shows the service state in the **AI** tab: green means all models are loaded, amber means a model is missing, red means offline.
+Aam taur par yeh sab project folder ka `.\start.ps1` khud karta hai (Server + AI service; device key `.env` se leta hai).
+
+- Django server AI service ka address `.env` ke `AiService__BaseUrl` se leta hai (default `http://localhost:8008`).
+- `SENTINEL_DEVICE_KEY` set ho to service har 60 s server se camera list (`GET /api/cameras`) parhti hai; dashboard ke **Devices** page par add kiya camera ek minute ke andar analyse hone lagta hai. `config.json` ki zaroorat sirf extra cameras ke liye hai.
+- Dashboard ke **AI** page aur upar wale banner mein service ki haalat dikhti hai: hara = sab models load, peela = koi model ghayab, laal = offline.
 
 ## HTTP endpoints
-The service binds to 127.0.0.1 only, and only the API calls it.
+Service sirf 127.0.0.1 par sunti hai, aur sirf Django server ise call karta hai.
 
 **`GET /health`**
 ```json
@@ -49,39 +55,40 @@ The service binds to 127.0.0.1 only, and only the API calls it.
   "cameras": [] }
 ```
 
-**`POST /infer?cameraId=upload-test`** (raw PNG/JPG body, at most 8 MB)
-- Success:
+**`POST /infer?cameraId=upload-test`** (raw PNG/JPG body, zyada se zyada 8 MB)
+- Kamyabi:
   ```json
   { "payload": { "cameraId": "upload-test", "detections": [ { "category": "Human", "confidence": 0.87, "bbox": [x, y, w, h], "trackId": null, "explanation": "person 0.87 >= threshold 0.45 (person); box 6.1% of frame; single image: no multi-frame confirmation" } ],
                  "fireDetected": false, "fireSeverity": null, "model": "person:yolox_tiny fire_smoke:missing", "simulated": true, ... },
     "inferenceMs": 412.7 }
   ```
 - Errors:
-  - `400` when the image cannot be decoded.
-  - `503` when no model is loaded.
-  - `500` when the model returns output this code cannot read.
+  - `400` jab image decode na ho.
+  - `503` jab koi model load na ho.
+  - `500` jab model aisa output de jo yeh code parh na sake.
 
 ## Camera sources (`config.json`)
-| `source` | Treated as | `simulated` |
+| `source` | Kya samjha jata hai | `simulated` |
 |---|---|---|
-| `rtsp://…`, `http://…` (with `${ENV_VAR}` for credentials) | live stream, reconnects with backoff | whatever you set (default `false`) |
-| `0`, `1`, … | local webcam | whatever you set |
-| path to a video file | **test input** | **always `true`**, whatever the config says |
+| `rtsp://…`, `http://…` (credentials ke liye `${ENV_VAR}`) | live stream, backoff ke saath reconnect | jo aap set karein (default `false`) |
+| `0`, `1`, … | local webcam | jo aap set karein |
+| video file ka path | **test input** | **hamesha `true`**, config kuch bhi kahe |
 
-Frames are processed at `fps` per camera (default 2), with one inference at a time. On this CPU, budget about 1 frame/s in total.
+Har camera ke frames `fps` par process hote hain (default 2), ek waqt mein ek inference. Is CPU par kul takreeban 1 frame/s ka hisaab rakhein.
 
-`cameraId` must match a camera in the API database. That camera's zone decides which incident, sprinklers and floor-plan danger zones are affected. Footage is never stored by this service.
+`cameraId` server ke database ke kisi camera se milna chahiye. Usi camera ka zone tay karta hai ke kaun sa incident, sprinklers aur floor-plan danger zones mutasir honge. Yeh service footage kabhi save nahi karti.
 
 ## Safety behaviour
-- **Fire/smoke confirmation:** fire and smoke are reported only after the same track has been seen in `confirm_frames` frames (default 3). Single test images are reported immediately and labelled as such.
-- **Fire severity** comes from the fire boxes' share of the frame: below 2% Low, 2% Medium, 10% High, 25% Critical (configurable). This is on-screen size, not physical size, so calibrate it per camera.
-- **AI danger zones:** each confirmed fire becomes a Danger zone (its box grown by 25%). The API's own foot-point check then flags people standing in or near the fire.
-- **Missing or tampered model** (sha256 mismatch): it is reported in `/health` and the dashboard and never replaced by fake output. Rollback means removing the `.onnx` file.
+- **Fire/smoke confirmation:** aag aur dhuwan tab report hote hain jab wahi track `confirm_frames` frames mein dikhe (default 3). Akeli test images foran report hoti hain aur un par yeh likha hota hai.
+- **Fire severity** fire boxes ke frame mein hisse se: 2% se kam Low, 2% Medium, 10% High, 25% Critical (configurable). Yeh screen par size hai, asli size nahi, is liye har camera ke liye calibrate karein.
+- **AI danger zones:** har confirmed aag ek Danger zone ban jati hai (box 25% bara). Server ka apna foot-point check phir aag mein ya qareeb khare logon ko flag karta hai.
+- **Ghayab ya badla hua model** (sha256 match na ho): `/health` aur dashboard mein dikhta hai, aur kabhi nakli output se replace nahi hota. Rollback ka matlab `.onnx` file hatana hai.
 
-## Tests and evaluation
+## Tests aur evaluation
 ```powershell
-.\.venv\Scripts\python -m unittest discover -s tests          # MOCK-BASED: contract/logic only, no accuracy claims
+.\.venv\Scripts\python -m unittest discover -s tests          # MOCK-BASED: sirf contract/logic, accuracy ka koi daawa nahi
 .\.venv\Scripts\python tools\prepare_dataset.py pennfudan <PennFudanPed> ..\..\datasets\pennfudan
-.\.venv\Scripts\python tools\evaluate.py --data <yolo dataset> --classes 0=Human --out reports\person   # REAL model metrics
+.\.venv\Scripts\python tools\evaluate.py --data <yolo dataset> --classes 0=Human --out reports\person   # ASLI model metrics
 ```
-See [training/README.md](training/README.md) for the acceptance criteria and the fire/smoke fine-tuning pipeline.
+Asli models aur Django server ke saath poora live test: `sentinel-django\e2e\lifecycle.py` (dekhein [../sentinel-django/README.md](../sentinel-django/README.md)).
+Acceptance criteria aur fire/smoke fine-tuning pipeline: [training/README.md](training/README.md).

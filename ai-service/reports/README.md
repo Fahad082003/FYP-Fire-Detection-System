@@ -1,5 +1,7 @@
 # Evaluation reports (measured, not estimated)
 
+> **Historical note (Roman Urdu):** yeh reports 2026-10-13 se 2026-10-19 ke darmiyan bani theen, jab server ASP.NET Core API tha aur dashboard Angular (SignalR). Model ke measurements ab bhi sahi hain (models nahi badle); lekin "API", "SignalR" aur ports ka zikr purane stack ka hai. 2026-10-26 se server Django hai (`sentinel-django/`); taaza end-to-end test: `sentinel-django\e2e\lifecycle.py` aur [../../FINAL_DJANGO_MIGRATION_AUDIT.md](../../FINAL_DJANGO_MIGRATION_AUDIT.md).
+
 **Latest: [2026-10-19 full AI and end-to-end audit](2026-10-19-AUDIT.md)**. It adds AP50 and AP50:95, p99 latency, per-image predictions (predictions.jsonl), 95% confidence intervals, live failure probes, a 1- and 3-camera load test, and a dependency scan. Section I adds a **synthetic** darkness/fog stress test.
 
 ## 2026-10-13: person model `yolox_tiny.onnx` (official YOLOX COCO weights, sha256 427cc366…) on Penn-Fudan
