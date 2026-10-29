@@ -29,6 +29,7 @@ SERVER_ENV = {
     "Seed__AdminEmail": "admin@e2e.local", "Seed__AdminPassword": "E2e-Passw0rd!", "Seed__DemoData": "true",
     "AiService__BaseUrl": f"http://127.0.0.1:{AI_PORT}",
     "Notifications__Email__Recipients": "",  # nothing is sent anywhere
+    "Alerts__SensorStaleSeconds": "5",  # the sensor-staleness test must not wait a minute
 }
 
 HEALTH = {

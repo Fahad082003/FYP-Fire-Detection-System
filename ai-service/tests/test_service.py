@@ -129,6 +129,15 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(third["fireSeverity"], "Medium")  # 100x100 of 416x416 = 5.8% of the frame
         self.assertIn("confirmed: track F1 seen 3/3 frames", third["detections"][0]["explanation"])
 
+    def test_people_carry_the_tracker_hits_and_a_single_image_carries_none(self):
+        person = [(100, 200, 40, 120, 0.9, 0)]
+        pipe = CameraPipeline([detector(SPEC_PERSON, person, classes=1)], "cam-1", simulated=False)
+        img = np.zeros((416, 416, 3), np.uint8)
+        seen = [pipe.process(img)["detections"][0] for _ in range(3)]
+        self.assertEqual([(d["trackId"], d["hits"]) for d in seen], [("P1", 1), ("P1", 2), ("P1", 3)])  # reported from frame 1
+        single = CameraPipeline([detector(SPEC_PERSON, person, classes=1)], "upload-test", simulated=True).process(img, temporal=False)
+        self.assertNotIn("hits", single["detections"][0])  # no tracker: no frame count to report
+
     def test_single_image_reports_immediately_and_says_so(self):
         pipe = CameraPipeline([detector(SPEC_FIRE, self.FIRE)], "upload-test", simulated=True)
         p = pipe.process(np.zeros((416, 416, 3), np.uint8), temporal=False)

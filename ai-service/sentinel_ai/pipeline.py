@@ -73,8 +73,10 @@ class CameraPipeline:
             "cameraId": self.camera_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "frameWidth": int(fw), "frameHeight": int(fh), "normalized": False,
+            # hits only from the tracker: a single test image has no track, so the backend keeps its old rule for it.
             "detections": [{"label": d.label, "category": d.category, "confidence": d.confidence, "bbox": list(d.box),
-                            "trackId": d.track_id, "explanation": d.explanation} for d in reported],
+                            "trackId": d.track_id, "explanation": d.explanation, **({"hits": d.hits} if temporal else {})}
+                           for d in reported],
             "dangerZones": zones,
             "heatmap": self._heatmap(reported, fw, fh),
             "fireDetected": bool(fire),

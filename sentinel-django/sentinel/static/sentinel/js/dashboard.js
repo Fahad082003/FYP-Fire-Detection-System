@@ -179,13 +179,13 @@ function renderKpis() {
   const stats = live.liveStats();
   const { humans, danger } = peopleCount(stats, live.cameras);
   const peak = (type) => live.sensors.filter((s) => s.type === type).reduce((best, s) => (!best || s.currentValue > best.currentValue ? s : best), null);
-  const tone = (s) => (!s ? 'neutral' : s.state === 'Normal' ? 'ok' : s.state === 'Warning' ? 'warn' : 'danger');
+  const tone = (s) => (!s ? 'neutral' : s.state === 'Normal' ? 'ok' : s.state === 'Warning' || s.state === 'Stale' ? 'warn' : 'danger');
   const temp = peak('Temperature'), smoke = peak('Smoke');
   const kpis = [
     ['Open Incidents', String(open.length), critical ? `${critical} critical` : open.length ? 'monitoring' : 'none open', top >= SEVERITY_RANK.High ? 'danger' : top >= 0 ? 'warn' : 'ok'],
     ['Humans Tracked', String(humans), `${danger} in danger · ${stats.length} live feed(s)`, danger > 0 ? 'danger' : humans > 0 ? 'ok' : 'neutral'],
-    ['Peak Temperature', temp ? `${temp.currentValue.toFixed(1)}°C` : '—', temp ? `${temp.locationZone} · ${temp.id}` : 'no sensors', tone(temp)],
-    ['Peak Smoke', smoke ? `${Math.round(smoke.currentValue)} ppm` : '—', smoke ? `${smoke.locationZone} · ${smoke.id}` : 'no sensors', tone(smoke)],
+    ['Peak Temperature', temp ? `${temp.currentValue.toFixed(1)}°C` : '—', temp ? `${temp.locationZone} · ${temp.id}${temp.state === 'Stale' ? ' · stale' : ''}` : 'no sensors', tone(temp)],
+    ['Peak Smoke', smoke ? `${Math.round(smoke.currentValue)} ppm` : '—', smoke ? `${smoke.locationZone} · ${smoke.id}${smoke.state === 'Stale' ? ' · stale' : ''}` : 'no sensors', tone(smoke)],
   ];
   $('kpis').innerHTML = kpis.map(([label, value, hint, t]) => `<article class="kpi kpi-${t}"><span class="kpi-label">${label}</span>
     <span class="kpi-value">${esc(value)}</span><span class="kpi-hint">${esc(hint)}</span></article>`).join('');
@@ -193,7 +193,7 @@ function renderKpis() {
 for (const name of ['incidents', 'stats', 'sensors', 'cameras', 'tick']) live.on(name, renderKpis);
 
 // ================================================================ sensors and sprinklers
-const STATE_COLORS = { Normal: '#10b981', Warning: '#f59e0b', Alarm: '#ef4444', Critical: '#ef4444' };
+const STATE_COLORS = { Normal: '#10b981', Warning: '#f59e0b', Alarm: '#ef4444', Critical: '#ef4444', Stale: '#94a3b8' };
 const relayBusy = new Set();
 
 function drawSparkline(canvas, data, threshold, color) {
@@ -241,7 +241,8 @@ function renderSensors() {
       <div class="grow"><div class="sensor-head">${s.type}<span class="state-badge" style="color:${color};background:${color}22">${s.state}</span></div>
         <div class="tiny muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.locationZone)} · ${esc(s.id)}</div>
         <canvas class="sparkline" data-sensor="${esc(s.id)}" aria-hidden="true"></canvas>
-        <div class="tiny muted">Limit <b class="mono" style="color:var(--text-2)">${s.threshold}${esc(s.unit)}</b></div></div></article>`;
+        <div class="tiny muted">Limit <b class="mono" style="color:var(--text-2)">${s.threshold}${esc(s.unit)}</b>${s.state === 'Stale'
+          ? ` · <span class="text-amber">${s.lastReadingAt ? `last reading ${relativeTime(s.lastReadingAt, live.now)}` : 'no reading yet'}</span>` : ''}</div></div></article>`;
   }).join('')}</div>`;
   for (const s of live.sensors) {
     const canvas = $('sensors').querySelector(`[data-sensor="${CSS.escape(s.id)}"]`);
@@ -315,7 +316,7 @@ live.on('tick', () => $('relays').querySelectorAll('[data-relay]').forEach((li) 
 }));
 
 // ================================================================ alert logs
-const SOURCE_LABEL = { Vision: 'AI Vision', Sensor: 'Sensor', Manual: 'Manual', CameraLost: 'Camera lost' };
+const SOURCE_LABEL = { Vision: 'AI Vision', Sensor: 'Sensor', Manual: 'Manual', CameraLost: 'Camera lost', SensorLost: 'Sensor lost' };
 let incidentFilter = 'open';
 const resolving = new Set();
 const locationOf = (i) => (i.cameraName ? `${i.zone} (${i.cameraName})` : i.sensorId ? `${i.zone} (sensor ${i.sensorId})` : i.zone);
@@ -334,11 +335,13 @@ function renderIncidents() {
       <td class="mono">${i.id}</td><td class="nowrap" title="${esc(dateTimeOf(i.timestamp))}">${timeOf(i.timestamp)}</td>
       <td><span class="sev sev-${i.severity}">${i.severity}</span></td>
       <td style="min-width:180px;color:var(--text-2)" title="${esc(i.message)}">${esc(locationOf(i))}</td>
-      <td class="nowrap">${SOURCE_LABEL[i.source] ?? esc(i.source)}</td>
+      <td class="nowrap">${SOURCE_LABEL[i.source] ?? esc(i.source)}${i.corroborated
+        ? ' <span class="tag tag-fire" title="A smoke sensor in the same zone read its warning level within the fusion window">+ SMOKE SENSOR</span>' : ''}</td>
       <td class="mono">${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'Yes') : '—'}</td>
       <td class="num">${i.humanCount}</td><td class="num ${i.dangerCount > 0 ? 'text-amber' : ''}">${i.dangerCount}</td>
-      <td class="tiny strong ${i.isResolved ? 'text-green' : 'text-amber'}">${i.isResolved ? 'Resolved' : 'Open'}</td>
-      <td>${i.isResolved ? '' : `<button type="button" class="btn btn-sm btn-success" data-resolve="${i.id}" ${resolving.has(i.id) ? 'disabled' : ''}>Resolve</button>`}</td></tr>`;
+      <td class="tiny strong ${i.falseAlarm ? 'muted' : i.isResolved ? 'text-green' : 'text-amber'}">${i.falseAlarm ? 'False alarm' : i.isResolved ? 'Resolved' : 'Open'}</td>
+      <td class="nowrap">${i.isResolved ? '' : `<button type="button" class="btn btn-sm btn-success" data-resolve="${i.id}" ${resolving.has(i.id) ? 'disabled' : ''}>Resolve</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-resolve="${i.id}" data-false-alarm ${resolving.has(i.id) ? 'disabled' : ''}>False alarm</button>`}</td></tr>`;
   }).join('') : `<tr><td colspan="10" class="empty">${incidentFilter === 'open' ? 'No open incidents.' : 'No incidents recorded.'}</td></tr>`;
 }
 
@@ -350,12 +353,16 @@ $('incident-filter').addEventListener('click', (e) => {
   renderIncidents();
 });
 $('incident-rows').addEventListener('click', async (e) => {
-  const id = Number(e.target.closest('[data-resolve]')?.dataset.resolve);
-  if (!id) return;
+  const button = e.target.closest('[data-resolve]');
+  const id = Number(button?.dataset.resolve);
+  if (!id || resolving.has(id)) return;
+  const falseAlarm = 'falseAlarm' in button.dataset;
+  if (falseAlarm && !await confirmAsk(`Mark incident #${id} as a false alarm?`,
+    'The incident is resolved and kept in the history as a false alarm. Sprinklers are not changed.', 'False alarm')) return;
   resolving.add(id);
   renderIncidents();
   try {
-    live.upsertIncident(await api(`/api/incidents/${id}/resolve`, { method: 'POST' }));
+    live.upsertIncident(await api(`/api/incidents/${id}/${falseAlarm ? 'false-alarm' : 'resolve'}`, { method: 'POST' }));
   } catch (err) {
     toast('Could not resolve incident', errorMessage(err), 'error');
   } finally {

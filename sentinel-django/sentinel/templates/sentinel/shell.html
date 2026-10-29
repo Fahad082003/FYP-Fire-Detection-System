@@ -17,6 +17,7 @@
     <a class="seg-btn" href="{% url 'floor_plans' %}" {% if page == 'floor_plans' %}aria-current="page"{% endif %}>Floor Plans</a>
     <a class="seg-btn" href="{% url 'ai' %}" {% if page == 'ai' %}aria-current="page"{% endif %} id="ai-link" title="AI service status unknown">
       AI <span class="dot dot-red" id="ai-dot"></span></a>
+    <a class="seg-btn" href="{% url 'reports' %}" {% if page == 'reports' %}aria-current="page"{% endif %}>Reports</a>
     {% if user.is_admin %}<a class="seg-btn" href="{% url 'devices' %}" {% if page == 'devices' %}aria-current="page"{% endif %}>Devices</a>{% endif %}
   </nav>
 

@@ -377,7 +377,9 @@ function tick() {
 setInterval(tick, 1000);
 tick();
 renderMute();
-connect();
+// Page scripts (dashboard.js, floorplans.js) are separate module scripts that may still be loading: connect once they have
+// registered their listeners (DOMContentLoaded waits for them), or a fast snapshot reaches nobody and the page stays empty.
+if (document.readyState === 'complete') connect(); else document.addEventListener('DOMContentLoaded', connect, { once: true });
 pollAi();
 setInterval(pollAi, AI_POLL_MS);
 initPush();

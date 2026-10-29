@@ -3,20 +3,21 @@ IncidentService, DashboardService, FloorPlanService and DbSeeder)."""
 import logging
 import math
 import secrets
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import QuerySet
+from django.db.models import Count, Exists, F, OuterRef, QuerySet
+from django.db.models.functions import TruncDate
 from django.http import Http404
 from django.utils import timezone
 
 from . import alerts, dto, events, geometry, sprinklers, validation
 from .alerts import _num
 from .models import (AppUser, CameraFeed, FeedType, FloorElementType, FloorPlan, FloorPlanElement, IncidentAlert, IncidentLog,
-                     IncidentLogType, IncidentSource, SensorNode, SensorReading, SensorType, SmartSprinkler, UserRole, rank)
-from .rules import sensor_state
+                     IncidentLogType, IncidentSource, SensorNode, SensorReading, SensorType, SmartSprinkler, SEVERITIES, UserRole, rank)
+from .rules import is_stale, sensor_state
 from .watchdog import watchdog
 
 log = logging.getLogger("sentinel")
@@ -73,6 +74,8 @@ def save_camera(form, camera: CameraFeed | None = None) -> CameraFeed:
     camera.save(force_insert=creating)
     if creating:
         cache.delete(deleted_key(camera.id))  # re-added under the same id: accept its frames again
+    if camera.stream_url:
+        watchdog.camera_linked(camera.id)  # no-op for a camera already sending frames
     return camera
 
 
@@ -81,6 +84,7 @@ def delete_camera(camera: CameraFeed) -> None:
     with alerts._lock_for(f"camera:{camera_id}"):  # see process_detection; a failed delete raises before the marker is set
         camera.delete()  # the database sets IncidentAlerts.CameraId to NULL; old incidents stay in the history
         cache.set(deleted_key(camera_id), True, DELETED_CAMERA_SECONDS)
+        watchdog.forget(camera_id)
 
 
 def _check_points(field: str, points, max_x: float, max_y: float) -> None:
@@ -138,19 +142,26 @@ def sensors():
 def ingest_reading(sensor_id: str, value, recorded_at=None, simulated: bool = False) -> dict:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not MIN_READING <= value <= MAX_READING:
         raise invalid("value", f"Value must be between {MIN_READING} and {MAX_READING}.")
-    sensor = get_or_404(SensorNode, f"Sensor '{sensor_id}' not found.", pk=sensor_id)
-    previous = sensor_state(sensor)
-    at = recorded_at or timezone.now()
-    sensor.current_value = round(float(value), 2)
-    sensor.last_reading_at = at
-    sensor.updated_at = timezone.now()
-    sensor.save()
-    SensorReading.objects.create(sensor=sensor, value=sensor.current_value, recorded_at=at)
+    with alerts._lock_for(f"sensor:{sensor_id}"):  # see alerts.sensor_lost
+        sensor = get_or_404(SensorNode, f"Sensor '{sensor_id}' not found.", pk=sensor_id)
+        previous = sensor_state(sensor)
+        now = timezone.now()
+        episode = alerts.stale_episode(sensor) if sensor.last_reading_at and is_stale(sensor, now) else None
+        sensor.current_value = round(float(value), 2)
+        # Staleness runs on the server clock: a device clock running ahead must not keep a dead sensor "fresh".
+        sensor.last_reading_at = now
+        sensor.updated_at = now
+        sensor.save()
+        SensorReading.objects.create(sensor=sensor, value=sensor.current_value, recorded_at=recorded_at or now)
     _prune_old_readings()
 
     result = dto.sensor(sensor)
     events.publish("telemetry", result)
     alerts.evaluate_sensor(sensor, previous, simulated)
+    if episode:
+        alerts.sensor_recovered(sensor, episode)
+    if sensor.type == SensorType.SMOKE and sensor_state(sensor) != "Normal":  # Warning or above; temperature never confirms smoke
+        alerts.corroborate_zone(sensor.location_zone)
     return result
 
 
@@ -188,7 +199,7 @@ def sensor_history(sensor: SensorNode, limit: int, since) -> dict:
 
 # ---------------------------------------------------------------- incidents
 def list_incidents(resolved: bool | None, min_severity: str | None, limit: int) -> list[dict]:
-    query = IncidentAlert.objects.select_related("camera")
+    query = incident_query()
     if resolved is not None:
         query = query.filter(is_resolved=resolved)
     if min_severity is not None:
@@ -221,6 +232,32 @@ def resolve_incident(incident: IncidentAlert, actor: str) -> IncidentAlert:
     return incident
 
 
+def mark_false_alarm(incident: IncidentAlert, actor: str) -> IncidentAlert:
+    """Resolves the incident (if open) and records the operator's false-alarm verdict once; nothing is deleted."""
+    incident = resolve_incident(incident, actor)
+    with alerts._lock_for(f"false-alarm:{incident.id}"):  # two clicks at once still give one log
+        new = not is_false_alarm(incident)
+        if new:
+            alerts.add_log(IncidentLog(incident=incident, type=IncidentLogType.FALSE_ALARM, zone=incident.zone,
+                                       details=f"Marked as false alarm by {actor}"))
+            events.activity("info", f"Incident #{incident.id} marked as false alarm by {actor}", incident.zone)
+    incident.false_alarm = True  # dto.incident reads it; the copy's annotation predates the log
+    if new:  # every open dashboard updates the row, not only the one that clicked
+        events.publish("incident", {"action": "updated", "incident": dto.incident(incident)})
+    return incident
+
+
+def incident_query() -> QuerySet:
+    """Incidents with their camera and the false-alarm and corroborated flags in one query (dto.incident reads them)."""
+    return IncidentAlert.objects.select_related("camera").annotate(
+        false_alarm=Exists(IncidentLog.objects.filter(incident=OuterRef("pk"), type=IncidentLogType.FALSE_ALARM)),
+        corroborated=Exists(IncidentLog.objects.filter(incident=OuterRef("pk"), type=IncidentLogType.CORROBORATED)))
+
+
+def is_false_alarm(incident: IncidentAlert) -> bool:
+    return IncidentLog.objects.filter(incident=incident, type=IncidentLogType.FALSE_ALARM).exists()
+
+
 def dispatch(zone: str, message: str | None, severity: str, activate_sprinklers: bool, actor: str) -> IncidentAlert:
     """Manual emergency dispatch: opens an incident and notifies responders immediately (the cooldown is bypassed)."""
     incident = IncidentAlert.objects.create(
@@ -247,7 +284,7 @@ def snapshot() -> dict:
     level = ("critical" if any(rank(s) >= rank("High") for s in open_severities) or states & {"Alarm", "Critical"}
              else "elevated" if open_severities or "Warning" in states else "nominal")
     # Every open incident (the dashboard derives its banner, KPIs and alarm from this list) plus the 50 most recent ones.
-    q = IncidentAlert.objects.select_related("camera").order_by("-timestamp")
+    q = incident_query().order_by("-timestamp")
     incidents = {i.id: i for i in [*q.filter(is_resolved=False), *q[:50]]}
     return {
         "cameras": [dto.camera(c) for c in cameras()],
@@ -256,6 +293,27 @@ def snapshot() -> dict:
         "incidents": [dto.incident(i) for i in sorted(incidents.values(), key=lambda i: i.timestamp, reverse=True)],
         "system": {"level": level, "openIncidents": len(open_severities), "activeSprinklers": sum(s.is_active for s in sprinkler_list)},
         "serverTime": timezone.now(),
+    }
+
+
+def incident_analytics(first: date, last: date) -> dict:
+    """Incidents opened (timestamp) on the UTC days first..last, both included, counted in the database. Severity is the peak
+    severity; a false alarm is a resolved incident with a FalseAlarm log, so the rate is false alarms / resolved incidents."""
+    start = datetime.combine(first, time.min, tzinfo=dt_timezone.utc)
+    q = IncidentAlert.objects.filter(timestamp__gte=start, timestamp__lt=start + timedelta(days=(last - first).days + 1)).order_by()
+    total, resolved = q.count(), q.filter(is_resolved=True).count()
+    false_alarms = q.filter(Exists(IncidentLog.objects.filter(incident=OuterRef("pk"), type=IncidentLogType.FALSE_ALARM))).count()
+
+    def per(expr, known):  # {value: count}, the known values first (with 0) so the breakdown always sums to the total
+        counts = {r["key"]: r["n"] for r in q.values(key=expr).annotate(n=Count("id"))}
+        return [{"name": k, "count": counts.pop(k, 0)} for k in known] + [{"name": k, "count": n} for k, n in sorted(counts.items())]
+
+    daily = {d["name"]: d["count"] for d in per(TruncDate("timestamp", tzinfo=dt_timezone.utc), [])}
+    return {
+        "start": first, "end": last, "total": total, "open": total - resolved, "resolved": resolved, "falseAlarms": false_alarms,
+        "falseAlarmRate": false_alarms / resolved if resolved else None,  # none resolved: no rate, not 0 %
+        "bySeverity": per(F("severity"), SEVERITIES), "bySource": per(F("source"), IncidentSource.values),
+        "daily": [{"date": d, "count": daily.get(d, 0)} for d in (first + timedelta(days=n) for n in range((last - first).days + 1))],
     }
 
 

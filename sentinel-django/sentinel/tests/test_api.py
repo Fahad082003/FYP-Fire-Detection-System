@@ -6,6 +6,7 @@ import tempfile
 import threading
 from datetime import timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from django.conf import settings
@@ -16,8 +17,10 @@ from django.http import Http404
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from sentinel import alerts, events, notifications, services
-from sentinel.models import CameraFeed, FloorPlan, FloorPlanElement, IncidentAlert, IncidentLog, IncidentLogType, SmartSprinkler
+from sentinel import alerts, events, notifications, services, sprinklers
+from sentinel.models import (CameraFeed, FloorPlan, FloorPlanElement, IncidentAlert, IncidentLog, IncidentLogType, SensorNode,
+                             SensorReading, SmartSprinkler)
+from sentinel.rules import is_stale
 from sentinel.watchdog import Watchdog, watchdog
 
 from .base import ADMIN_EMAIL, PASSWORD, SentinelTestCase, fire
@@ -454,6 +457,26 @@ class CameraTests(SentinelTestCase):
         self.assertFalse(CameraFeed.objects.filter(pk="cam-not-registered").exists())
         self.assertEqual(self.lost(), [])
 
+    def test_a_silent_camera_does_not_affect_a_camera_that_keeps_sending(self):
+        now = timezone.now()
+        for camera_id in ("cam-lobby", "cam-server"):
+            watchdog.frame_received(camera_id, now)
+        watchdog.check(now)
+        watchdog.frame_received("cam-server", now + timedelta(seconds=25))
+        watchdog.check(now + timedelta(seconds=31))
+        self.assertEqual([i["cameraId"] for i in self.lost()], ["cam-lobby"])
+        self.assertEqual((self.status("cam-lobby"), self.status("cam-server")), ("Offline", "Online"))
+
+    def test_a_camera_that_reconnects_while_its_fire_burns_keeps_one_fire_incident(self):
+        self.post_frame(**fire("cam-server"))
+        watchdog.check(timezone.now() + timedelta(seconds=31))  # lost
+        cache.delete("vision-eval:cam-server")  # the 2 s evaluation throttle has passed
+        self.post_frame(**fire("cam-server"))  # back, the fire is still there
+        watchdog.check(timezone.now())
+        incidents = [i for i in self.incidents() if i["cameraId"] == "cam-server"]
+        self.assertEqual(sorted(i["source"] for i in incidents), ["CameraLost", "Vision"])
+        self.assertEqual(self.status("cam-server"), "Online")
+
 
 class FloorPlanTests(SentinelTestCase):
     def setUp(self):
@@ -734,3 +757,479 @@ class RouteComparisonApiTests(SentinelTestCase):
         self.assertEqual(self.device.post(f"/api/floorplans/{plan_id}/routes", {"starts": [[1, 1]]}, format="json").status_code, 401)
         flat = FloorPlan.objects.create(name="No size", width_meters=0, height_meters=0)
         self.assertEqual(self.routes(flat.id, [[0, 0]]).status_code, 400)
+
+
+class FireMeasurementTests(SentinelTestCase):
+    def test_overlapping_and_partly_outside_fire_boxes_are_measured_once(self):
+        box = {"category": "Fire", "confidence": 0.9, "bbox": [100, 100, 200, 200]}
+        self.post_frame(cameraId="cam-server", frameWidth=1280, frameHeight=720, fireSeverity="Medium",
+                        detections=[box, box, {"category": "Fire", "confidence": 0.8, "bbox": [200, 100, 200, 200]}])
+        self.post_frame(cameraId="cam-lobby", frameWidth=640, frameHeight=480, fireSeverity="Low",
+                        detections=[{"category": "Fire", "confidence": 0.8, "bbox": [600, 400, 100, 100]}])
+        area = {m.incident.camera_id: m.fire_area_percent for m in IncidentLog.objects.filter(type=IncidentLogType.FIRE_MEASUREMENT)}
+        self.assertEqual(area["cam-server"], 6.51)  # union 300x200 of 1280x720; the old sum of boxes gave 13.02
+        self.assertEqual(area["cam-lobby"], 1.04)  # only the 40x80 inside 640x480; the old sum gave 3.26
+
+    def test_a_brief_fire_keeps_one_open_incident_until_an_operator_resolves_it(self):
+        self.post_frame(**fire("cam-server"))
+        for _ in range(3):  # the AI stops reporting the fire
+            self.post_frame(cameraId="cam-server", frameWidth=1280, frameHeight=720, detections=[])
+        cache.delete("vision-eval:cam-server")
+        self.post_frame(**fire("cam-server"))  # seen again inside the merge window
+        [incident] = IncidentAlert.objects.all()
+        self.assertFalse(incident.is_resolved)  # never closed by missing detections: no proof the fire is out
+        self.assertEqual(IncidentLog.objects.filter(incident=incident, type=IncidentLogType.OPENED).count(), 1)
+
+
+@mock.patch.dict(settings.SENTINEL, VISION_EVALUATION_INTERVAL_SECONDS=60)  # every frame below falls inside one throttle window
+class PersonInDangerTests(SentinelTestCase):
+    ZONE = {"label": "Fuel store", "level": "Danger", "polygon": [[0, 200], [640, 200], [640, 300], [0, 300]]}
+
+    def frame(self, *people):
+        """people: (trackId, x, inside) -> a person whose feet are inside the zone (y 250) or outside it (y 400)."""
+        return self.post_frame(cameraId="cam-lobby", frameWidth=640, frameHeight=480, simulated=True, dangerZones=[self.ZONE],
+                               detections=[{"category": "Human", "confidence": 0.9, "trackId": t,
+                                            "bbox": [x, 100 if inside else 250, 40, 150]} for t, x, inside in people])
+
+    def logged(self) -> list:
+        return list(IncidentLog.objects.filter(type=IncidentLogType.PERSON_IN_DANGER).order_by("id")
+                    .values_list("person_track_id", "person_x"))
+
+    def test_a_second_person_entering_inside_the_throttle_window_is_logged_at_once(self):
+        self.frame(("p1", 100, True))
+        self.frame(("p1", 100, True), ("p2", 300, True))
+        self.frame(("p1", 100, True), ("p2", 300, True))  # nothing new
+        self.assertEqual(self.logged(), [("p1", 120.0), ("p2", 320.0)])
+
+    def test_untracked_people_are_logged_one_per_person_seen_at_once(self):
+        self.frame((None, 100, True), (None, 300, True))
+        self.frame((None, 100, True), (None, 300, True))
+        cache.clear()  # past the throttle: only the log check stops a repeat
+        self.frame((None, 110, True), (None, 310, True))
+        self.assertEqual(len(self.logged()), 2)
+        self.frame((None, 100, True), (None, 300, True), (None, 500, True))  # a third one at the same time
+        self.assertEqual(len(self.logged()), 3)
+
+    def test_enter_stay_leave_and_reenter_gives_one_alert_per_person_and_zone(self):
+        self.assertEqual(self.frame(("p1", 100, True)).json()["dangerCount"], 1)
+        self.frame(("p1", 100, True))
+        self.assertEqual(self.frame(("p1", 100, False)).json()["dangerCount"], 0)
+        cache.clear()
+        self.assertEqual(self.frame(("p1", 100, True)).json()["dangerCount"], 1)
+        self.assertEqual(self.logged(), [("p1", 120.0)])  # one alert per person, zone and incident (alerts._log_frame)
+        [incident] = IncidentAlert.objects.all()
+        self.assertEqual((incident.severity, incident.danger_count, incident.is_resolved), ("High", 1, False))
+
+
+class FalseAlarmTests(SentinelTestCase):
+    def test_an_operator_marks_an_incident_as_false_alarm_once_and_its_history_stays(self):
+        self.post_frame(**fire("cam-server"))
+        incident_id = IncidentAlert.objects.get().id
+        for _ in range(2):  # a repeated request changes nothing
+            r = self.op.post(f"/api/incidents/{incident_id}/false-alarm")
+            self.assertEqual(r.status_code, 200)
+            self.assertTrue(r.json()["isResolved"])
+        self.assertTrue(self.op.get(f"/api/incidents/{incident_id}").json()["falseAlarm"])
+        logs = [entry["type"] for entry in self.op.get(f"/api/incidents/logs?incidentId={incident_id}").json()]
+        self.assertEqual((logs.count("FalseAlarm"), logs.count("Resolved"), logs.count("Opened")), (1, 1, 1))
+        self.assertEqual(len(self.op.get("/api/incidents/logs?type=FalseAlarm").json()), 1)
+
+    def test_the_flag_reaches_the_list_the_snapshot_and_open_dashboards_and_relays_are_left_alone(self):
+        self.post_frame(**fire("cam-server", "Critical"))  # a real (non-simulated) emergency opens spr-c1
+        incident_id = IncidentAlert.objects.get().id
+        with mock.patch.object(events, "publish", wraps=events.publish) as publish:
+            r = self.op.post(f"/api/incidents/{incident_id}/false-alarm")
+        self.assertTrue(r.json()["falseAlarm"])
+        updates = [p["incident"] for e, p in (c.args for c in publish.call_args_list) if e == "incident" and p["action"] == "updated"]
+        self.assertEqual([(u["id"], u["falseAlarm"]) for u in updates], [(incident_id, True)])
+        self.assertEqual([i["falseAlarm"] for i in self.incidents() if i["id"] == incident_id], [True])
+        self.assertEqual([i["falseAlarm"] for i in self.op.get("/api/dashboard/snapshot").json()["incidents"]], [True])
+        self.assertTrue(SmartSprinkler.objects.get(pk="spr-c1").is_active)  # this feature never switches a relay
+        self.post_frame(**fire("cam-lobby"))
+        self.assertEqual([i["falseAlarm"] for i in self.incidents(resolved="false")], [False])
+
+    def test_a_resolved_incident_can_still_be_marked_and_others_are_not_affected(self):
+        self.post_frame(**fire("cam-server"))
+        self.post_frame(**fire("cam-lobby"))
+        server, lobby = (IncidentAlert.objects.get(camera_id=c) for c in ("cam-server", "cam-lobby"))
+        self.op.post(f"/api/incidents/{server.id}/resolve")
+        self.assertEqual(self.op.post(f"/api/incidents/{server.id}/false-alarm").status_code, 200)
+        self.assertFalse(self.op.get(f"/api/incidents/{lobby.id}").json()["falseAlarm"])
+        self.assertFalse(IncidentAlert.objects.get(pk=lobby.id).is_resolved)
+        self.assertEqual(self.op.post("/api/incidents/99999/false-alarm").status_code, 404)
+        self.assertEqual(self.device.post(f"/api/incidents/{lobby.id}/false-alarm").status_code, 401)  # operators only
+
+
+class HumanConfirmationTests(SentinelTestCase):
+    """A person counts as in danger only once the AI tracker saw them in 3 frames (hits); payloads without hits keep the old rule."""
+    ZONE = {"label": "AI fire area F1", "level": "Danger", "polygon": [[0, 0], [640, 0], [640, 480], [0, 480]]}
+    NO_HITS = object()
+
+    def frame(self, camera, hits, fire_severity="Medium"):
+        person = {"category": "Human", "confidence": 0.9, "bbox": [100, 100, 40, 150], "trackId": "P1"}
+        if hits is not self.NO_HITS:
+            person["hits"] = hits
+        return self.post_frame(cameraId=camera, frameWidth=640, frameHeight=480, simulated=True, fireSeverity=fire_severity,
+                               dangerZones=[self.ZONE], detections=[{"category": "Fire", "confidence": 0.9, "bbox": [300, 100, 100, 100]}, person])
+
+    def test_only_a_confirmed_or_legacy_person_is_in_danger(self):
+        cases = (("cam-lobby", 1, 0, "High"), ("cam-warehouse", 2, 0, "High"), ("cam-server", 3, 1, "Critical"),
+                 ("drone-01", self.NO_HITS, 1, "Critical"))
+        for camera, hits, danger, severity in cases:
+            with self.subTest(hits=hits):
+                r = self.frame(camera, hits)
+                self.assertEqual((r.status_code, r.json()["dangerCount"], r.json()["humanCount"]), (202, danger, 1))
+                incident = IncidentAlert.objects.get(camera_id=camera)
+                self.assertEqual((incident.severity, incident.fire_detected), (severity, True))  # the fire alert is there either way
+                self.assertEqual(IncidentLog.objects.filter(incident=incident, type=IncidentLogType.PERSON_IN_DANGER).count(), danger)
+
+    def test_a_person_becomes_in_danger_on_the_third_tracked_frame(self):
+        self.assertEqual([self.frame("cam-lobby", hits).json()["dangerCount"] for hits in (1, 2, 3)], [0, 0, 1])
+        [incident] = IncidentAlert.objects.all()
+        self.assertEqual(incident.severity, "Critical")
+        self.assertEqual(IncidentLog.objects.filter(type=IncidentLogType.ESCALATED).count(), 1)  # opened High, then escalated once
+        self.assertEqual(IncidentLog.objects.filter(type=IncidentLogType.PERSON_IN_DANGER).count(), 1)
+
+    def test_malformed_hits_never_confirm_and_never_hide_the_fire(self):
+        for hits in (0, -1, 2.5, True, "abc", [3]):
+            with self.subTest(hits=hits):
+                cache.clear()
+                r = self.frame("cam-lobby", hits, fire_severity="Critical")
+                self.assertEqual((r.status_code, r.json()["dangerCount"], r.json()["fireDetected"]), (202, 0, True))
+        incident = IncidentAlert.objects.get(camera_id="cam-lobby")
+        self.assertEqual(incident.severity, "Critical")  # a Critical fire stays an immediate Critical emergency
+        self.assertFalse(IncidentLog.objects.filter(type=IncidentLogType.PERSON_IN_DANGER).exists())
+        self.assertEqual(self.frame("cam-server", "3").json()["dangerCount"], 1)  # numeric strings are read like other numbers
+
+
+class SensorStaleTests(SentinelTestCase):
+    """No valid reading for SENSOR_STALE_SECONDS (60) = Stale: one sensor-lost incident per outage, its recovery logged once by
+    the next reading, never a sprinkler or a notification. Time passes by moving LastReadingAt back, never by waiting."""
+
+    def setUp(self):
+        super().setUp()
+        watchdog._started -= timedelta(hours=1)  # long running: the start-up window is tested on its own
+
+    def read(self, sensor_id, value):
+        return self.device.post(f"/api/iot/sensors/{sensor_id}/readings", {"value": value}, format="json")
+
+    def silence(self, sensor_id, seconds):
+        SensorNode.objects.filter(pk=sensor_id).update(last_reading_at=timezone.now() - timedelta(seconds=seconds))
+
+    def lost(self, sensor_id):
+        return list(IncidentAlert.objects.filter(source="SensorLost", sensor_id=sensor_id).order_by("id"))
+
+    def state(self, sensor_id):
+        return self.device.get(f"/api/iot/sensors/{sensor_id}").json()["state"]
+
+    def sprinklers(self, zone):
+        return [s for s in self.device.get("/api/iot/sprinklers").json() if s["zone"] == zone]
+
+    def test_stale_means_at_least_60_s_since_the_last_valid_reading(self):
+        t = timezone.now()
+        for age, stale in ((0, False), (59.999, False), (60, True), (3600, True)):
+            with self.subTest(age=age):
+                self.assertEqual(is_stale(SimpleNamespace(last_reading_at=t), t + timedelta(seconds=age)), stale)
+        self.assertTrue(is_stale(SimpleNamespace(last_reading_at=None), t))  # never reported
+        self.read("temp-a1", 21)
+        self.assertEqual(self.state("temp-a1"), "Normal")
+        self.silence("temp-a1", 59.5)
+        watchdog.check(timezone.now())  # a check just before the limit is not an outage
+        self.assertEqual((self.state("temp-a1"), self.lost("temp-a1")), ("Normal", []))
+        self.silence("temp-a1", 60)
+        watchdog.check(timezone.now())
+        self.assertEqual((self.state("temp-a1"), len(self.lost("temp-a1"))), ("Stale", 1))
+
+    def test_a_sensor_that_never_reported_is_shown_stale_but_raises_no_incident(self):
+        self.assertEqual(self.state("temp-c1"), "Stale")  # no reading is not an "all clear"
+        snapshot = self.op.get("/api/dashboard/snapshot").json()
+        self.assertEqual({s["state"] for s in snapshot["sensors"]}, {"Stale"})  # seeded sensors have never reported
+        self.assertEqual(snapshot["system"]["level"], "nominal")  # unchanged: the level follows alarms, not staleness
+        watchdog.check(timezone.now() + timedelta(hours=1))
+        self.assertFalse(IncidentAlert.objects.filter(source="SensorLost").exists())  # like a camera that never connected
+
+    def test_one_incident_per_outage_recovery_once_and_a_later_outage_is_a_new_episode(self):
+        self.read("smoke-a1", 18)
+        self.silence("smoke-a1", 61)
+        last = SensorNode.objects.get(pk="smoke-a1").last_reading_at
+        for _ in range(4):
+            watchdog.check(timezone.now())
+        [episode] = self.lost("smoke-a1")
+        self.assertEqual((episode.severity, episode.is_resolved, episode.zone), ("Medium", False, "Ground Floor - Lobby"))
+        self.assertIn(f"Sensor unavailable: no valid reading from Smoke sensor smoke-a1 since {last:%Y-%m-%d %H:%M:%S} UTC", episode.message)
+        self.assertEqual(IncidentLog.objects.filter(incident=episode, type=IncidentLogType.OPENED).count(), 1)
+        self.assertEqual(self.read("smoke-a1", 19).json()["state"], "Normal")
+        self.read("smoke-a1", 20)
+        watchdog.check(timezone.now())
+        recovered = IncidentLog.objects.filter(type=IncidentLogType.SENSOR_RECOVERED)
+        self.assertEqual([(r.incident_id, r.details) for r in recovered], [(episode.id, "smoke-a1 reports again: 19ppm")])
+        self.assertFalse(IncidentAlert.objects.get(pk=episode.id).is_resolved)  # history kept; the operator resolves it
+        # 61 s pass again; the first outage was opened before the recovery reading, so move it back with the clock.
+        IncidentAlert.objects.filter(pk=episode.id).update(timestamp=timezone.now() - timedelta(seconds=120))
+        self.silence("smoke-a1", 61)
+        watchdog.check(timezone.now())
+        watchdog.check(timezone.now())
+        restarted = Watchdog()  # a new process: the open episode is read from the database, not repeated
+        restarted._started -= timedelta(hours=1)
+        restarted.check(timezone.now())
+        self.assertEqual([i.id == episode.id for i in self.lost("smoke-a1")], [True, False])
+
+    def test_after_a_restart_gateways_get_one_full_window_to_report(self):
+        self.read("temp-b1", 21)
+        self.silence("temp-b1", 600)  # e.g. the server was down for 10 minutes
+        restarted = Watchdog()
+        restarted.check(timezone.now() + timedelta(seconds=59))
+        self.assertEqual(self.lost("temp-b1"), [])
+        restarted.check(timezone.now() + timedelta(seconds=60))
+        self.assertEqual(len(self.lost("temp-b1")), 1)
+
+    def test_stale_and_recovery_never_switch_a_sprinkler_or_notify(self):
+        with mock.patch.object(sprinklers, "auto_activate_zone") as relay, mock.patch.object(notifications, "enqueue") as notify:
+            self.read("temp-a1", 21)
+            self.silence("temp-a1", 120)
+            watchdog.check(timezone.now())
+            self.read("temp-a1", 22)
+        self.assertEqual(len(self.lost("temp-a1")), 1)
+        self.assertEqual(IncidentLog.objects.filter(type=IncidentLogType.SENSOR_RECOVERED).count(), 1)
+        relay.assert_not_called()
+        notify.assert_not_called()
+        self.assertFalse(SmartSprinkler.objects.filter(is_active=True).exists())
+
+    def test_silent_mid_alarm_is_high_and_real_alarms_still_work_while_and_after_stale(self):
+        self.read("temp-a1", 80.0)  # Critical, real data: the existing rule opens the zone's relays
+        self.assertTrue(all(s["isActive"] for s in self.sprinklers("Ground Floor - Lobby")))
+        SmartSprinkler.objects.update(is_active=False)
+        with mock.patch.object(sprinklers, "auto_activate_zone") as relay:
+            self.silence("temp-a1", 120)
+            watchdog.check(timezone.now())
+            [episode] = self.lost("temp-a1")
+            self.assertEqual(episode.severity, "High")  # a sensor that dies in a fire may have burnt
+            self.assertIn("last reading was over the limit", episode.message)
+            relay.assert_not_called()
+            # A stale sensor in the zone does not weaken a camera fire there.
+            self.post_frame(cameraId="cam-lobby", frameWidth=640, frameHeight=480, fireSeverity="Critical",
+                            detections=[{"category": "Fire", "confidence": 0.9, "bbox": [100, 100, 200, 200]}])
+            self.assertEqual(IncidentAlert.objects.get(camera_id="cam-lobby").severity, "Critical")
+            relay.assert_called_once()
+            relay.reset_mock()
+            self.read("temp-a1", 80.0)  # recovers straight into an alarm: the alarm rule acts as before
+            relay.assert_called_once()
+        self.assertEqual(IncidentAlert.objects.get(source="Sensor", sensor_id="temp-a1").severity, "Critical")
+
+    def test_sensors_are_evaluated_independently(self):
+        self.read("temp-a1", 21)
+        self.read("temp-b1", 21)
+        self.silence("temp-a1", 61)
+        watchdog.check(timezone.now())
+        self.assertEqual((len(self.lost("temp-a1")), self.lost("temp-b1")), (1, []))
+        self.assertEqual((self.state("temp-a1"), self.state("temp-b1")), ("Stale", "Normal"))
+
+    def test_an_invalid_reading_does_not_refresh_the_sensor(self):
+        self.read("temp-a1", 21)
+        self.silence("temp-a1", 120)
+        before = SensorNode.objects.get(pk="temp-a1").last_reading_at
+        for bad in (2_000_000.0, -101, "abc", None):
+            with self.subTest(value=bad):
+                self.assertEqual(self.read("temp-a1", bad).status_code, 400)
+        r = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 2_000_000.0}]}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(SensorNode.objects.get(pk="temp-a1").last_reading_at, before)
+        watchdog.check(timezone.now())
+        self.assertEqual(len(self.lost("temp-a1")), 1)
+
+    def test_last_reading_time_is_the_server_clock_not_the_device_clock(self):
+        ahead = (timezone.now() + timedelta(days=1)).isoformat()  # a device clock a day fast must not keep a dead sensor fresh
+        self.device.post("/api/iot/sensors/temp-a1/readings", {"value": 21, "recordedAt": ahead}, format="json")
+        self.assertLessEqual(SensorNode.objects.get(pk="temp-a1").last_reading_at, timezone.now())
+        [reading] = self.device.get("/api/iot/sensors/temp-a1/history").json()["readings"]
+        self.assertGreater(reading["recordedAt"], timezone.now().isoformat()[:10])  # the device's own time stays in the history
+
+
+class CameraLinkedAtRuntimeTests(SentinelTestCase):
+    """B-2: a camera given a stream link while the server runs is watched like one found at start-up: 60 s for the AI
+    service's camera sync plus the 60 s start-up grace, then one "camera lost" incident if no first frame came."""
+
+    def camera(self, camera_id, url="rtsp://10.0.0.99/live", method="post"):
+        body = {"id": camera_id, "name": camera_id, "feedType": "CCTV", "streamUrl": url, "streamFormat": "Simulated",
+                "locationZone": f"Ground Floor - {camera_id}"}
+        if method == "post":
+            r = self.admin_client.post("/api/cameras", body, format="json")
+        else:
+            r = self.admin_client.put(f"/api/cameras/{camera_id}", body, format="json")
+        self.assertIn(r.status_code, (200, 201), r.content)
+
+    def lost(self):
+        return list(IncidentAlert.objects.filter(source="CameraLost").order_by("id"))
+
+    def status(self, camera_id):
+        return CameraFeed.objects.get(pk=camera_id).status
+
+    def test_a_new_camera_that_never_sends_a_frame_is_reported_lost_once_after_120_s(self):
+        start = timezone.now()
+        self.camera("cam-new")
+        with mock.patch.object(notifications, "enqueue") as notify, mock.patch.object(sprinklers, "auto_activate_zone") as relay:
+            watchdog.check(start + timedelta(seconds=119))  # the AI service may not have read the link yet
+            self.assertEqual(self.lost(), [])
+            for seconds in (121, 125, 300):
+                watchdog.check(start + timedelta(seconds=seconds))
+        [incident] = self.lost()
+        self.assertEqual((incident.camera_id, incident.severity, incident.fire_detected), ("cam-new", "Medium", False))
+        self.assertEqual(incident.message, "Camera lost: no first frame from cam-new; check its stream link")
+        self.assertEqual(IncidentLog.objects.filter(incident=incident, type=IncidentLogType.OPENED).count(), 1)
+        self.assertEqual((self.status("cam-new"), self.status("cam-lobby"), self.status("cam-server")), ("Offline", "Online", "Online"))
+        notify.assert_not_called()  # a lost camera is not an emergency
+        relay.assert_not_called()
+
+    def test_its_first_frame_turns_it_online_and_the_recovery_is_announced_once(self):
+        start = timezone.now()
+        self.camera("cam-new")
+        watchdog.check(start + timedelta(seconds=121))
+        with mock.patch.object(events, "activity") as activity:
+            watchdog.frame_received("cam-new", start + timedelta(seconds=130))
+            for seconds in (131, 133, 135):
+                watchdog.check(start + timedelta(seconds=seconds))
+        self.assertEqual([c.args[1] for c in activity.call_args_list], ["Camera cam-new is sending frames again."])
+        self.assertEqual(self.status("cam-new"), "Online")
+        self.assertEqual(len(self.lost()), 1)
+
+    def test_editing_a_camera_that_sends_frames_keeps_its_10_s_timer(self):
+        self.camera("cam-new")
+        self.assertEqual(self.post_frame(cameraId="cam-new", frameWidth=640, frameHeight=480).status_code, 202)
+        t = timezone.now()
+        self.camera("cam-new", url="rtsp://10.0.0.98/live", method="put")
+        watchdog.check(t + timedelta(seconds=5))
+        self.assertEqual((self.lost(), self.status("cam-new")), ([], "Online"))
+        watchdog.check(t + timedelta(seconds=11))  # not pushed back to 120 s by the edit
+        [incident] = self.lost()
+        self.assertRegex(incident.message, r"^Camera lost: no frames from cam-new for 1\d s$")
+
+    def test_a_camera_without_a_link_is_watched_once_it_gets_one(self):
+        self.camera("cam-new", url="")
+        watchdog.check(timezone.now() + timedelta(hours=1))
+        self.assertEqual(self.lost(), [])  # simulated feed: never alarms
+        linked = timezone.now()
+        self.camera("cam-new", method="put")
+        watchdog.check(linked + timedelta(seconds=119))
+        self.assertEqual(self.lost(), [])
+        watchdog.check(linked + timedelta(seconds=121))
+        self.assertEqual([i.camera_id for i in self.lost()], ["cam-new"])
+
+    def test_a_camera_deleted_and_re_added_under_the_same_id_is_watched_afresh(self):
+        start = timezone.now()
+        self.camera("cam-new")
+        watchdog.check(start + timedelta(seconds=121))
+        self.assertEqual(self.admin_client.delete("/api/cameras/cam-new").status_code, 204)
+        added = timezone.now()
+        self.camera("cam-new")
+        watchdog.check(added + timedelta(seconds=119))
+        self.assertEqual(len(self.lost()), 1)  # the first one, kept in the history without its camera
+        watchdog.check(added + timedelta(seconds=121))
+        self.assertEqual([i.camera_id for i in self.lost()], [None, "cam-new"])
+
+    def test_a_fire_on_another_camera_still_alarms_while_a_camera_is_lost(self):
+        start = timezone.now()
+        self.camera("cam-new")
+        watchdog.check(start + timedelta(seconds=121))
+        with mock.patch.object(sprinklers, "auto_activate_zone") as relay:
+            self.assertEqual(self.post_frame(**fire("cam-lobby", "Critical")).status_code, 202)
+        incident = IncidentAlert.objects.get(camera_id="cam-lobby")
+        self.assertEqual((incident.source, incident.severity, incident.fire_detected), ("Vision", "Critical", True))
+        relay.assert_called_once()  # the emergency response is unchanged
+        self.assertEqual(len(self.lost()), 1)
+
+
+class FusionTests(SentinelTestCase):
+    """A camera fire and a smoke reading at Warning level or above in the same zone within FUSION_WINDOW_SECONDS (60) mark the
+    AI fire incident Corroborated, once. A record only: severities, sprinklers and notifications are never changed by it.
+    cam-lobby, smoke-a1 and temp-a1 share "Ground Floor - Lobby"; smoke-b1 is in the warehouse. Smoke limit 300 ppm, warning 240."""
+
+    def smoke(self, sensor_id, value, simulated=True):
+        r = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": sensor_id, "value": value}], "simulated": simulated},
+                             format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def camera_fire(self, camera="cam-lobby"):
+        cache.clear()  # past the per-camera evaluation throttle
+        self.assertEqual(self.post_frame(**fire(camera)).status_code, 202)
+        return IncidentAlert.objects.get(camera_id=camera, source="Vision")
+
+    def records(self):
+        return list(IncidentLog.objects.filter(type=IncidentLogType.CORROBORATED))
+
+    def corroborated(self, incident):
+        return next(i for i in self.incidents() if i["id"] == incident.id)["corroborated"]
+
+    def test_smoke_warning_then_camera_fire_in_the_zone_is_corroborated_once(self):
+        with mock.patch.object(sprinklers, "auto_activate_zone") as relay, mock.patch.object(notifications, "enqueue") as notify:
+            self.smoke("smoke-a1", 250)  # Warning: no sensor incident of its own
+            incident = self.camera_fire()
+            for _ in range(3):
+                self.camera_fire()  # repeated frames
+                self.smoke("smoke-a1", 260)  # repeated readings
+            self.assertFalse(alerts.corroborate(incident))
+        [record] = self.records()
+        self.assertEqual(record.incident_id, incident.id)
+        self.assertRegex(record.details, r"^Smoke sensor smoke-a1 in the same zone read 2[56]0ppm \(warning level 240ppm\) at .* UTC, "
+                                         r"within 60 s of the camera fire$")
+        self.assertTrue(self.corroborated(incident))
+        after = IncidentAlert.objects.get(pk=incident.id)
+        self.assertEqual((after.severity, after.source, after.fire_detected), ("Medium", "Vision", True))  # unchanged
+        relay.assert_not_called()
+        notify.assert_not_called()
+
+    def test_camera_fire_then_smoke_alarm_corroborates_and_both_incidents_keep_their_history(self):
+        incident = self.camera_fire()
+        self.assertFalse(self.corroborated(incident))
+        with mock.patch.object(sprinklers, "auto_activate_zone") as relay:
+            self.smoke("smoke-a1", 320, simulated=False)  # Alarm, real data: the sensor rule itself opens the zone's relays
+        relay.assert_called_once()  # by the sensor alarm rule; corroboration adds none
+        self.assertTrue(self.corroborated(incident))
+        sensor_incident = IncidentAlert.objects.get(source="Sensor", sensor_id="smoke-a1")
+        self.assertEqual(sensor_incident.severity, "High")
+        self.assertEqual([l.type for l in IncidentLog.objects.filter(incident=sensor_incident)], ["Opened"])
+        self.assertEqual(IncidentAlert.objects.get(pk=incident.id).severity, "Medium")
+        self.assertEqual([l.incident_id for l in self.records()], [incident.id])
+
+    def test_readings_and_fires_more_than_60_s_apart_do_not_corroborate(self):
+        self.smoke("smoke-a1", 250)
+        SensorReading.objects.filter(sensor_id="smoke-a1").update(recorded_at=timezone.now() - timedelta(seconds=61))
+        self.smoke("smoke-a1", 20)  # the sensor stays live, back to Normal
+        incident = self.camera_fire()
+        self.assertEqual(self.records(), [])
+        IncidentAlert.objects.filter(pk=incident.id).update(updated_at=timezone.now() - timedelta(seconds=61))  # fire last seen 61 s ago
+        self.smoke("smoke-a1", 250)
+        self.assertEqual(self.records(), [])
+        self.assertFalse(self.corroborated(incident))
+
+    def test_a_smoke_sensor_of_another_zone_does_not_corroborate(self):
+        self.smoke("smoke-b1", 400)  # warehouse
+        incident = self.camera_fire("cam-lobby")
+        self.smoke("smoke-b1", 410)
+        self.assertEqual(self.records(), [])
+        self.assertFalse(self.corroborated(incident))
+
+    def test_a_stale_smoke_sensor_is_not_evidence(self):
+        with mock.patch.dict(settings.SENTINEL, FUSION_WINDOW_SECONDS=120):  # the reading is inside this longer window
+            self.smoke("smoke-a1", 250)
+            seventy = timezone.now() - timedelta(seconds=70)
+            SensorReading.objects.filter(sensor_id="smoke-a1").update(recorded_at=seventy)
+            SensorNode.objects.filter(pk="smoke-a1").update(last_reading_at=seventy)  # silent for 70 s: Stale
+            self.camera_fire()
+            self.assertEqual(self.records(), [])
+            self.smoke("smoke-a1", 250)  # reports again within the window: now it counts
+            self.assertEqual(len(self.records()), 1)
+
+    def test_temperature_readings_never_confirm_smoke(self):
+        self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 70.0}], "simulated": True}, format="json")
+        incident = self.camera_fire()
+        self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 75.0}], "simulated": True}, format="json")
+        self.assertEqual(self.records(), [])
+        self.assertFalse(self.corroborated(incident))
+
+    def test_only_open_ai_fire_incidents_are_corroborated(self):
+        incident = self.camera_fire()
+        self.op.post(f"/api/incidents/{incident.id}/resolve")
+        self.smoke("smoke-a1", 320)  # Alarm: its own sensor incident, which is not an AI fire
+        self.assertEqual(self.records(), [])
+        snapshot = self.op.get("/api/dashboard/snapshot").json()
+        self.assertFalse(any(i["corroborated"] for i in snapshot["incidents"]))

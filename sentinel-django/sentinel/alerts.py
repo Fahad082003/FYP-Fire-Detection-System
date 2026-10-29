@@ -1,8 +1,9 @@
 """The alert engine (port of AlertEngine.cs): decides severity, opens/merges/escalates incidents and triggers the response
 (notifications and automatic sprinkler activation)."""
+import math
 import statistics
 import threading
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -11,8 +12,9 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from . import dto, events, geometry, notifications, sprinklers
-from .models import CameraFeed, CameraStatus, FloorPlan, IncidentAlert, IncidentLog, IncidentLogType, IncidentSource, rank
-from .rules import classify_detection, is_emergency, max_severity, sensor_state
+from .models import (CameraFeed, CameraStatus, FloorPlan, IncidentAlert, IncidentLog, IncidentLogType, IncidentSource, SensorNode,
+                     SensorReading, SensorType, rank)
+from .rules import classify_detection, is_emergency, is_stale, max_severity, sensor_state
 
 # Per-origin locks so two frames from the same camera never create duplicate incidents.
 # shortcut: in-process locks; with several server processes a database lock (UPDLOCK) would be needed.
@@ -51,11 +53,14 @@ def evaluate_detection(frame: dict) -> IncidentAlert | None:
 
     # Frames arrive several times a second per camera: re-evaluate at most every N seconds unless severity rises
     # or fire first appears (D-18: smoke + a Low fire ranks below smoke alone, yet the incident must learn it is a fire).
+    # A person newly in danger also passes, or a second person entering within the window would never be logged.
     throttle_key = f"vision-eval:{frame['cameraId']}"
-    last_severity, last_fire = cache.get(throttle_key) or (None, False)
-    if last_severity is not None and rank(severity) <= rank(last_severity) and (last_fire or not frame["fireDetected"]):
+    at_risk = _people_at_risk(frame)
+    last_severity, last_fire, last_risk = cache.get(throttle_key) or (None, False, frozenset())
+    if last_severity is not None and rank(severity) <= rank(last_severity) and (last_fire or not frame["fireDetected"]) \
+            and at_risk <= last_risk:
         return None
-    cache.set(throttle_key, (max_severity(severity, last_severity), last_fire or frame["fireDetected"]),
+    cache.set(throttle_key, (max_severity(severity, last_severity), last_fire or frame["fireDetected"], last_risk | at_risk),
               _opt("VISION_EVALUATION_INTERVAL_SECONDS"))
 
     camera = CameraFeed.objects.filter(pk=frame["cameraId"]).first()
@@ -83,7 +88,37 @@ def evaluate_detection(frame: dict) -> IncidentAlert | None:
     _log_frame(incident, frame, camera_name)
     if incident.fire_detected:
         warn_fire_proximity(incident)
+    if frame["fireDetected"]:
+        corroborate(incident)
     return incident
+
+
+def _people_at_risk(f: dict) -> frozenset:
+    """(trackId, danger zone, n): n numbers people with the same key in this frame, so two untracked people are two entries."""
+    seen = Counter()
+    keys = set()
+    for d in f["detections"]:
+        if d["category"] == "Human" and d["atRisk"]:
+            k = (d["trackId"], d["dangerZone"])
+            keys.add((*k, seen[k]))
+            seen[k] += 1
+    return frozenset(keys)
+
+
+def _union_area(boxes, fw: float, fh: float) -> float:
+    """Area of [x, y, w, h] boxes inside the frame, overlaps counted once (the AI's fire_area_percent does the same)."""
+    rects = [(max(0, x), max(0, y), min(fw, x + w), min(fh, y + h)) for x, y, w, h in boxes]
+    rects = [r for r in rects if r[2] > r[0] and r[3] > r[1]]
+    xs = sorted({v for r in rects for v in (r[0], r[2])})
+    area = 0.0
+    for x0, x1 in zip(xs, xs[1:]):  # vertical strips: inside one, the covered height is a union of intervals
+        top, covered = -math.inf, 0.0
+        for y0, y1 in sorted((r[1], r[3]) for r in rects if r[0] <= x0 and r[2] >= x1):
+            if y1 > top:
+                covered += y1 - max(y0, top)
+                top = y1
+        area += covered * (x1 - x0)
+    return area
 
 
 def _log_frame(incident: IncidentAlert, f: dict, camera_name: str) -> None:
@@ -91,9 +126,9 @@ def _log_frame(incident: IncidentAlert, f: dict, camera_name: str) -> None:
     sim = " [SIMULATED DATA]" if f["simulated"] else ""
     if f["fireDetected"]:
         # Measured value = AI fire bounding boxes as % of the frame. It is not a physical fire size.
-        frame_area = 1.0 if f["normalized"] else f["frameWidth"] * f["frameHeight"]
-        boxes = sum(d["bbox"][2] * d["bbox"][3] for d in f["detections"] if d["category"] == "Fire")
-        area = round(min(100.0, boxes / frame_area * 100), 2)
+        fw, fh = (1.0, 1.0) if f["normalized"] else (f["frameWidth"], f["frameHeight"])
+        boxes = _union_area([d["bbox"] for d in f["detections"] if d["category"] == "Fire"], fw, fh)
+        area = round(min(100.0, boxes / (fw * fh) * 100), 2)
         last = (IncidentLog.objects.filter(incident=incident, type=IncidentLogType.FIRE_MEASUREMENT).order_by("-id").first())
         if last is None or (last.fire_area_percent, last.fire_severity, last.human_count, last.danger_count) != (
                 area, f["fireSeverity"], f["humanCount"], f["dangerCount"]):
@@ -104,11 +139,18 @@ def _log_frame(incident: IncidentAlert, f: dict, camera_name: str) -> None:
                 details=f"Fire boxes cover {_num(area)}% of the frame on {camera_name}, AI fire severity {f['fireSeverity'] or 'n/a'}{sim}"))
             _warn_if_growing(incident, camera_name, f["simulated"])
 
+    untracked = Counter()
     for d in f["detections"]:
         if d["category"] != "Human" or not d["atRisk"]:
             continue
-        if IncidentLog.objects.filter(incident=incident, type=IncidentLogType.PERSON_IN_DANGER,
-                                      person_track_id=d["trackId"], danger_zone=d["dangerZone"]).exists():
+        logged = IncidentLog.objects.filter(incident=incident, type=IncidentLogType.PERSON_IN_DANGER,
+                                            person_track_id=d["trackId"], danger_zone=d["dangerZone"])
+        if d["trackId"] is None:
+            # No identity across frames: one alert per person beyond the most untracked people logged in this zone.
+            untracked[d["dangerZone"]] += 1
+            if logged.count() >= untracked[d["dangerZone"]]:
+                continue
+        elif logged.exists():
             continue  # same person + same zone + same incident = one alert
         fx, fy = round(d["bbox"][0] + d["bbox"][2] / 2, 1), round(d["bbox"][1] + d["bbox"][3], 1)
         who = f"Person #{d['trackId']}" if d["trackId"] is not None else "Untracked person"
@@ -246,8 +288,59 @@ def evaluate_sensor(sensor, previous_state: str, simulated: bool = False) -> Non
                                    "SIMULATED (Alerts:AutoSprinklerOnSimulatedData=false)", incident.zone)
 
 
+# ---------------------------------------------------------------- sensor-camera fusion
+def corroborate(incident: IncidentAlert, now=None) -> bool:
+    """Marks an open AI fire incident, once, as corroborated by a smoke sensor of the same zone that read at least its Warning
+    level within FUSION_WINDOW_SECONDS. A record for the operator only: severity, sprinklers and notifications are untouched."""
+    now = now or timezone.now()
+    if incident.source != IncidentSource.VISION or not incident.fire_detected or incident.is_resolved:
+        return False
+    with _lock_for(f"corroborate:{incident.id}"):  # a fire frame and a smoke reading at once still give one record
+        if IncidentLog.objects.filter(incident=incident, type=IncidentLogType.CORROBORATED).exists():
+            return False
+        evidence = _smoke_evidence(incident.zone, now)
+        if evidence is None:
+            return False
+        sensor, reading = evidence
+        add_log(IncidentLog(
+            incident=incident, type=IncidentLogType.CORROBORATED, zone=incident.zone,
+            details=f"Smoke sensor {sensor.id} in the same zone read {_num(reading.value)}{sensor.unit} (warning level "
+                    f"{_num(sensor.threshold * _opt('WARNING_RATIO'))}{sensor.unit}) at {reading.recorded_at:%H:%M:%S} UTC, "
+                    f"within {_num(_opt('FUSION_WINDOW_SECONDS'))} s of the camera fire"))
+    events.activity("warning", f"Incident #{incident.id}: camera fire corroborated by smoke sensor {sensor.id}", incident.zone)
+    incident.corroborated = True  # dto.incident reads it
+    events.publish("incident", {"action": "updated", "incident": dto.incident(incident)})
+    return True
+
+
+def corroborate_zone(zone: str, now=None) -> None:
+    """A smoke reading at Warning or above: the zone's open AI fire incidents that saw fire within the window."""
+    now = now or timezone.now()
+    since = now - timedelta(seconds=_opt("FUSION_WINDOW_SECONDS"))
+    # shortcut: updated_at is the incident's last evaluated frame, which is a fire frame unless only people or smoke followed
+    # the fire; a per-frame fire timestamp would need a new column.
+    for incident in IncidentAlert.objects.select_related("camera").filter(
+            source=IncidentSource.VISION, zone=zone, fire_detected=True, is_resolved=False, updated_at__gte=since):
+        corroborate(incident, now)
+
+
+def _smoke_evidence(zone: str, now):
+    """(sensor, reading): a smoke sensor of exactly this zone, not stale, with a Warning-level reading within the window."""
+    since = now - timedelta(seconds=_opt("FUSION_WINDOW_SECONDS"))
+    for sensor in SensorNode.objects.filter(type=SensorType.SMOKE, location_zone=zone).order_by("id"):
+        if is_stale(sensor, now):
+            continue  # a silent sensor's old reading says nothing about the room now
+        reading = (SensorReading.objects.filter(sensor=sensor, recorded_at__range=(since, now),
+                                                value__gte=sensor.threshold * _opt("WARNING_RATIO"))
+                   .order_by("-recorded_at").first())
+        if reading:
+            return sensor, reading
+    return None
+
+
 # ---------------------------------------------------------------- camera health
-def camera_lost(camera_id: str, silent_seconds: int) -> None:
+def camera_lost(camera_id: str, silent_seconds: int | None) -> None:
+    """silent_seconds None: a watched stream camera that never sent a first frame (wrong link, AI not reading it)."""
     # services.delete_camera holds the same lock: the row cannot vanish between the lookup and the insert (FK violation).
     with _lock_for(f"camera:{camera_id}"):
         camera = CameraFeed.objects.filter(pk=camera_id).first()
@@ -258,9 +351,41 @@ def camera_lost(camera_id: str, silent_seconds: int) -> None:
         fire_open = IncidentAlert.objects.filter(is_resolved=False, zone=camera.location_zone, fire_detected=True).exists()
         incident, action = upsert_incident(Draft(
             IncidentSource.CAMERA_LOST, camera.location_zone, "High" if fire_open else "Medium",
-            f"Camera lost: no frames from {camera.name} for {silent_seconds} s"
+            (f"Camera lost: no frames from {camera.name} for {silent_seconds} s" if silent_seconds is not None
+             else f"Camera lost: no first frame from {camera.name}; check its stream link")
             + (" while a fire incident is open in this zone" if fire_open else ""), camera_id=camera.id))
     publish_incident(incident, action, emergency=False)
+
+
+# ---------------------------------------------------------------- sensor health
+def stale_episode(sensor) -> IncidentAlert | None:
+    """The sensor-lost incident of the current outage: one opened after the sensor's last valid reading."""
+    return (IncidentAlert.objects.filter(source=IncidentSource.SENSOR_LOST, sensor_id=sensor.id,
+                                         timestamp__gt=sensor.last_reading_at).order_by("-timestamp").first())
+
+
+def sensor_lost(sensor_id: str, now) -> None:
+    """One incident per outage of a sensor that has reported before. Never an emergency: no notification, no sprinkler."""
+    # services.ingest_reading holds the same lock: a reading cannot land between the staleness check and the insert.
+    with _lock_for(f"sensor:{sensor_id}"):
+        sensor = SensorNode.objects.filter(pk=sensor_id).first()
+        if sensor is None or sensor.last_reading_at is None or not is_stale(sensor, now) or stale_episode(sensor):
+            return
+        was_alarm = sensor_state(sensor) in ("Alarm", "Critical")  # went silent mid-alarm, e.g. burnt: keep it High
+        incident = IncidentAlert.objects.create(
+            source=IncidentSource.SENSOR_LOST, zone=sensor.location_zone, severity="High" if was_alarm else "Medium",
+            sensor_id=sensor.id, message=(
+                f"Sensor unavailable: no valid reading from {sensor.type} sensor {sensor.id} since "
+                f"{sensor.last_reading_at:%Y-%m-%d %H:%M:%S} UTC" + (" (last reading was over the limit)" if was_alarm else ""))[:500])
+    publish_incident(IncidentAlert.objects.select_related("camera").get(pk=incident.pk), "created", emergency=False)
+    events.publish("telemetry", dto.sensor(sensor))  # dashboards show the Stale state without waiting for a reading
+
+
+def sensor_recovered(sensor, episode: IncidentAlert) -> None:
+    """Called once per outage, by the first valid reading after it. The incident stays for the operator to resolve."""
+    add_log(IncidentLog(incident=episode, type=IncidentLogType.SENSOR_RECOVERED, zone=sensor.location_zone,
+                        details=f"{sensor.id} reports again: {_num(sensor.current_value)}{sensor.unit}"))
+    events.activity("success", f"{sensor.type} sensor {sensor.id} is reporting again.", sensor.location_zone)
 
 
 # ---------------------------------------------------------------- incidents

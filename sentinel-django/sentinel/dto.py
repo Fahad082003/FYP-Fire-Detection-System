@@ -1,7 +1,10 @@
 """Model -> JSON shapes. Field names and enum strings are exactly the ASP.NET DTOs (camelCase), so existing clients keep working."""
 import json
 
-from .rules import critical_threshold, mask_credentials, sensor_state
+from django.utils import timezone
+
+from .models import IncidentLogType
+from .rules import critical_threshold, is_stale, mask_credentials, sensor_state
 
 
 def calibration(stored: str | None) -> dict | None:
@@ -32,7 +35,7 @@ def sensor(s, history=None) -> dict:
     return {
         "id": s.id, "type": s.type, "currentValue": s.current_value, "threshold": s.threshold,
         "criticalThreshold": round(critical_threshold(s), 2), "locationZone": s.location_zone, "unit": s.unit,
-        "state": sensor_state(s), "lastReadingAt": s.last_reading_at, "history": history,
+        "state": "Stale" if is_stale(s, timezone.now()) else sensor_state(s), "lastReadingAt": s.last_reading_at, "history": history,
     }
 
 
@@ -42,13 +45,19 @@ def sprinkler(s) -> dict:
 
 
 def incident(i) -> dict:
-    """Needs select_related("camera") for cameraName (one query per incident otherwise)."""
+    """Needs select_related("camera") for cameraName and the false_alarm annotation of services.incident_query() (one query
+    per resolved incident otherwise; an open incident is never a false alarm)."""
+    false_alarm = i.false_alarm if hasattr(i, "false_alarm") else (
+        i.is_resolved and i.incidentlog_set.filter(type=IncidentLogType.FALSE_ALARM).exists())
+    corroborated = i.corroborated if hasattr(i, "corroborated") else (
+        i.fire_detected and i.incidentlog_set.filter(type=IncidentLogType.CORROBORATED).exists())
     return {
         "id": i.id, "timestamp": i.timestamp, "updatedAt": i.updated_at, "cameraId": i.camera_id,
         "cameraName": i.camera.name if i.camera_id and i.camera else None, "sensorId": i.sensor_id,
         "source": i.source, "zone": i.zone, "severity": i.severity, "fireDetected": i.fire_detected,
         "fireSeverity": i.fire_severity, "humanCount": i.human_count, "dangerCount": i.danger_count,
-        "message": i.message, "isResolved": i.is_resolved, "resolvedAt": i.resolved_at,
+        "message": i.message, "isResolved": i.is_resolved, "resolvedAt": i.resolved_at, "falseAlarm": false_alarm,
+        "corroborated": corroborated,
     }
 
 

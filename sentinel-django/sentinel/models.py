@@ -43,6 +43,7 @@ class IncidentSource(models.TextChoices):
     SENSOR = "Sensor"
     MANUAL = "Manual"
     CAMERA_LOST = "CameraLost"
+    SENSOR_LOST = "SensorLost"  # fits the existing nvarchar(16) column: no schema change
 
 
 class UserRole(models.TextChoices):
@@ -69,6 +70,9 @@ class IncidentLogType(models.TextChoices):
     EVACUATION_ROUTE = "EvacuationRoute"
     FIRE_GROWTH = "FireGrowth"  # fits the existing nvarchar(16) column: no schema change
     RISK_WARNING = "RiskWarning"  # same column, no schema change
+    FALSE_ALARM = "FalseAlarm"  # operator's verdict on an incident; same column, no schema change
+    SENSOR_RECOVERED = "SensorRecovered"  # a stale sensor reports again; same column, no schema change
+    CORROBORATED = "Corroborated"  # a smoke sensor in the zone confirms an AI fire; same column, no schema change
 
 
 SEVERITIES = ["Low", "Medium", "High", "Critical"]  # ordered: index = rank

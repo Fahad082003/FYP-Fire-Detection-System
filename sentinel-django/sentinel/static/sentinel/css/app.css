@@ -144,6 +144,13 @@ dialog::backdrop { background: rgb(2 4 8 / .7); backdrop-filter: blur(3px); }
 .kpi-ok { border-left-color: var(--green); } .kpi-warn { border-left-color: var(--amber); } .kpi-warn .kpi-value { color: var(--amber-text); }
 .kpi-danger { border-left-color: var(--red); } .kpi-danger .kpi-value { color: var(--red-text); }
 
+/* ---------------------------------------------------------------- reports */
+.page-reports .kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.report-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+table.data .bar-cell { width: 45%; vertical-align: middle; } .bar { display: block; height: 8px; border-radius: 4px; background: var(--cyan); }
+.day-bars { display: flex; align-items: flex-end; gap: 1px; height: 128px; border-radius: 4px; background: var(--ink-950); padding: 4px; }
+.day-bar { flex: 1; min-height: 1px; border-radius: 2px 2px 0 0; background: var(--cyan); }
+
 /* ---------------------------------------------------------------- dashboard: video wall */
 .video-grid { display: grid; gap: 10px; padding: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
 .video-grid.focused { grid-template-columns: 1fr; }

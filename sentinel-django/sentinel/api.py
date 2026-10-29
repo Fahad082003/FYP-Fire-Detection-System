@@ -293,7 +293,7 @@ def incident_logs(request):
 
 
 def _incident(incident_id) -> IncidentAlert:
-    return services.get_or_404(IncidentAlert.objects.select_related("camera"), f"Incident #{incident_id} not found.", pk=incident_id)
+    return services.get_or_404(services.incident_query(), f"Incident #{incident_id} not found.", pk=incident_id)
 
 
 @api_view(["GET"])
@@ -305,6 +305,11 @@ def incident(request, incident_id):
 @api_view(["POST"])
 def resolve(request, incident_id):
     return Response(dto.incident(services.resolve_incident(_incident(incident_id), actor(request))))
+
+
+@api_view(["POST"])
+def false_alarm(request, incident_id):
+    return Response(dto.incident(services.mark_false_alarm(_incident(incident_id), actor(request))))
 
 
 @api_view(["POST"])

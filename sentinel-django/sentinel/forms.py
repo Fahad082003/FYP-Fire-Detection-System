@@ -1,9 +1,11 @@
 """Server-side validation for the login page and cameras. CameraForm also validates the /api/cameras endpoints,
 so the Devices page and API clients get exactly the same rules and messages."""
 import re
+from datetime import timedelta
 from urllib.parse import urlsplit
 
 from django import forms
+from django.utils import timezone
 
 from .models import CameraFeed, FeedType, StreamFormat
 from .rules import mask_credentials
@@ -18,6 +20,27 @@ class LoginForm(forms.Form):
     password = forms.CharField(min_length=6, max_length=128, strip=False, widget=forms.PasswordInput,
                                error_messages={"required": "Password must be at least 6 characters.",
                                                "min_length": "Password must be at least 6 characters."})
+
+
+class ReportForm(forms.Form):
+    """Reports date range: UTC calendar days, both included. Missing values default to the last 7 days."""
+    MAX_DAYS = 366
+    start = forms.DateField(input_formats=["%Y-%m-%d"], error_messages={"invalid": "Start: use a date like 2026-10-01.",
+                                                                       "required": "Start date is required."})
+    end = forms.DateField(input_formats=["%Y-%m-%d"], error_messages={"invalid": "End: use a date like 2026-10-31.",
+                                                                     "required": "End date is required."})
+
+    def clean(self):
+        data = super().clean()
+        start, end = data.get("start"), data.get("end")
+        if start and end:
+            if start > end:
+                raise forms.ValidationError("Start date must be on or before the end date.")
+            if (end - start).days + 1 > self.MAX_DAYS:
+                raise forms.ValidationError(f"Choose at most {self.MAX_DAYS} days.")
+            if end > timezone.now().date() + timedelta(days=1):  # one day of slack: local "today" east of UTC
+                raise forms.ValidationError("End date cannot be in the future.")
+        return data
 
 
 class CameraForm(forms.Form):

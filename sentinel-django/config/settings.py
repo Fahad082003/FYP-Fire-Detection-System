@@ -179,6 +179,8 @@ SENTINEL = {
     "INCIDENT_MERGE_WINDOW_SECONDS": env_number("Alerts__IncidentMergeWindowSeconds", 90),
     "CAMERA_LOST_SECONDS": env_number("Alerts__CameraLostSeconds", 10),
     "CAMERA_STARTUP_GRACE_SECONDS": env_number("Alerts__CameraStartupGraceSeconds", 60),
+    "SENSOR_STALE_SECONDS": env_number("Alerts__SensorStaleSeconds", 60),
+    "FUSION_WINDOW_SECONDS": env_number("Alerts__FusionWindowSeconds", 60),  # camera fire and smoke reading this close = corroborated  # gateways post every ~2 s (simulator default)
     "VISION_EVALUATION_INTERVAL_SECONDS": env_number("Alerts__VisionEvaluationIntervalSeconds", 2),
     "AUTO_SPRINKLER_ON_SIMULATED_DATA": env_bool("Alerts__AutoSprinklerOnSimulatedData", DEBUG),
     "SMOKE_CRITICAL_MULTIPLIER": env_number("Alerts__SmokeCriticalMultiplier", 1.5),

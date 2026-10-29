@@ -12,6 +12,7 @@ from django.utils.dateparse import parse_datetime
 from .models import SEVERITIES
 
 MAX_DETECTIONS, MAX_ZONES, MAX_POLYGON_POINTS, MAX_HEATMAP_SIDE = 200, 32, 64, 64
+PERSON_CONFIRM_HITS = 3  # same as the AI's confirm_frames for fire/smoke: a person must be tracked in 3 frames to be "in danger"
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 CATEGORIES = ["Human", "Fire", "Smoke", "Danger", "Vehicle", "Other"]
 ZONE_LEVELS = ["Warning", "Danger", "Critical", "Safe"]
@@ -150,9 +151,15 @@ def validate(payload) -> dict:
             elif value is not None and len(value) > limit:
                 add(f"{key}.{field}", f"Max {limit} characters.")
             texts[field] = value
+        # Tracker frame count. Absent = a producer without a tracker (old rule); present but not a whole number >= 1 = 0, so
+        # a malformed value never confirms a person and never rejects the frame (that would drop its fire too).
+        hits = d.get("hits")
+        if hits is not None:
+            n = _number(hits)
+            hits = int(n) if _finite(n) and n == int(n) and n >= 1 else 0
         detections.append({"label": texts["label"], "category": category, "confidence": confidence, "bbox": box,
                            "trackId": texts["trackId"], "atRisk": d.get("atRisk") is True, "dangerZone": None,
-                           "explanation": texts["explanation"]})
+                           "explanation": texts["explanation"], "hits": hits})
 
     if len(zones_in) > MAX_ZONES:
         add("dangerZones", f"At most {MAX_ZONES} zones per frame.")
@@ -221,6 +228,9 @@ def validate(payload) -> dict:
     # stand inside a Danger/Critical zone is at risk, even if the AI did not say so.
     for d in detections:
         if d["category"] != "Human":
+            continue
+        if d["hits"] is not None and d["hits"] < PERSON_CONFIRM_HITS:
+            d["atRisk"] = False  # seen in too few frames: maybe a false detection, not yet a person in danger
             continue
         fx, fy = d["bbox"][0] + d["bbox"][2] / 2, d["bbox"][1] + d["bbox"][3]
         zone = next((z for z in zones if z["level"] in ("Danger", "Critical") and contains(z["polygon"], fx, fy)), None)

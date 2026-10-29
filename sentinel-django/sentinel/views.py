@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import urllib.request
+from datetime import timedelta
 from urllib.parse import urlsplit
 
 from asgiref.sync import sync_to_async
@@ -14,13 +15,14 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.staticfiles import finders
 from django.http import FileResponse, HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from rest_framework.utils.encoders import JSONEncoder
 
 from . import ai_client, events, services
 from .api import AnalyzeThrottle, LoginThrottle
-from .forms import CameraForm, LoginForm
+from .forms import CameraForm, LoginForm, ReportForm
 from .models import CameraFeed, FeedType, SmartSprinkler, StreamFormat
 from .rules import mask_credentials
 from .security import is_operator
@@ -85,6 +87,20 @@ def ai(request):
             context["error"] = f"{e.title}: {e.detail}"
     context["status"] = ai_client.status()
     return render(request, "sentinel/ai.html", context)
+
+
+@login_required
+def reports(request):
+    """Incident analytics for a date range (GET form, so a report is a shareable link). Read-only."""
+    today = timezone.now().date()
+    form = ReportForm({"start": str(today - timedelta(days=6)), "end": str(today), **request.GET.dict()})
+    report = services.incident_analytics(form.cleaned_data["start"], form.cleaned_data["end"]) if form.is_valid() else None
+    if report:  # bar sizes: breakdowns relative to the total, days relative to the busiest day
+        report.update(busiest=max(d["count"] for d in report["daily"]),
+                      false_alarm_percent=None if report["falseAlarmRate"] is None else round(report["falseAlarmRate"] * 100, 1))
+    breakdowns = report and [("By severity", "Severity", report["bySeverity"]), ("By source", "Source", report["bySource"])]
+    return render(request, "sentinel/reports.html", {"page": "reports", "form": form, "report": report, "breakdowns": breakdowns},
+                  status=200 if report else 400)
 
 
 @login_required

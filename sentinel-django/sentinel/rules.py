@@ -48,6 +48,12 @@ def sensor_state(sensor) -> str:
     return "Normal"
 
 
+def is_stale(sensor, now) -> bool:
+    """No valid reading for SENSOR_STALE_SECONDS, or none ever: its value says nothing about the room now."""
+    last = sensor.last_reading_at
+    return last is None or (now - last).total_seconds() >= settings.SENTINEL["SENSOR_STALE_SECONDS"]
+
+
 def mask_credentials(url: str) -> str:
     """rtsp://user:pass@host -> rtsp://***@host. Only devices (the AI service) ever see the real link."""
     return re.sub(r"(?<=://)[^/@]+@", "***@", url or "")

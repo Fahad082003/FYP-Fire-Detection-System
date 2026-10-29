@@ -16,10 +16,11 @@ from django.db import close_old_connections
 from django.utils import timezone
 
 from . import alerts, events
-from .models import CameraFeed, CameraStatus
+from .models import CameraFeed, CameraStatus, SensorNode
 
 log = logging.getLogger("sentinel.watchdog")
 CHECK_SECONDS = 2
+AI_CAMERA_SYNC_SECONDS = 60  # ai-service CAMERA_SYNC_SECONDS: a new stream link is picked up at most this late
 
 
 # shortcut: last-frame times live in this process; with several server processes each one watches only its own frames.
@@ -30,6 +31,7 @@ class Watchdog:
         self._lost: set[str] = set()
         self._online: set[str] = set()  # status already written as Online by this process
         self._seeded: set[str] = set()  # watched since start-up but no frame yet: its status must not turn Online
+        self._started = timezone.now()
 
     def frame_received(self, camera_id: str, now: datetime | None = None) -> None:
         with self._lock:
@@ -38,9 +40,23 @@ class Watchdog:
 
     def watch_streaming_cameras(self, now: datetime) -> None:
         """Start-up reconciliation: a camera that died while the server was down is otherwise never watched (D-17)."""
-        o = settings.SENTINEL
-        seen_at = now + timedelta(seconds=o["CAMERA_STARTUP_GRACE_SECONDS"] - o["CAMERA_LOST_SECONDS"])
         ids = CameraFeed.objects.exclude(stream_url="").values_list("id", flat=True)
+        self._watch(ids, now, settings.SENTINEL["CAMERA_STARTUP_GRACE_SECONDS"])
+
+    def camera_linked(self, camera_id: str, now: datetime | None = None) -> None:
+        """A camera given a stream link while the server runs (B-2): the AI service reads it at its next camera sync, then
+        gets the start-up grace for a first frame. A wrong link then raises "camera lost" instead of staying Online."""
+        self._watch([camera_id], now or timezone.now(), AI_CAMERA_SYNC_SECONDS + settings.SENTINEL["CAMERA_STARTUP_GRACE_SECONDS"])
+
+    def forget(self, camera_id: str) -> None:
+        """A deleted camera: re-added under the same id it is watched afresh, not left in a finished silent period."""
+        with self._lock:
+            self._last_frame.pop(camera_id, None)
+            for state in (self._lost, self._online, self._seeded):
+                state.discard(camera_id)
+
+    def _watch(self, ids, now: datetime, grace_seconds: float) -> None:
+        seen_at = now + timedelta(seconds=grace_seconds - settings.SENTINEL["CAMERA_LOST_SECONDS"])
         with self._lock:
             for camera_id in ids:
                 if camera_id not in self._last_frame:  # a real frame already received wins
@@ -60,7 +76,8 @@ class Watchdog:
                         continue  # already reported
                     self._lost.add(camera_id)
                     self._online.discard(camera_id)  # camera_lost() stores Offline
-                alerts.camera_lost(camera_id, int(silent))
+                    never_sent = camera_id in self._seeded  # its "last frame" is only the grace deadline
+                alerts.camera_lost(camera_id, None if never_sent else int(silent))
                 continue
             with self._lock:
                 recovered = camera_id in self._lost
@@ -73,6 +90,15 @@ class Watchdog:
                 CameraFeed.objects.filter(pk=camera_id).exclude(status=CameraStatus.ONLINE).update(status=CameraStatus.ONLINE)
                 with self._lock:
                     self._online.add(camera_id)  # only after the write, so a failed write is retried next check
+        self.check_sensors(now)
+
+    def check_sensors(self, now: datetime) -> None:
+        """One sensor-lost incident per outage; the episode lives in the database, so a restart does not repeat it."""
+        stale_after = timedelta(seconds=settings.SENTINEL["SENSOR_STALE_SECONDS"])
+        if now - self._started < stale_after:
+            return  # just started: gateways get one full window to report again
+        for sensor_id in SensorNode.objects.filter(last_reading_at__lte=now - stale_after).values_list("id", flat=True):
+            alerts.sensor_lost(sensor_id, now)
 
     def run_forever(self) -> None:
         try:
