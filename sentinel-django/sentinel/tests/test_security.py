@@ -2,15 +2,22 @@
 import asyncio
 import contextlib
 import json
+import os
+import subprocess
+import sys
+from unittest import mock
 
 from asgiref.sync import sync_to_async
+from django.conf import settings
 from django.test import Client
 from rest_framework.test import APIClient
 
 from sentinel import events
 from sentinel.security import hash_password, verify_password
 
-from .base import ADMIN_EMAIL, PASSWORD, SentinelTestCase
+from sentinel.models import SmartSprinkler
+
+from .base import ADMIN_EMAIL, PASSWORD, SENSOR_KEY, SentinelTestCase
 
 # Made by ASP.NET Core Identity itself (PasswordHasher<T>.HashPassword("Passw0rd!"), .NET 8.0.31, 2026-10-26).
 DOTNET_HASH = "AQAAAAIAAYagAAAAEG6EF5pmYYGrmPYD28iAQMCdf9PrgvJI1y+hjJL8nVx5vnYi5+lx7DUneURCSm8wiw=="
@@ -118,3 +125,69 @@ class LiveEventTests(SentinelTestCase):
 
     def test_device_keys_cannot_open_the_dashboard_stream(self):
         self.assertEqual(APIClient(HTTP_X_DEVICE_KEY="test-device-key").get("/api/events").status_code, 401)
+
+
+class DeviceRoleTests(SentinelTestCase):
+    """Least privilege: the AI service's key and a sensor gateway's key each reach only their own endpoints; no device key
+    switches a relay or acts as an operator. Wrong role: 403. Operator-only endpoint, wrong or missing key: 401."""
+    QUIET = {"cameraId": "cam-lobby", "frameWidth": 640, "frameHeight": 480, "detections": []}
+    READING = {"value": 21.0}
+    TELEMETRY = {"readings": [{"sensorId": "temp-b1", "value": 22.0}]}
+    # (method, path, body, AI service, sensor gateway)
+    MATRIX = [
+        ("get", "/api/cameras", None, 200, 403),  # the camera list holds the stream credentials
+        ("get", "/api/cameras/cam-lobby", None, 200, 403),
+        ("post", "/api/detections", QUIET, 202, 403),
+        ("get", "/api/iot/sensors", None, 403, 200),
+        ("get", "/api/iot/sensors/temp-a1", None, 403, 200),
+        ("post", "/api/iot/sensors/temp-a1/readings", READING, 403, 200),
+        ("post", "/api/iot/telemetry", TELEMETRY, 403, 200),
+        ("get", "/api/iot/sprinklers", None, 403, 200),  # read-only relay state (the simulator puts its fire out with it)
+        ("get", "/api/iot/sensors/temp-a1/history", None, 401, 401),
+        ("post", "/api/iot/sprinklers/spr-a1/toggle", {"isActive": True}, 401, 401),
+        ("post", "/api/iot/sprinklers/master", {"isActive": True}, 401, 401),
+        ("get", "/api/incidents", None, 401, 401),
+        ("post", "/api/incidents/dispatch", {"zone": "Ground Floor - Lobby"}, 401, 401),
+        ("put", "/api/cameras/cam-lobby/calibration", {}, 401, 401),
+    ]
+
+    def call(self, client, method, path, body):
+        return getattr(client, method)(path, body, format="json") if body is not None else getattr(client, method)(path)
+
+    def test_each_device_key_reaches_only_its_own_endpoints(self):
+        clients = {"AI service": (self.device, 3), "sensor gateway": (self.sensor, 4),
+                   "wrong key": (APIClient(HTTP_X_DEVICE_KEY="not-a-key"), None), "no key": (APIClient(), None)}
+        for row in self.MATRIX:
+            method, path, body = row[:3]
+            for name, (client, column) in clients.items():
+                with self.subTest(path=path, method=method, caller=name):
+                    self.assertEqual(self.call(client, method, path, body).status_code, row[column] if column else 401)
+        self.assertEqual(SmartSprinkler.objects.filter(is_active=True).count(), 0)  # no device call switched a relay
+
+    def test_operators_keep_their_access(self):
+        self.assertEqual(self.op.post("/api/iot/sensors/temp-a1/readings", self.READING, format="json").status_code, 200)
+        self.assertEqual(self.op.get("/api/iot/sensors/temp-a1/history").status_code, 200)
+        self.assertEqual(self.op.get("/api/cameras").status_code, 200)
+        self.assertTrue(self.op.post("/api/iot/sprinklers/spr-a1/toggle", {"isActive": True}, format="json").json()["isActive"])
+        self.assertEqual(self.op.post("/api/iot/sprinklers/master", {"isActive": False}, format="json").status_code, 200)
+
+    def test_a_role_without_a_configured_key_is_disabled_and_never_falls_back_to_the_other_key(self):
+        with mock.patch.dict(settings.SENTINEL, SENSOR_API_KEY=""):
+            self.assertEqual(self.sensor.post("/api/iot/telemetry", self.TELEMETRY, format="json").status_code, 401)
+            self.assertEqual(self.device.post("/api/iot/telemetry", self.TELEMETRY, format="json").status_code, 403)
+            self.assertEqual(self.device.post("/api/detections", self.QUIET, format="json").status_code, 202)  # AI unaffected
+        with mock.patch.dict(settings.SENTINEL, DEVICE_API_KEY=""):
+            self.assertEqual(self.device.post("/api/detections", self.QUIET, format="json").status_code, 401)
+            self.assertEqual(self.sensor.post("/api/detections", self.QUIET, format="json").status_code, 403)
+            self.assertEqual(self.sensor.post("/api/iot/telemetry", self.TELEMETRY, format="json").status_code, 200)
+
+    def test_the_same_key_for_both_roles_stops_the_server_without_printing_it(self):
+        key = "one-key-for-everything-0123456789"
+        env = {**os.environ, "SENTINEL_NO_DOTENV": "1", "Jwt__SigningKey": "test-only-signing-key-0123456789abcdef",
+               "Device__ApiKey": key, "Device__SensorApiKey": key}
+        r = subprocess.run([sys.executable, "-c", "import config.settings"], cwd=settings.BASE_DIR, env=env,
+                           capture_output=True, text=True, timeout=60)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("must be different keys", r.stderr)
+        self.assertNotIn(key, r.stderr + r.stdout)
+        self.assertNotEqual(settings.SENTINEL["DEVICE_API_KEY"], SENSOR_KEY)  # and the test keys themselves differ

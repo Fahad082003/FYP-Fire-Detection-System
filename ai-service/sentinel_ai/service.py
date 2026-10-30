@@ -24,6 +24,9 @@ log = logging.getLogger("sentinel_ai")
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 CAMERA_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 CAMERA_SYNC_SECONDS = 60  # how often the camera list is re-read from the API
+# Longest wait for a network stream to open or deliver a frame (OpenCV's FFmpeg default is 30 s). The server already calls a
+# camera lost after 10 s without frames, so waiting longer only delays the reconnect.
+STREAM_TIMEOUT_MS = 10_000
 
 
 def mask(source: str) -> str:
@@ -94,47 +97,71 @@ class CameraWorker(threading.Thread):
         return {"cameraId": self.cam["cameraId"], "kind": self.kind, "source": mask(self.source), "simulated": self.simulated,
                 "state": self.state, "error": self.error, "framesSent": self.sent, "postFailures": self.failed}
 
+    def open(self) -> cv2.VideoCapture:
+        """Network streams get bounded open/read waits, so a hung or stalled camera fails and reconnects instead of blocking
+        this worker. FFmpeg is OpenCV's first stream backend anyway; pinning it only drops the fallbacks without a timeout.
+        RTSP: OpenCV already asks for TCP first and falls back to UDP (OPENCV_FFMPEG_CAPTURE_OPTIONS, set before start, overrides)."""
+        if self.kind != "stream":
+            return cv2.VideoCapture(self.source)
+        return cv2.VideoCapture(self.source, cv2.CAP_FFMPEG, [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, STREAM_TIMEOUT_MS,
+                                                               cv2.CAP_PROP_READ_TIMEOUT_MSEC, STREAM_TIMEOUT_MS])
+
     def run(self):
         backoff = 1.0
         while not self.stop_event.is_set():
-            cap = cv2.VideoCapture(self.source)
-            if not cap.isOpened():
-                self.state, self.error = "error", f"cannot open {self.kind} source"
-                self.stop_event.wait(backoff)
-                backoff = min(30.0, backoff * 2)
-                continue
-            self.state, self.error, backoff = "running", None, 1.0
-            skip = max(1, round((cap.get(cv2.CAP_PROP_FPS) or self.fps) / self.fps)) if self.kind == "file" else 1
-            due = 0.0
-            while not self.stop_event.is_set():
-                if self.kind == "file":
-                    for _ in range(skip - 1):
-                        cap.grab()
-                ok, frame = cap.read()  # streams: keep reading so the buffer never lags behind real time
-                if not ok:
-                    break
-                if time.monotonic() < due:
-                    continue
-                due = time.monotonic() + 1 / self.fps
-                try:
-                    payload, _ = self.engine.run(self.pipe, frame, temporal=True)
-                except Exception as e:  # one bad frame must not silently stop this camera; /health shows the error
-                    self.state, self.error = "error", f"inference failed: {e}"
-                    log.exception("%s: inference failed", self.cam["cameraId"])
-                else:
-                    if self.state == "error":
-                        self.state, self.error = "running", None
-                    self.post(payload)
-                if self.kind == "file":
-                    self.stop_event.wait(max(0.0, due - time.monotonic()))
-            cap.release()
+            cap, opened, dropped = self.open(), False, "source ended or dropped"
+            try:
+                opened = cap.isOpened()
+                if opened:
+                    self.state, self.error = "running", None
+                    if self.read_frames(cap):
+                        backoff = 1.0  # frames came: retry a drop at once; a source that opens but never delivers backs off
+            except Exception as e:  # a broken stream must not end this thread silently: release and reconnect
+                dropped = f"capture failed: {mask(e)}"
+                log.warning("%s: %s", self.cam["cameraId"], dropped)
+            finally:
+                cap.release()
             if self.stop_event.is_set():
                 return  # stopped (sync or a 404): keep that state in /health instead of "reconnecting"
-            if self.kind == "file" and not self.cam.get("loop", False):
+            if not opened:
+                self.state, self.error = "error", f"cannot open {self.kind} source"
+            elif self.kind == "file" and not self.cam.get("loop", False):
                 self.state = "finished"
                 return
-            self.state, self.error = "reconnecting", "source ended or dropped"
+            else:
+                self.state, self.error = "reconnecting", dropped
             self.stop_event.wait(backoff)
+            backoff = min(30.0, backoff * 2)
+
+    def read_frames(self, cap: cv2.VideoCapture) -> bool:
+        """Analyses at most `fps` frames a second until the source ends; True if any frame arrived."""
+        skip = max(1, round((cap.get(cv2.CAP_PROP_FPS) or self.fps) / self.fps)) if self.kind == "file" else 1
+        due, got = 0.0, False
+        while not self.stop_event.is_set():
+            if self.kind == "file":
+                for _ in range(skip - 1):
+                    cap.grab()
+            if not cap.grab():  # streams: keep grabbing so the buffer never lags behind real time
+                return got
+            got = True
+            if time.monotonic() < due:
+                continue  # skipped frames are never converted to BGR: retrieve() only for the ones analysed
+            due = time.monotonic() + 1 / self.fps
+            ok, frame = cap.retrieve()
+            if not ok:
+                return got
+            try:
+                payload, _ = self.engine.run(self.pipe, frame, temporal=True)
+            except Exception as e:  # one bad frame must not silently stop this camera; /health shows the error
+                self.state, self.error = "error", f"inference failed: {e}"
+                log.exception("%s: inference failed", self.cam["cameraId"])
+            else:
+                if self.state == "error":
+                    self.state, self.error = "running", None
+                self.post(payload)
+            if self.kind == "file":
+                self.stop_event.wait(max(0.0, due - time.monotonic()))
+        return got
 
     def post(self, payload: dict):
         req = urllib.request.Request(f"{self.api_url}/api/detections", data=json.dumps(payload).encode(), method="POST",

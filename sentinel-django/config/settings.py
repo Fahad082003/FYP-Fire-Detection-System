@@ -171,7 +171,8 @@ EMAIL_TIMEOUT = 20
 
 # Application options (names and defaults kept from the former ASP.NET appsettings.json).
 SENTINEL = {
-    "DEVICE_API_KEY": env("Device__ApiKey"),
+    "DEVICE_API_KEY": env("Device__ApiKey"),  # AI service only (cameras, detections)
+    "SENSOR_API_KEY": env("Device__SensorApiKey"),  # sensor gateways only (readings, telemetry)
     "SEED_DEMO_DATA": env_bool("Seed__DemoData", DEBUG),
     "SEED_ADMIN_EMAIL": env("Seed__AdminEmail", "admin@sentinel.local"),
     "SEED_ADMIN_PASSWORD": env("Seed__AdminPassword"),
@@ -207,6 +208,8 @@ SENTINEL = {
     "FLOORPLAN_IMAGE_DIR": BASE_DIR / env("FloorPlans__ImageDirectory", "App_Data/floorplans"),
     "FLOORPLAN_MAX_IMAGE_BYTES": int(env_number("FloorPlans__MaxImageBytes", 5 * 1024 * 1024)),
 }
+if SENTINEL["DEVICE_API_KEY"] and SENTINEL["DEVICE_API_KEY"] == SENTINEL["SENSOR_API_KEY"]:
+    raise RuntimeError("Device__ApiKey (AI service) and Device__SensorApiKey (sensor gateways) must be different keys.")
 
 LOGGING = {
     "version": 1,

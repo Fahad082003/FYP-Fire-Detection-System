@@ -89,31 +89,43 @@ class BearerTokenAuthentication(authentication.BaseAuthentication):
         return "Bearer"
 
 
-# ---------------------------------------------------------------- devices (AI service, IoT gateways, simulator)
+# ---------------------------------------------------------------- devices (AI service, sensor gateways, simulator)
+# One key per integration, each allowed only its own endpoints (least privilege). No device may switch a relay.
+AI_SERVICE, SENSOR_GATEWAY = "ai-service", "sensor-gateway"
+DEVICE_KEYS = {AI_SERVICE: "DEVICE_API_KEY", SENSOR_GATEWAY: "SENSOR_API_KEY"}  # role -> settings.SENTINEL entry
+
+
 class Device:
-    """The identity of a machine that presented the shared device key."""
+    """The identity of a machine that presented a device key; role says which integration it is."""
     is_authenticated = True
     is_device = True
-    email = "device"
-    role = "Device"
     pk = None
 
+    def __init__(self, role: str):
+        self.role = self.email = role  # email: the actor name in activity messages
 
-def device_key_matches(presented: str) -> bool:
-    configured = settings.SENTINEL["DEVICE_API_KEY"]
-    return bool(configured) and bool(presented) and hmac.compare_digest(presented.encode(), configured.encode())
+
+def device_role(presented: str) -> str | None:
+    """The role whose configured key matches, or None. A role without a configured key accepts nothing."""
+    found = None
+    for role, option in DEVICE_KEYS.items():  # every key is compared, so the timing does not tell which role matched
+        configured = settings.SENTINEL[option]
+        if configured and presented and hmac.compare_digest(presented.encode(), configured.encode()):
+            found = role
+    return found
 
 
 class DeviceKeyAuthentication(authentication.BaseAuthentication):
-    """Header X-Device-Key. With no key configured, device access is disabled."""
+    """Header X-Device-Key. A role with no key configured is disabled."""
 
     def authenticate(self, request):
         presented = request.headers.get("X-Device-Key")
         if not presented:
             return None
-        if not device_key_matches(presented):
+        role = device_role(presented)
+        if role is None:
             raise exceptions.AuthenticationFailed("Invalid device key.")
-        return Device(), None
+        return Device(role), None
 
     def authenticate_header(self, request):
         return "DeviceKey"
@@ -147,9 +159,12 @@ class IsAdmin(permissions.BasePermission):
         return is_operator(request.user) and request.user.role == UserRole.ADMIN
 
 
-class IsOperatorOrDevice(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return is_operator(request.user) or is_device(request.user)
+def operator_or(role: str) -> type[permissions.BasePermission]:
+    """Operators, or the one device integration that needs this endpoint. Another device's key gets 403."""
+    class IsOperatorOrRole(permissions.BasePermission):
+        def has_permission(self, request, view):
+            return is_operator(request.user) or (is_device(request.user) and request.user.role == role)
+    return IsOperatorOrRole
 
 
 def actor(request) -> str:

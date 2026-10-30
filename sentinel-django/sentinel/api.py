@@ -20,7 +20,7 @@ from . import ai_client, alerts, dto, services, sprinklers
 from .forms import CameraForm
 from .models import (CameraFeed, FloorPlan, IncidentAlert, IncidentLogType, SensorNode, SmartSprinkler, SprinklerMode,
                      WebPushSubscription)
-from .security import IsAdmin, IsOperatorOrDevice, actor, is_device, issue_token
+from .security import AI_SERVICE, SENSOR_GATEWAY, IsAdmin, actor, is_device, issue_token, operator_or
 from .validation import PayloadError
 
 log = logging.getLogger("sentinel.api")
@@ -216,7 +216,7 @@ def _camera_form(request, camera=None) -> CameraForm:
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(AI_SERVICE)])
 def cameras(request):
     if request.method == "GET":  # only devices (the AI service) get the real stream link; people see credentials masked
         return Response([dto.camera(c, reveal_credentials=is_device(request.user)) for c in services.cameras()])
@@ -226,7 +226,7 @@ def cameras(request):
 
 
 @api_view(["GET", "PUT", "DELETE"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(AI_SERVICE)])
 def camera(request, camera_id):
     cam = services.get_or_404(CameraFeed, f"Camera '{camera_id}' not found.", pk=camera_id)
     if request.method == "GET":
@@ -256,7 +256,7 @@ def snapshot(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(AI_SERVICE)])
 def detections(request):
     """One AI inference frame. 202 = accepted; 400 = invalid; 404 = the camera was deleted (the AI service stops it)."""
     frame, incident_id = services.process_detection(request.data)
@@ -321,19 +321,18 @@ def dispatch(request):
 
 # ---------------------------------------------------------------- IoT: sensors and sprinklers
 @api_view(["GET"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(SENSOR_GATEWAY)])
 def sensors(request):
     return Response([dto.sensor(s) for s in services.sensors()])
 
 
 @api_view(["GET"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(SENSOR_GATEWAY)])
 def sensor(request, sensor_id):
     return Response(dto.sensor(services.get_or_404(SensorNode, f"Sensor '{sensor_id}' not found.", pk=sensor_id)))
 
 
 @api_view(["GET"])
-@permission_classes([IsOperatorOrDevice])
 def sensor_history(request, sensor_id):
     node = services.get_or_404(SensorNode, f"Sensor '{sensor_id}' not found.", pk=sensor_id)
     since = request.query_params.get("since")
@@ -346,14 +345,14 @@ def sensor_history(request, sensor_id):
 
 
 @api_view(["POST"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(SENSOR_GATEWAY)])
 def sensor_reading(request, sensor_id):
     d = body(ReadingBody, request)
     return Response(services.ingest_reading(sensor_id, d["value"], d.get("recordedAt")))
 
 
 @api_view(["POST"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(SENSOR_GATEWAY)])
 def telemetry(request):
     """Gateway batch: many sensors in one request. Unknown sensors are reported, not fatal."""
     d = body(TelemetryBody, request)
@@ -362,13 +361,12 @@ def telemetry(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsOperatorOrDevice])
+@permission_classes([operator_or(SENSOR_GATEWAY)])
 def sprinkler_list(request):
     return Response([dto.sprinkler(s) for s in SmartSprinkler.objects.order_by("zone", "id")])
 
 
 @api_view(["POST"])
-@permission_classes([IsOperatorOrDevice])
 def sprinkler_toggle(request, sprinkler_id):
     """{"isActive": true|false, "mode": "Auto"|"Manual"}, both optional; an empty body flips the relay."""
     relay = services.get_or_404(SmartSprinkler, f"Sprinkler '{sprinkler_id}' not found.", pk=sprinkler_id)

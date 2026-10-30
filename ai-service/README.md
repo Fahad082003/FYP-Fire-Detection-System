@@ -70,11 +70,11 @@ Service sirf 127.0.0.1 par sunti hai, aur sirf Django server ise call karta hai.
 ## Camera sources (`config.json`)
 | `source` | Kya samjha jata hai | `simulated` |
 |---|---|---|
-| `rtsp://…`, `http://…` (credentials ke liye `${ENV_VAR}`) | live stream, backoff ke saath reconnect | jo aap set karein (default `false`) |
+| `rtsp://…`, `http://…` (credentials ke liye `${ENV_VAR}`) | live stream (FFmpeg): open ya frame 10 s mein na aaye to release aur reconnect, backoff 1→30 s. RTSP pehle TCP, phir UDP | jo aap set karein (default `false`) |
 | `0`, `1`, … | local webcam | jo aap set karein |
 | video file ka path | **test input** | **hamesha `true`**, config kuch bhi kahe |
 
-Har camera ke frames `fps` par process hote hain (default 2), ek waqt mein ek inference. Is CPU par kul takreeban 1 frame/s ka hisaab rakhein.
+Har camera ke frames `fps` par process hote hain (default 2), ek waqt mein ek inference. Is CPU par kul takreeban 1 frame/s ka hisaab rakhein. Zyada cameras par har camera ke frames barabar kam hote hain (purane frames skip hote hain, queue nahi). RTSP ko sirf TCP ya UDP par majboor karna ho to service start karne **se pehle** `OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp` set karein (chalte process mein set karne ka asar nahi hota).
 
 `cameraId` server ke database ke kisi camera se milna chahiye. Usi camera ka zone tay karta hai ke kaun sa incident, sprinklers aur floor-plan danger zones mutasir honge. Yeh service footage kabhi save nahi karti.
 

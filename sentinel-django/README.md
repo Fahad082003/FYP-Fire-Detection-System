@@ -64,7 +64,8 @@ Configuration project ki `.env` hai (ek folder upar; `.env.example` se copy kare
 | `ConnectionStrings__Sentinel` | SQL Server connection (ADO.NET format) | `Server=localhost;Database=SentinelDb;Trusted_Connection=True;TrustServerCertificate=True` |
 | `Jwt__SigningKey` | **Lazmi**, ≥ 32 characters. Session cookies aur API tokens sign karta hai | — |
 | `Jwt__ExpiryMinutes` | Session aur token ki umar | 480 |
-| `Device__ApiKey` | AI service, gateways aur simulator ka shared secret (`X-Device-Key`) | khali = device access band |
+| `Device__ApiKey` | Sirf AI service ki key (`X-Device-Key`): camera list aur detections | khali = AI device access band |
+| `Device__SensorApiKey` | Sirf sensor gateways ki key (`X-Device-Key`): sensor readings, telemetry, sprinkler status parhna. `Device__ApiKey` se **alag** honi chahiye, warna server start nahi hota | khali = sensor gateways band |
 | `Seed__AdminEmail`, `Seed__AdminPassword` | Pehla admin, jab Users table khali ho | `admin@sentinel.local`, generated |
 | `Seed__DemoData` | Pehle start par demo cameras, sensors, sprinklers | false (`SENTINEL_DEBUG` ke saath true) |
 | `Alerts__*` | Cooldown 120 s, merge window 90 s, camera lost 10 s, start-up grace 60 s, sensor multipliers, site name, `Alerts__DashboardUrl` (alerts mein link, `http://localhost:5291/`) | upar wale |
@@ -103,7 +104,7 @@ $env:SENTINEL_DEVICE_KEY = '<Device__ApiKey>'; .\.venv\Scripts\python -m sentine
 
 # Simulator (marzi): warehouse mein aag
 cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python tools\simulator.py --device-key <Device__ApiKey> --ignite "Ground Floor - Warehouse"
+.\.venv\Scripts\python tools\simulator.py --device-key <Device__ApiKey> --sensor-key <Device__SensorApiKey> --ignite "Ground Floor - Warehouse"
 ```
 
 Ya project folder se `.\start.ps1` (`-Simulator` aag ke demo ke liye; purana `-Django` switch bhi chalta hai). http://localhost:5291 kholein aur `Seed__` admin se login karein.
@@ -113,21 +114,23 @@ Ya project folder se `.\start.ps1` (`-Simulator` aag ke demo ke liye; purana `-D
 ## API
 
 Wahi paths, JSON (camelCase, enums text mein) aur status codes jo purane ASP.NET API ke thay. Errors `application/problem+json` hain (`status`, `title`, `detail`, `errors`).
-Authentication: browser apni session cookie (CSRF ke saath) istemal karta hai. Scripts `POST /api/auth/login` → `Authorization: Bearer <token>`. Machines `X-Device-Key`.
+Authentication: browser apni session cookie (CSRF ke saath) istemal karta hai. Scripts `POST /api/auth/login` → `Authorization: Bearer <token>`. Machines `X-Device-Key`: har key sirf apne role ke endpoints khol sakti hai (doosre role ka endpoint → 403, ghalat ya missing key → 401).
 
 | Endpoint | Kaun | |
 |---|---|---|
 | `POST /api/auth/login`, `GET /api/auth/me` | koi bhi (10/min per IP) / operator | scripts ke liye token |
-| `GET /api/cameras`, `GET /api/cameras/{id}` | operator ya device | devices ko stream passwords dikhte hain, logon ko `***` |
+| `GET /api/cameras`, `GET /api/cameras/{id}` | operator ya AI key | AI service ko stream passwords dikhte hain, logon ko `***` |
 | `POST`, `PUT /api/cameras[/{id}]`, `DELETE /api/cameras/{id}` | admin | |
 | `PUT`, `DELETE /api/cameras/{id}/calibration` | operator | 4 point pairs, validated |
 | `GET /api/cameras/{id}/stream` | operator | MJPEG relay |
-| `POST /api/detections` | operator ya device | AI frames; 202, 400 invalid, 404 deleted camera |
+| `POST /api/detections` | operator ya AI key | AI frames; 202, 400 invalid, 404 deleted camera |
 | `GET /api/dashboard/snapshot` | operator | |
 | `GET /api/incidents?resolved&minSeverity&limit`, `GET /api/incidents/{id}`, `POST /api/incidents/{id}/resolve` | operator | |
 | `GET /api/incidents/logs?incidentId&type&limit`, `POST /api/incidents/dispatch` | operator | dispatch cooldown ko bypass karta hai |
-| `GET /api/iot/sensors[/{id}[/history]]`, `POST /api/iot/sensors/{id}/readings`, `POST /api/iot/telemetry` | operator ya device | |
-| `GET /api/iot/sprinklers`, `POST /api/iot/sprinklers/{id}/toggle` | operator ya device | khali body ulat deti hai |
+| `GET /api/iot/sensors[/{id}]`, `POST /api/iot/sensors/{id}/readings`, `POST /api/iot/telemetry` | operator ya sensor key | |
+| `GET /api/iot/sensors/{id}/history` | operator | |
+| `GET /api/iot/sprinklers` | operator ya sensor key | sirf parhna |
+| `POST /api/iot/sprinklers/{id}/toggle` | operator | khali body ulat deti hai; **koi device key sprinkler nahi chala sakti** |
 | `POST /api/iot/sprinklers/master` | operator | |
 | `GET/POST /api/floorplans`, `GET/PUT/DELETE /api/floorplans/{id}`, `GET/PUT …/image`, `POST …/route`, `GET …/risk` | operator | |
 | `GET /api/ai/status`, `POST /api/ai/analyze` | operator | analyze: 10/min per user; kabhi incident nahi kholta |

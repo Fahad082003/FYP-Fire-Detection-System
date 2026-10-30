@@ -17,7 +17,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from run import DB, PORT, ROOT, SERVER_ENV, create_db, drop_db, wait_for
+from run import DB, PORT, ROOT, SERVER_ENV, create_db, drop_db, require_free_ports, wait_for
 
 AI_DIR = ROOT.parent / "ai-service"
 AI_PYTHON = AI_DIR / ".venv" / "Scripts" / "python.exe"
@@ -117,6 +117,7 @@ def main() -> int:
     LOGS.mkdir(exist_ok=True)
     for f in LOGS.glob("*.log"):
         f.unlink()
+    require_free_ports(PORT, AI_PORT, CAM_PORT)
     create_db()
     workdir = Path(tempfile.mkdtemp(prefix="sentinel-lifecycle-"))
     (workdir / "ai.json").write_text(json.dumps({"listen": f"127.0.0.1:{AI_PORT}", "cameras": []}))

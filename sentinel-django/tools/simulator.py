@@ -4,7 +4,7 @@
   * Sprinkler relays   -> GET  /api/iot/sprinklers (active relays suppress the simulated fire)
 Every frame and reading is marked simulated, so it is labelled SIMULATED and never switches real relays by itself.
 
-Usage (from sentinel-django):  .venv\\Scripts\\python tools\\simulator.py --device-key <Device__ApiKey> --ignite "Ground Floor - Warehouse"
+Usage (from sentinel-django):  .venv\\Scripts\\python tools\\simulator.py --device-key <Device__ApiKey> --sensor-key <Device__SensorApiKey> --ignite "Ground Floor - Warehouse"
 Standard library only.
 """
 import argparse
@@ -70,9 +70,9 @@ class Simulator:
         self.active_sprinkler_zones: set[str] = set()
         self.cameras, self.sensors = [], []
 
-    def http(self, method, path, body=None):
+    def http(self, method, path, body=None, sensor=False):  # sensor=True: the sensor gateway's key, else the AI service's
         request = urllib.request.Request(f"{self.args.base_url}/{path}", method=method, data=None if body is None else json.dumps(body).encode(),
-                                         headers={"Content-Type": "application/json", "X-Device-Key": self.args.device_key})
+                                         headers={"Content-Type": "application/json", "X-Device-Key": self.args.sensor_key if sensor else self.args.device_key})
         with urllib.request.urlopen(request, timeout=10) as r:
             return json.loads(r.read() or b"null")
 
@@ -91,9 +91,9 @@ class Simulator:
     def run(self):
         try:
             cameras = self.http("GET", "api/cameras")
-            self.sensors = self.http("GET", "api/iot/sensors")
+            self.sensors = self.http("GET", "api/iot/sensors", sensor=True)
         except urllib.error.HTTPError as e:
-            raise SystemExit(f"GET from the server returned {e.code}. Is the device key correct?")
+            raise SystemExit(f"GET {e.url} returned {e.code}. Are --device-key and --sensor-key the server's keys?")
         for c in cameras:
             drone = c["feedType"] == "Drone"
             suffix = c["id"][-3:]
@@ -138,7 +138,7 @@ class Simulator:
     def sprinkler_loop(self):
         while True:
             try:
-                self.active_sprinkler_zones = {s["zone"] for s in self.http("GET", "api/iot/sprinklers") if s["isActive"]}
+                self.active_sprinkler_zones = {s["zone"] for s in self.http("GET", "api/iot/sprinklers", sensor=True) if s["isActive"]}
             except OSError as e:
                 log("WARN", f"Sprinkler poll failed: {e}")
             time.sleep(3)
@@ -153,7 +153,7 @@ class Simulator:
                 readings.append({"sensorId": s["id"], "value": value})
             if readings:
                 try:
-                    self.http("POST", "api/iot/telemetry", {"readings": readings, "simulated": True})
+                    self.http("POST", "api/iot/telemetry", {"readings": readings, "simulated": True}, sensor=True)
                 except urllib.error.HTTPError as e:
                     log("WARN", f"Telemetry rejected ({e.code}): {e.read(300).decode(errors='replace')}")
                 except OSError as e:
@@ -218,14 +218,16 @@ class Simulator:
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base-url", default="http://localhost:5291", help="server base URL")
-    ap.add_argument("--device-key", default=os.environ.get("Device__ApiKey", ""), help="Device__ApiKey configured on the server")
+    ap.add_argument("--device-key", default=os.environ.get("Device__ApiKey", ""), help="Device__ApiKey (AI service key) configured on the server")
+    ap.add_argument("--sensor-key", default=os.environ.get("Device__SensorApiKey", ""),
+                    help="Device__SensorApiKey (sensor gateway key) configured on the server")
     ap.add_argument("--fps", type=float, default=5, help="detection frames per second per camera")
     ap.add_argument("--telemetry-interval", type=float, default=2, help="seconds between sensor batches")
     ap.add_argument("--fire-probability", type=float, default=0.004, help="random ignition chance per zone per second")
     ap.add_argument("--ignite", action="append", default=[], metavar="ZONE", help="start a fire in ZONE immediately (repeatable)")
     args = ap.parse_args()
-    if not args.device_key:
-        raise SystemExit("A device key is required: --device-key <key> (must match Device__ApiKey on the server).")
+    if not args.device_key or not args.sensor_key:
+        raise SystemExit("Both device keys are required: --device-key <Device__ApiKey> --sensor-key <Device__SensorApiKey>.")
     args.base_url = args.base_url.rstrip("/")
     try:
         Simulator(args).run()

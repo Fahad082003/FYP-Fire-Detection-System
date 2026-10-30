@@ -15,7 +15,9 @@ def start_background() -> None:
     if settings.ENV_FILE:
         log.info("Loaded environment from %s", settings.ENV_FILE)
     if not settings.SENTINEL["DEVICE_API_KEY"]:
-        log.warning("Device__ApiKey is not set: the AI service cannot post frames (device access is disabled)")
+        log.warning("Device__ApiKey is not set: the AI service cannot post frames (AI device access is disabled)")
+    if not settings.SENTINEL["SENSOR_API_KEY"]:
+        log.warning("Device__SensorApiKey is not set: sensor gateways cannot post readings (sensor device access is disabled)")
     try:
         if "CameraFeeds" not in connection.introspection.table_names():
             log.error("The database has no Sentinel tables. Create them with: python manage.py create_schema")

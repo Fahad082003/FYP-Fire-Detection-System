@@ -10,6 +10,7 @@ SentinelDb and the real AI service are never touched; no sprinkler, SMS, e-mail 
 """
 import json
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -25,7 +26,7 @@ SERVER_ENV = {
     "SENTINEL_NO_DOTENV": "1",
     "ConnectionStrings__Sentinel": f"Server=localhost;Database={DB};Trusted_Connection=True;TrustServerCertificate=True",
     "Jwt__SigningKey": "e2e-only-signing-key-0123456789abcdefghij",
-    "Device__ApiKey": "e2e-device-key",
+    "Device__ApiKey": "e2e-device-key", "Device__SensorApiKey": "e2e-sensor-key",
     "Seed__AdminEmail": "admin@e2e.local", "Seed__AdminPassword": "E2e-Passw0rd!", "Seed__DemoData": "true",
     "AiService__BaseUrl": f"http://127.0.0.1:{AI_PORT}",
     "Notifications__Email__Recipients": "",  # nothing is sent anywhere
@@ -99,6 +100,18 @@ def create_db() -> None:
     connection.close()
 
 
+def require_free_ports(*ports: int) -> None:
+    """A leftover server from an interrupted run would answer instead of this run's: uvicorn exits when its port is taken while
+    the old one still answers /health, and on Windows the stub AI service (SO_REUSEADDR) silently shares the port."""
+    busy = []
+    for port in ports:
+        with socket.socket() as s:
+            if s.connect_ex(("127.0.0.1", port)) == 0:
+                busy.append(port)
+    if busy:
+        raise SystemExit(f"Port(s) {busy} already in use, e.g. by a server left from an interrupted run. Stop it first; nothing was changed.")
+
+
 def wait_for(url: str, seconds: float = 30) -> None:
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
@@ -111,6 +124,7 @@ def wait_for(url: str, seconds: float = 30) -> None:
 
 
 def main() -> int:
+    require_free_ports(PORT, AI_PORT)  # before create_db: a refused run changes nothing
     create_db()
     ai = ThreadingHTTPServer(("127.0.0.1", AI_PORT), StubAi)
     threading.Thread(target=ai.serve_forever, daemon=True).start()
@@ -120,7 +134,7 @@ def main() -> int:
     try:
         wait_for(f"http://127.0.0.1:{PORT}/health")
         env = {**os.environ, "BASE_URL": f"http://127.0.0.1:{PORT}", "AI_CONTROL": f"http://127.0.0.1:{AI_PORT}/__mode",
-               "DEVICE_KEY": SERVER_ENV["Device__ApiKey"], "ADMIN_EMAIL": SERVER_ENV["Seed__AdminEmail"],
+               "DEVICE_KEY": SERVER_ENV["Device__ApiKey"], "SENSOR_KEY": SERVER_ENV["Device__SensorApiKey"], "ADMIN_EMAIL": SERVER_ENV["Seed__AdminEmail"],
                "ADMIN_PASSWORD": SERVER_ENV["Seed__AdminPassword"]}
         # Extra arguments go to node's test runner, e.g. --test-name-pattern=devices
         return subprocess.call(["node", "--test", "--test-concurrency=1", "--test-timeout=120000", *sys.argv[1:], "dashboard.test.js"],

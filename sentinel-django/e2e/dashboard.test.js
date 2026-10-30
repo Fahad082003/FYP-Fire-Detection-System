@@ -387,7 +387,7 @@ test('fusion: a camera fire and a smoke warning in the same zone mark the incide
   const row = page.locator('#incident-rows tr', { hasText: 'First Floor - Server Hall (Server Hall)' });
   await row.waitFor();
   assert.doesNotMatch(await row.textContent(), /SMOKE SENSOR/); // a camera alone is not corroborated
-  const smoke = (value) => fetch(`${BASE}/api/iot/telemetry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Device-Key': process.env.DEVICE_KEY },
+  const smoke = (value) => fetch(`${BASE}/api/iot/telemetry`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Device-Key': process.env.SENSOR_KEY },
     body: JSON.stringify({ readings: [{ sensorId: 'smoke-c1', value }], simulated: true }) });
   await smoke(250); // Warning (limit 300 ppm)
   await row.filter({ hasText: '+ SMOKE SENSOR' }).waitFor();
@@ -407,14 +407,17 @@ test('reports: totals, false-alarm rate and breakdowns for the last 7 days; a cu
   await page.getByRole('link', { name: 'Reports' }).click();
   await page.waitForURL(`${BASE}/reports`);
   const kpi = async (label) => Number(await page.locator('#report-kpis .kpi').filter({ has: page.getByText(label, { exact: true }) }).locator('.kpi-value').textContent());
-  const critical = () => page.locator('table.data tr', { hasText: 'Critical' }).locator('td.num').textContent().then(Number);
-  const before = { total: await kpi('Total incidents'), falseAlarms: await kpi('False alarms'), critical: await critical() };
+  const row = async (name) => (await page.locator('#report-empty').count()) ? 0 // no incidents yet (test run alone): no tables
+    : Number(await page.locator('table.data tr').filter({ has: page.getByRole('cell', { name, exact: true }) }).locator('td.num').textContent());
+  // The watchdog opens CameraLost/SensorLost incidents for earlier tests' cameras and sensors at any moment (10 s / 5 s after their
+  // last frame or reading), so the total is compared without them, all values from one page render.
+  const counts = async () => ({ total: await kpi('Total incidents') - await row('CameraLost') - await row('SensorLost'),
+    falseAlarms: await kpi('False alarms'), critical: await row('Critical'), manual: await row('Manual') });
+  const before = await counts();
   const created = await api('/api/incidents/dispatch', { method: 'POST', body: JSON.stringify({ zone: 'Report Zone', severity: 'Critical', activateSprinklers: false }) });
   await api(`/api/incidents/${created.id}/false-alarm`, { method: 'POST' });
   await page.reload();
-  assert.equal(await kpi('Total incidents'), before.total + 1);
-  assert.equal(await kpi('False alarms'), before.falseAlarms + 1);
-  assert.equal(await critical(), before.critical + 1);
+  assert.deepEqual(await counts(), { total: before.total + 1, falseAlarms: before.falseAlarms + 1, critical: before.critical + 1, manual: before.manual + 1 });
   assert.match(await page.locator('#false-alarm-rate').textContent(), /^\d+(\.\d)?% of resolved$/);
   assert.equal(await page.locator('.day-bar').count(), 7);
 
@@ -439,7 +442,7 @@ test('sensor staleness: a silent sensor turns Stale with its last reading time a
   const page = await dashboard();
   const card = page.locator('.sensor', { hasText: 'temp-c1' });
   const read = (value) => fetch(`${BASE}/api/iot/sensors/temp-c1/readings`, { method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Device-Key': process.env.DEVICE_KEY }, body: JSON.stringify({ value }) });
+    headers: { 'Content-Type': 'application/json', 'X-Device-Key': process.env.SENSOR_KEY }, body: JSON.stringify({ value }) });
   const relays = async () => (await api('/api/iot/sprinklers')).map((s) => `${s.id}:${s.isActive}`);
   const before = await relays();
   assert.equal(await card.locator('.state-badge').textContent(), 'Stale'); // never reported: not shown as Normal

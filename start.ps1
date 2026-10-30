@@ -8,9 +8,12 @@ $root = $PSScriptRoot
 
 $envFile = Join-Path $root '.env'
 if (-not (Test-Path $envFile)) { Write-Host "No .env file. Copy .env.example to .env and fill it in first (see the setup guide)." -ForegroundColor Red; exit 1 }
-# The AI service and the simulator need the same device key as the server.
-$key = (Get-Content $envFile | Where-Object { $_ -match '^\s*Device__ApiKey=' } | Select-Object -First 1) -replace '^\s*Device__ApiKey=', ''
+# The AI service needs the server's AI device key; the simulator also needs the sensor gateway key.
+function Read-EnvValue([string]$name) { (Get-Content $envFile | Where-Object { $_ -match "^\s*$name=" } | Select-Object -First 1) -replace "^\s*$name=", '' }
+$key = Read-EnvValue 'Device__ApiKey'
 if (-not $key) { Write-Host "Device__ApiKey is empty in .env: fill it in first." -ForegroundColor Red; exit 1 }
+$sensorKey = Read-EnvValue 'Device__SensorApiKey'
+if ($Simulator -and -not $sensorKey) { Write-Host "Device__SensorApiKey is empty in .env: the simulator needs it for sensor readings." -ForegroundColor Red; exit 1 }
 
 function Open-Window([string]$title, [string]$folder, [string]$command) {
     $script = "`$host.UI.RawUI.WindowTitle = '$title'; Set-Location -LiteralPath '$folder'; $command"
@@ -28,6 +31,6 @@ if (Test-Path $python) {
     Write-Host "AI service skipped: ai-service\.venv is missing (see the setup guide, Step 4)." -ForegroundColor Yellow
 }
 if ($Simulator) {
-    Open-Window 'FireVision AI - Simulator' $django "Start-Sleep 10; .\.venv\Scripts\python tools\simulator.py --device-key '$key' --ignite 'Ground Floor - Warehouse'"
+    Open-Window 'FireVision AI - Simulator' $django "Start-Sleep 10; .\.venv\Scripts\python tools\simulator.py --device-key '$key' --sensor-key '$sensorKey' --ignite 'Ground Floor - Warehouse'"
 }
 Write-Host "`nOpen http://localhost:5291 in about 30 seconds. Close a window (or press Ctrl+C in it) to stop that part." -ForegroundColor Green

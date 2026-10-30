@@ -164,7 +164,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </tr>
 </tbody>
 </table></div>
-<p><strong>Device key:</strong> camera ke AI, sensors aur relay sab ek hi khufia key bhejte hain: header <code>X-Device-Key</code>, value <code>.env</code> ka <code>Device__ApiKey</code>. Ye na ho to API <strong>401</strong> deti hai.</p>
+<p><strong>Device keys:</strong> header <code>X-Device-Key</code>. AI service <code>.env</code> ka <code>Device__ApiKey</code> bhejti hai; sensors aur relay (ESP32) <code>Device__SensorApiKey</code> bhejte hain. Dono keys alag honi chahiyein. Key ghalat ya na ho to API <strong>401</strong> deti hai; doosre role ki key ho to <strong>403</strong>. Koi device key sprinkler ON/OFF nahi kar sakti: relay sirf haal <strong>parhta</strong> hai.</p>
 <hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Shuru Se Pehle: Checklist</h1>
 <div class="table-wrap"><table>
 <thead>
@@ -182,7 +182,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </tr>
 <tr>
 <td>2</td>
-<td><code>.env</code> mein <code>Device__ApiKey</code></td>
+<td><code>.env</code> mein <code>Device__SensorApiKey</code> (sensors aur relay ki key, <code>Device__ApiKey</code> se alag)</td>
 <td>Lamba random text. PowerShell: <code>[Convert]::ToBase64String((1..32 \| % {Get-Random -Max 256}))</code></td>
 </tr>
 <tr>
@@ -427,7 +427,7 @@ $env:SENTINEL_ALLOWED_HOSTS = 'localhost,127.0.0.1,192.168.1.10'
 <p><strong>Darje khud bante hain:</strong> had ka 80% = Warning, had paar = <strong>Alarm</strong>, had ×1.5 (smoke) ya ×1.25 (temp) = <strong>Critical</strong>.</p>
 <h3 id="ch5-c-reading-bhejna-api">C. Reading bhejna (API)</h3>
 <pre><code>POST http://192.168.1.10:5291/api/iot/telemetry
-Header: X-Device-Key: &lt;Device__ApiKey&gt;
+Header: X-Device-Key: &lt;Device__SensorApiKey&gt;
 Header: Content-Type: application/json
 Body:   {&quot;readings&quot;:[{&quot;sensorId&quot;:&quot;smoke-kitchen1&quot;,&quot;value&quot;:40},{&quot;sensorId&quot;:&quot;temp-kitchen1&quot;,&quot;value&quot;:26}]}
 </code></pre>
@@ -447,7 +447,7 @@ Body:   {&quot;readings&quot;:[{&quot;sensorId&quot;:&quot;smoke-kitchen1&quot;,
 const char* WIFI_NAME = &quot;AapKaWiFi&quot;;
 const char* WIFI_PASS = &quot;wifi-password&quot;;
 const char* API = &quot;http://192.168.1.10:5291&quot;;   // server PC ka IP
-const char* KEY = &quot;yahan-Device__ApiKey&quot;;        // .env wali key
+const char* KEY = &quot;yahan-Device__SensorApiKey&quot;;  // .env wali sensor key
 const int SMOKE_PIN = 34;                        // MQ-2 ka analog pin
 
 void setup() {
@@ -480,7 +480,7 @@ void loop() {
 <h3 id="ch6-a-system-relay-ko-kaise-batata-hai">A. System relay ko kaise batata hai</h3>
 <p>System relay ko <strong>khud signal nahi bhejta</strong>. Relay (ESP32) har 1–2 second baad <strong>poochhta</strong> hai:</p>
 <pre><code>GET http://192.168.1.10:5291/api/iot/sprinklers
-Header: X-Device-Key: &lt;Device__ApiKey&gt;
+Header: X-Device-Key: &lt;Device__SensorApiKey&gt;
 </code></pre>
 <p>Jawab:</p>
 <pre><code class="language-json">[{&quot;id&quot;:&quot;spr-kitchen1&quot;,&quot;zone&quot;:&quot;Ground Floor - Kitchen&quot;,&quot;isActive&quot;:true,&quot;mode&quot;:&quot;Auto&quot;, ...}]
@@ -603,7 +603,7 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 <hr /></section><p class="part-label">D · Active karna, masle aur hifazat</p><section class="chapter" data-ch="10"><h1 id="ch10">10. Sab Ko Active Karna: Tarteeb</h1>
 <p>Isi tarteeb se karein. Har qadam ke baad check karke aage jayein.</p>
 <ul>
-<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> <code>.env</code>: <code>Device__ApiKey</code>, <code>Jwt__SigningKey</code> bhare hue</li>
+<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> <code>.env</code>: <code>Device__ApiKey</code>, <code>Device__SensorApiKey</code> (alag), <code>Jwt__SigningKey</code> bhare hue</li>
 <li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> Zone ke naam tay ("Manzil - Jagah")</li>
 <li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> <code>.\start.ps1</code> se teeno windows chal rahi hain</li>
 <li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> Camera ka RTSP link VLC mein chala</li>
@@ -630,7 +630,12 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 <tr>
 <td>ESP32 ko <strong>401</strong></td>
 <td>Device key ghalat</td>
-<td><code>.env</code> wali <code>Device__ApiKey</code> bilkul wahi copy karein</td>
+<td><code>.env</code> wali <code>Device__SensorApiKey</code> bilkul wahi copy karein</td>
+</tr>
+<tr>
+<td>ESP32 ko <strong>403</strong></td>
+<td>AI wali key (<code>Device__ApiKey</code>) lagi hai</td>
+<td><code>Device__SensorApiKey</code> lagayein</td>
 </tr>
 <tr>
 <td>ESP32 connect hi nahi hota</td>

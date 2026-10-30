@@ -199,7 +199,11 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </tr>
 <tr>
 <td><code>Device__ApiKey=</code></td>
-<td>Ek aur random chaabi (machines ka password)</td>
+<td>Ek aur random chaabi (AI service ka password)</td>
+</tr>
+<tr>
+<td><code>Device__SensorApiKey=</code></td>
+<td>Teesri, <strong>alag</strong> random chaabi (sensors aur simulator ka password). Dono device keys ek jaisi hon to Server start nahi hota</td>
 </tr>
 <tr>
 <td><code>Seed__AdminEmail=</code></td>
@@ -214,7 +218,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <p><strong>Random chaabi banane ki command (PowerShell):</strong></p>
 <pre><code class="language-powershell">[Convert]::ToBase64String((1..48 | % {Get-Random -Max 256}))
 </code></pre>
-<p>Jo text aaye, copy karke <code>=</code> ke baad paste karein. <code>Device__ApiKey</code> ke liye dobara chalayein.</p>
+<p>Jo text aaye, copy karke <code>=</code> ke baad paste karein. <code>Device__ApiKey</code> aur <code>Device__SensorApiKey</code> ke liye alag alag dobara chalayein.</p>
 <blockquote>
 <p>⚠️ <code>.env</code> mein passwords hain. Ise <strong>kisi ko na bhejein</strong>, na internet par daalein.</p>
 </blockquote>
@@ -474,11 +478,11 @@ git push
 <p><strong>Qadam:</strong></p>
 <ol>
 <li>Window 1 (Server) chal rahi ho. Login karein.</li>
-<li><code>.env</code> se apni <code>Device__ApiKey</code> copy karein.</li>
+<li><code>.env</code> se apni <code>Device__ApiKey</code> aur <code>Device__SensorApiKey</code> copy karein.</li>
 <li>Nayi PowerShell window (Window 3):</li>
 </ol>
 <pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python tools\simulator.py --device-key &lt;yahan Device__ApiKey&gt; --ignite &quot;Ground Floor - Warehouse&quot;
+.\.venv\Scripts\python tools\simulator.py --device-key &lt;yahan Device__ApiKey&gt; --sensor-key &lt;yahan Device__SensorApiKey&gt; --ignite &quot;Ground Floor - Warehouse&quot;
 </code></pre>
 <p>(Ya seedha <code>.\start.ps1 -Simulator</code>: ye simulator ki window khud khol deta hai.)</p>
 <ol start="4">
@@ -586,7 +590,7 @@ git push
 </table></div>
 <hr /></section><section class="chapter" data-ch="10"><h1 id="ch10">10. Test 3: Sensor Ko Garam Karna (PowerShell)</h1>
 <p><strong>Maqsad:</strong> dekhna ke garmi barhne par Warning, Alarm aur Critical sahi waqt par aate hain.</p>
-<p>Pehle ye kaam Swagger page se hota tha; Django mein <strong>Swagger page nahi hai</strong>. Ab hum PowerShell se seedha sensor ki reading bhejte hain, bilkul waise jaise asli sensor (machine) bhejta hai: <code>X-Device-Key</code> header mein <code>.env</code> wali <code>Device__ApiKey</code>.</p>
+<p>Pehle ye kaam Swagger page se hota tha; Django mein <strong>Swagger page nahi hai</strong>. Ab hum PowerShell se seedha sensor ki reading bhejte hain, bilkul waise jaise asli sensor (machine) bhejta hai: <code>X-Device-Key</code> header mein <code>.env</code> wali <code>Device__SensorApiKey</code> (sensor key; AI wali key par 403 aata hai).</p>
 <p>Neeche purani tasveer sirf hawale ke liye hai (Swagger ab nahi hai):</p>
 <p><img alt="Swagger" src="images/swagger.png" /></p>
 <p><strong>Qadam A: tayyari</strong></p>
@@ -594,7 +598,7 @@ git push
 <li>Window 1 (Server) chal rahi ho aur browser mein Dashboard khula ho.</li>
 <li>Nayi PowerShell window kholein aur apni device key rakhein:</li>
 </ol>
-<pre><code class="language-powershell">$key = &#39;&lt;yahan Device__ApiKey&gt;&#39;
+<pre><code class="language-powershell">$key = &#39;&lt;yahan Device__SensorApiKey&gt;&#39;
 </code></pre>
 <p><strong>Qadam B: garmi bhejna</strong></p>
 <ol>
@@ -1045,9 +1049,9 @@ cd C:\Users\m_fahad\Desktop\Project\ai-service
 <td><code>$env:SENTINEL_DEVICE_KEY</code> = <code>.env</code> ka <code>Device__ApiKey</code></td>
 </tr>
 <tr>
-<td>Simulator "401"</td>
-<td>Device key ghalat</td>
-<td><code>--device-key</code> mein sahi key</td>
+<td>Simulator "401" ya "403"</td>
+<td>Device key ghalat, ya dono keys ulat di</td>
+<td><code>--device-key</code> mein <code>Device__ApiKey</code>, <code>--sensor-key</code> mein <code>Device__SensorApiKey</code></td>
 </tr>
 <tr>
 <td><code>py -3.13</code>: "not recognized" ya Python 3.13 nahi mila</td>

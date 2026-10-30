@@ -17,7 +17,7 @@ Status ke matlab: **ported** = dobara bana aur tests se cover; **replaced** = wa
 | `Models/*` (8 files) | `sentinel/models.py` | ported (wahi tables, columns, enum strings) |
 | `DTOs/*`, `Mapping.cs` | `sentinel/dto.py` (wahi camelCase shapes), request bodies ke liye `api.py` mein DRF serializers | ported |
 | `Validators/DetectionPayloadValidator.cs` | `sentinel/validation.py` | ported (audit fixes D-13, D-14 samet) |
-| `Security/DeviceKeyAuthenticationHandler.cs`, `AuthPolicies.cs` | `security.DeviceKeyAuthentication`, `IsOperator`, `IsAdmin`, `IsOperatorOrDevice` | ported (sirf-logon wale endpoints par device key → 401, pehle ki tarah) |
+| `Security/DeviceKeyAuthenticationHandler.cs`, `AuthPolicies.cs` | `security.DeviceKeyAuthentication`, `IsOperator`, `IsAdmin`, `operator_or(role)` | ported (sirf-logon wale endpoints par device key → 401, pehle ki tarah). 2026-10-30 (Phase 3 M1): ek shared key ki jagah do roles, `Device__ApiKey` (AI service) aur `Device__SensorApiKey` (sensor gateways); sprinkler toggle ab sirf operator |
 | JWT bearer auth, `TokenService`, `AuthService` | Django sessions (browser) + signed bearer token (`POST /api/auth/login`, scripts ke liye) | replaced; ASP.NET Identity password hashes wahi |
 | `Middleware/ExceptionHandlingMiddleware.cs` (ProblemDetails) | `api.problem_details` (DRF exception handler, `application/problem+json`) | ported |
 | `Controllers/*` (10) | `sentinel/api.py` + `sentinel/urls.py`, wahi paths | ported (2026-10-26 ko har route aur method code se dobara milaya gaya) |

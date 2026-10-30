@@ -11,7 +11,7 @@ from sentinel import notifications, services
 from sentinel.models import AppUser, UserRole
 from sentinel.watchdog import watchdog
 
-DEVICE_KEY = "test-device-key"
+DEVICE_KEY, SENSOR_KEY = "test-device-key", "test-sensor-key"  # AI service, sensor gateway (set in manage.py)
 ADMIN_EMAIL, PASSWORD = "admin@test.local", "Test@12345"
 
 
@@ -50,9 +50,13 @@ class SentinelTestCase(TestCase):
 
     @property
     def device(self) -> APIClient:
-        client = APIClient()
-        client.credentials(HTTP_X_DEVICE_KEY=DEVICE_KEY)
-        return client
+        """The AI service's key: camera list and detections."""
+        return APIClient(HTTP_X_DEVICE_KEY=DEVICE_KEY)
+
+    @property
+    def sensor(self) -> APIClient:
+        """A sensor gateway's key: sensor readings and telemetry."""
+        return APIClient(HTTP_X_DEVICE_KEY=SENSOR_KEY)
 
     def post_frame(self, **payload):
         return self.device.post("/api/detections", payload, format="json")

@@ -1863,7 +1863,11 @@ py -3.13 -m venv .venv
 </tr>
 <tr>
 <td><code>Device__ApiKey</code></td>
-<td>Machines ki chaabi</td>
+<td>AI service ki chaabi (sirf cameras aur detections)</td>
+</tr>
+<tr>
+<td><code>Device__SensorApiKey</code></td>
+<td>Sensor gateways ki chaabi (readings, telemetry, sprinkler status parhna). <code>Device__ApiKey</code> se <strong>alag</strong> honi chahiye</td>
 </tr>
 <tr>
 <td><code>Seed__AdminEmail</code>, <code>Seed__AdminPassword</code></td>
@@ -1885,7 +1889,7 @@ py -3.13 -m venv .venv
 <li>Purana <code>-Django</code> switch ab bhi chalta hai (purani guides ke liye), lekin ab Django hi wahid server hai.</li>
 </ul>
 <ul>
-<li><code>.env</code> na ho ya <code>Device__ApiKey</code> khali ho to script ruk kar batati hai.</li>
+<li><code>.env</code> na ho ya <code>Device__ApiKey</code> khali ho to script ruk kar batati hai. <code>-Simulator</code> ke saath <code>Device__SensorApiKey</code> bhi chahiye.</li>
 <li>AI service ko device key khud de deti hai, taake wo Devices page ke cameras utha sake.</li>
 <li>Script block ho to: <code>powershell -ExecutionPolicy Bypass -File .\start.ps1</code>.</li>
 </ul>
@@ -1902,13 +1906,13 @@ $env:SENTINEL_DEVICE_KEY = '&lt;Device__ApiKey&gt;'; .\.venv\Scripts\python -m s
 
 # 3) (Demo) Simulator: Ground Floor - Warehouse mein aag
 cd &lt;project&gt;\sentinel-django
-.\.venv\Scripts\python tools\simulator.py --device-key &lt;Device__ApiKey&gt; --ignite &quot;Ground Floor - Warehouse&quot;
+.\.venv\Scripts\python tools\simulator.py --device-key &lt;Device__ApiKey&gt; --sensor-key &lt;Device__SensorApiKey&gt; --ignite &quot;Ground Floor - Warehouse&quot;
 </code></pre>
 <ul>
 <li>Server ka <strong>sirf ek</strong> process chalayein (<code>--workers</code> nahi): watchdog, notification queue aur live events usi mein hain. <code>manage.py runserver</code> support nahi (live events stream nahi kar sakta).</li>
 <li>Swagger page ab nahi hai; API ki list Chapter 23 mein.</li>
 </ul>
-<p>Simulator ke options: <code>--base-url</code>, <code>--device-key</code>, <code>--ignite</code>, <code>--fps</code>, <code>--fire-probability</code>, <code>--telemetry-interval</code>.</p>
+<p>Simulator ke options: <code>--base-url</code>, <code>--device-key</code> (AI key), <code>--sensor-key</code> (sensor key), <code>--ignite</code>, <code>--fps</code>, <code>--fire-probability</code>, <code>--telemetry-interval</code>.</p>
 <h3 id="ch21-apne-cameras-daalna-devices-page-admin">Apne cameras daalna: Devices page (Admin)</h3>
 <p>Customer apne cameras <strong>khud</strong> dashboard se daalta hai, database chhedne ki zaroorat nahi:</p>
 <ol>
@@ -2124,8 +2128,8 @@ cd ..\ai-service; .\.venv\Scripts\python -m unittest discover -s tests
 <tr>
 <td>GET</td>
 <td><code>/api/cameras</code>, <code>/api/cameras/{id}</code>, <code>/api/cameras/{id}/stream</code></td>
-<td>Operator/Device</td>
-<td>Cameras (password sirf Device ko), MJPEG stream</td>
+<td>Operator/AI key (stream: sirf Operator)</td>
+<td>Cameras (password sirf AI service ko), MJPEG stream</td>
 </tr>
 <tr>
 <td>POST/PUT/DELETE</td>
@@ -2136,7 +2140,7 @@ cd ..\ai-service; .\.venv\Scripts\python -m unittest discover -s tests
 <tr>
 <td>POST</td>
 <td><code>/api/detections</code></td>
-<td>Operator/Device</td>
+<td>Operator/AI key</td>
 <td>AI frame</td>
 </tr>
 <tr>
@@ -2165,27 +2169,27 @@ cd ..\ai-service; .\.venv\Scripts\python -m unittest discover -s tests
 </tr>
 <tr>
 <td>GET</td>
-<td><code>/api/iot/sensors</code>, <code>/sensors/{id}</code>, <code>/sensors/{id}/history</code></td>
-<td>Operator/Device</td>
+<td><code>/api/iot/sensors</code>, <code>/sensors/{id}</code> (<code>/sensors/{id}/history</code>: sirf Operator)</td>
+<td>Operator/Sensor key</td>
 <td>Sensors</td>
 </tr>
 <tr>
 <td>POST</td>
 <td><code>/api/iot/sensors/{id}/readings</code>, <code>/api/iot/telemetry</code> (<code>simulated: true</code> = test data)</td>
-<td>Operator/Device</td>
+<td>Operator/Sensor key</td>
 <td>Readings</td>
 </tr>
 <tr>
 <td>GET</td>
 <td><code>/api/iot/sprinklers</code></td>
-<td>Operator/Device</td>
-<td>Sprinklers</td>
+<td>Operator/Sensor key</td>
+<td>Sprinklers (sirf parhna)</td>
 </tr>
 <tr>
 <td>POST</td>
 <td><code>/api/iot/sprinklers/{id}/toggle</code></td>
-<td>Operator/Device</td>
-<td>ON/OFF (khali body = ulat do)</td>
+<td>Operator</td>
+<td>ON/OFF (khali body = ulat do). Koi device key sprinkler nahi chala sakti</td>
 </tr>
 <tr>
 <td>POST</td>

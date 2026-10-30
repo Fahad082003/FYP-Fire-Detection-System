@@ -2,19 +2,22 @@
 tracking, confirmation and the HTTP contract, NOT model accuracy (see tools/evaluate.py for that).
 Run: python -m unittest discover -s tests"""
 import json
+import socket
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 import cv2
 import numpy as np
 
 from sentinel_ai.detector import ModelError, YoloxDetector
 from sentinel_ai.pipeline import CameraPipeline, fire_area_percent, fire_severity
-from sentinel_ai.service import CameraWorker, Engine, make_handler, mask, sync_cameras
+from sentinel_ai.service import STREAM_TIMEOUT_MS, CameraWorker, Engine, make_handler, mask, sync_cameras
 from sentinel_ai.tracker import IouTracker
 
 N = 52 * 52 + 26 * 26 + 13 * 13  # YOLOX anchors for a 416x416 input
@@ -299,6 +302,221 @@ class ServiceTests(unittest.TestCase):
             w.run()  # file source without loop: returns when the clip ends
             self.assertEqual(Flaky.calls, 3)  # kept going after the failing frame
             self.assertEqual(w.state, "finished")
+
+
+class FakeCapture:
+    """Scripted cv2.VideoCapture: `frames` grabs succeed (each moves `clock` on by `step` s), then the stream drops, raises
+    `error`, or blocks on `hang` (a stalled camera)."""
+
+    def __init__(self, opened=True, frames=0, error=None, hang=None, clock=None, step=0.0):
+        self.opened, self.frames, self.error, self.hang, self.clock, self.step = opened, frames, error, hang, clock, step
+        self.grabs, self.analysed = 0, []  # analysed: when each frame was converted for the model
+        self.released = False
+
+    def isOpened(self):
+        return self.opened
+
+    def get(self, prop):
+        return 0.0
+
+    def grab(self):
+        if self.grabs >= self.frames:
+            if self.hang:
+                self.hang.wait()
+            if self.error:
+                raise self.error
+            return False
+        self.grabs += 1
+        if self.clock:
+            self.clock[0] += self.step
+        time.sleep(0.005 if self.frames == float("inf") else 0)  # an endless live stream delivers at its own pace, not in a busy loop
+        return True
+
+    def retrieve(self):
+        self.analysed.append(time.monotonic())
+        return True, np.zeros((48, 64, 3), np.uint8)
+
+    def release(self):
+        self.released = True
+
+
+class Stopper:
+    """stop_event stand-in: records every backoff wait and reports "stopped" after `n` of them."""
+
+    def __init__(self, n):
+        self.n, self.waits = n, []
+
+    def is_set(self):
+        return len(self.waits) >= self.n
+
+    def wait(self, seconds):
+        self.waits.append(seconds)
+
+    def set(self):
+        self.n = 0
+
+
+class RtspReliabilityTests(unittest.TestCase):
+    """CameraWorker against scripted captures and local fake servers: no real camera is ever opened."""
+
+    def engine(self, detect=list):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        (Path(tmp.name) / "models.json").write_text(json.dumps({"models": [SPEC_FIRE]}))
+        Detector = type("D", (), {"name": "fire_smoke", "file": "f.onnx", "detect": lambda self, bgr: detect() or []})
+        return Engine(Path(tmp.name), detector_factory=lambda spec, d: Detector())
+
+    def worker(self, caps, cam_id="cam-1", engine=None, fps=2):
+        """A stream worker whose open() hands out `caps` in order (kept in w.opened) and whose posts are only counted."""
+        w = CameraWorker(engine or self.engine(), {"cameraId": cam_id, "source": "rtsp://127.0.0.1:9/live", "fps": fps}, "http://api", "k")
+        self.assertEqual(w.kind, "stream")
+        caps, w.opened, w.posts = iter(caps), [], []
+        w.open = lambda: w.opened.append(next(caps)) or w.opened[-1]
+        w.post = w.posts.append
+        return w
+
+    def test_stream_capture_uses_ffmpeg_with_bounded_open_and_read_waits_and_other_sources_do_not(self):
+        with mock.patch("sentinel_ai.service.cv2.VideoCapture") as vc:
+            CameraWorker.open(self.worker([]))  # the real open(), not the test double
+            CameraWorker.open(type("W", (), {"kind": "webcam", "source": 0})())
+        self.assertEqual(vc.call_args_list[0], mock.call("rtsp://127.0.0.1:9/live", cv2.CAP_FFMPEG,
+                                                         [cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, STREAM_TIMEOUT_MS,
+                                                          cv2.CAP_PROP_READ_TIMEOUT_MSEC, STREAM_TIMEOUT_MS]))
+        self.assertEqual(vc.call_args_list[1], mock.call(0))  # webcams keep OpenCV's own backend and settings
+
+    def test_opencv_really_gives_up_on_a_hung_open_and_a_stalled_stream(self):
+        """Real OpenCV/FFmpeg against local sockets, with the timeout cut to 1 s (its default is 30 s)."""
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        silent = socket.socket()  # accepts the TCP connection (backlog) and never answers: a hung camera
+        silent.bind(("127.0.0.1", 0))
+        silent.listen(4)
+        self.addCleanup(silent.close)
+        stall = threading.Event()
+        self.addCleanup(stall.set)
+        jpg = cv2.imencode(".jpg", np.zeros((48, 64, 3), np.uint8))[1].tobytes()
+
+        class Stalling(BaseHTTPRequestHandler):  # a burst of MJPEG frames, then silence on an open connection
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+                self.end_headers()
+                for _ in range(30):
+                    self.wfile.write(b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % len(jpg) + jpg + b"\r\n")
+                self.wfile.flush()
+                stall.wait(60)
+
+            def log_message(self, *a):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Stalling)
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        with mock.patch("sentinel_ai.service.STREAM_TIMEOUT_MS", 1000):
+            w = self.worker([])
+            w.source = f"rtsp://127.0.0.1:{silent.getsockname()[1]}/live"
+            t0 = time.monotonic()
+            cap = CameraWorker.open(w)
+            self.assertFalse(cap.isOpened())
+            self.assertLess(time.monotonic() - t0, 5)
+            w.source = f"http://127.0.0.1:{server.server_address[1]}/video"
+            cap = CameraWorker.open(w)
+            try:
+                self.assertTrue(cap.isOpened())
+                while cap.grab():
+                    pass
+                t0 = time.monotonic()
+                self.assertFalse(cap.grab())  # the stalled read returns instead of blocking
+                self.assertLess(time.monotonic() - t0, 5)
+            finally:
+                cap.release()
+
+    def test_open_failures_back_off_exponentially_to_30_s_and_release_every_capture(self):
+        caps = [FakeCapture(opened=False) for _ in range(7)]
+        w = self.worker(caps)
+        w.stop_event = Stopper(7)
+        w.run()
+        self.assertEqual(w.stop_event.waits, [1, 2, 4, 8, 16, 30, 30])
+        self.assertTrue(all(c.released for c in caps))
+        self.assertEqual((w.state, w.error), ("error", "cannot open stream source"))
+
+    def test_disconnect_reconnects_after_1_s_but_a_stream_that_opens_without_frames_backs_off(self):
+        clock = [0.0]  # frozen: only the first frame of each connection is due
+        caps = [FakeCapture(frames=3), FakeCapture(opened=False), FakeCapture(frames=2), FakeCapture(), FakeCapture()]
+        w = self.worker(caps)
+        w.stop_event = Stopper(5)
+        with mock.patch("sentinel_ai.service.time.monotonic", lambda: clock[0]):
+            w.run()
+        self.assertEqual(w.stop_event.waits, [1, 2, 1, 2, 4])  # frames reset the backoff; open-then-nothing does not
+        self.assertEqual(len(w.posts), 2)  # one analysed frame per connection that delivered
+        self.assertTrue(all(c.released for c in caps))
+        self.assertEqual((w.state, w.error), ("reconnecting", "source ended or dropped"))
+
+    def test_a_capture_that_raises_is_released_and_reconnected_without_leaking_the_link(self):
+        caps = [FakeCapture(frames=1, error=cv2.error("rtsp://admin:secret@cam/1 broke")), FakeCapture(frames=1)]
+        w = self.worker(caps)
+        w.stop_event = Stopper(2)
+        with self.assertLogs("sentinel_ai", "WARNING") as logs:
+            w.run()
+        self.assertTrue(all(c.released for c in caps))
+        self.assertEqual(len(w.posts), 2)  # the thread lived on and the second connection delivered
+        self.assertNotIn("secret", " ".join(logs.output))
+
+    def test_fps_limit_analyses_one_frame_per_interval_and_never_converts_the_skipped_ones(self):
+        clock = [0.0]
+        cap = FakeCapture(frames=20, clock=clock, step=0.25)  # a 4 fps stream for 5 s
+        w = self.worker([cap], fps=1)
+        with mock.patch("sentinel_ai.service.time.monotonic", lambda: clock[0]):
+            self.assertTrue(w.read_frames(cap))
+        self.assertEqual((cap.grabs, cap.analysed, len(w.posts)), (20, [0.25, 1.25, 2.25, 3.25, 4.25], 5))  # every frame drained, 1 per second analysed
+
+    def test_a_stalled_and_a_dead_camera_do_not_hold_up_a_healthy_one(self):
+        stalled = threading.Event()
+        hung = FakeCapture(hang=stalled)
+        a = self.worker([hung, *[FakeCapture() for _ in range(50)]], "cam-a")
+        b = self.worker([FakeCapture(opened=False) for _ in range(50)], "cam-b")
+        c = self.worker([FakeCapture(frames=float("inf"))], "cam-c", fps=20)
+        for w in (a, b, c):
+            w.start()
+        try:
+            deadline = time.monotonic() + 10
+            while len(c.posts) < 5 and time.monotonic() < deadline:
+                c.stop_event.wait(0.05)
+            self.assertGreaterEqual(len(c.posts), 5)
+            self.assertEqual(a.state, "running")  # still inside its stalled read
+            self.assertEqual(b.state, "error")
+        finally:
+            for w in (a, b, c):
+                w.stop_event.set()
+            stalled.set()  # the stalled read returns (as the read timeout makes it do)
+            for w in (a, b, c):
+                w.join(5)
+        self.assertFalse(any(w.is_alive() for w in (a, b, c)))
+        self.assertTrue(hung.released)
+        self.assertTrue(all(cap.released for w in (a, b, c) for cap in w.opened))
+
+    def test_overload_slows_every_camera_evenly_but_never_beyond_its_fps_limit(self):
+        """2 cameras x 5 fps x 150 ms inference = 1.5 s of work a second for one lock: each camera gets about half."""
+        engine = self.engine(lambda: time.sleep(0.15))  # one engine, one inference lock, as in the service
+        cams = [self.worker([FakeCapture(frames=float("inf"))], f"cam-{i}", engine, fps=5) for i in range(2)]
+        for w in cams:
+            w.start()
+        try:
+            deadline = time.monotonic() + 15
+            while min(len(w.posts) for w in cams) < 5 and time.monotonic() < deadline:
+                cams[0].stop_event.wait(0.05)
+        finally:
+            for w in cams:
+                w.stop_event.set()
+            for w in cams:
+                w.join(5)
+        for w in cams:
+            self.assertGreaterEqual(len(w.posts), 5, w.cam["cameraId"])  # neither camera starves
+            times = w.opened[0].analysed
+            self.assertGreaterEqual(min(b - a for a, b in zip(times, times[1:])), 0.2 - 0.01)  # never above 5 fps
+        self.assertEqual(engine.count, sum(len(w.posts) for w in cams))  # frames are skipped, never queued for later
+        self.assertGreaterEqual(engine.last_ms, 150)
 
 
 class CameraSyncTests(unittest.TestCase):

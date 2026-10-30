@@ -30,7 +30,7 @@ PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4
 
 class ApiTests(SentinelTestCase):
     def sprinklers(self, zone):
-        return [s for s in self.device.get("/api/iot/sprinklers").json() if s["zone"] == zone]
+        return [s for s in self.op.get("/api/iot/sprinklers").json() if s["zone"] == zone]
 
     def test_login_returns_a_bearer_token_and_wrong_password_returns_401(self):
         anonymous = APIClient()
@@ -62,7 +62,7 @@ class ApiTests(SentinelTestCase):
         self.assertEqual(APIClient(HTTP_X_DEVICE_KEY="nope").get("/api/iot/sensors").status_code, 401)
 
     def test_critical_temperature_opens_incident_and_auto_sprinklers(self):
-        r = self.device.post("/api/iot/sensors/temp-a1/readings", {"value": 80.0}, format="json")
+        r = self.sensor.post("/api/iot/sensors/temp-a1/readings", {"value": 80.0}, format="json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["state"], "Critical")
         self.assertTrue(any(i["sensorId"] == "temp-a1" and i["severity"] == "Critical" for i in self.incidents(resolved="false")))
@@ -85,16 +85,20 @@ class ApiTests(SentinelTestCase):
         self.assertEqual(r["Content-Type"], "application/problem+json")
         self.assertIn("detections[0].bbox", r.json()["errors"])
 
-    def test_sprinkler_toggle_and_mode_change(self):
-        on = self.device.post("/api/iot/sprinklers/spr-b2/toggle", {"isActive": True}, format="json").json()
+    def test_sprinkler_toggle_and_mode_change_are_for_operators_only(self):
+        for device in (self.device, self.sensor):  # no device key switches a relay
+            self.assertEqual(device.post("/api/iot/sprinklers/spr-b2/toggle", {"isActive": True}, format="json").status_code, 401)
+        self.assertFalse(SmartSprinkler.objects.get(pk="spr-b2").is_active)
+        on = self.op.post("/api/iot/sprinklers/spr-b2/toggle", {"isActive": True}, format="json").json()
         self.assertTrue(on["isActive"])
         self.assertIsNotNone(on["lastTriggeredAt"])
-        self.assertEqual(self.device.post("/api/iot/sprinklers/spr-b2/toggle", {"mode": "Manual"}, format="json").json()["mode"], "Manual")
-        self.assertFalse(self.device.post("/api/iot/sprinklers/spr-b2/toggle").json()["isActive"])  # empty body flips
-        self.assertEqual(self.device.post("/api/iot/sprinklers/nope/toggle", {}, format="json").status_code, 404)
+        self.assertEqual(self.op.post("/api/iot/sprinklers/spr-b2/toggle", {"mode": "Manual"}, format="json").json()["mode"], "Manual")
+        self.assertFalse(self.op.post("/api/iot/sprinklers/spr-b2/toggle").json()["isActive"])  # empty body flips
+        self.assertEqual(self.op.post("/api/iot/sprinklers/nope/toggle", {}, format="json").status_code, 404)
 
     def test_master_switch_is_for_operators_only(self):
-        self.assertEqual(self.device.post("/api/iot/sprinklers/master", {"isActive": True}, format="json").status_code, 401)
+        for device in (self.device, self.sensor):
+            self.assertEqual(device.post("/api/iot/sprinklers/master", {"isActive": True}, format="json").status_code, 401)
         r = self.op.post("/api/iot/sprinklers/master", {"isActive": True, "zone": "Ground Floor - Lobby"}, format="json").json()
         self.assertEqual(sorted(r["changed"]), ["spr-a1", "spr-a2"])
 
@@ -204,27 +208,27 @@ class ApiTests(SentinelTestCase):
         self.assertEqual(notifications.jobs.qsize(), 0)  # a warning, not an emergency notification
 
     def test_simulated_sensor_alarm_is_labelled_and_never_opens_sprinklers(self):
-        r = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-b1", "value": 80.0}], "simulated": True}, format="json")
+        r = self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-b1", "value": 80.0}], "simulated": True}, format="json")
         self.assertEqual(r.status_code, 200)
         [incident] = [i for i in self.incidents() if i["sensorId"] == "temp-b1"]
         self.assertEqual(incident["severity"], "Critical")
         self.assertIn("[SIMULATED DATA]", incident["message"])
         self.assertFalse(any(s["isActive"] for s in self.sprinklers("Ground Floor - Warehouse")))
         # Control: the same reading without the flag is real data and opens the zone's Auto relays.
-        self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-b1", "value": 81.0}]}, format="json")
+        self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-b1", "value": 81.0}]}, format="json")
         self.assertTrue(any(s["isActive"] for s in self.sprinklers("Ground Floor - Warehouse")))
 
     def test_extreme_smoke_reading_raises_a_critical_alert_instead_of_being_rejected(self):
-        self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "smoke-a1", "value": 250_000.0}]}, format="json")
+        self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "smoke-a1", "value": 250_000.0}]}, format="json")
         self.assertEqual([i["severity"] for i in self.incidents() if i["sensorId"] == "smoke-a1"], ["Critical"])
-        bad = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "smoke-a1", "value": 2_000_000.0}]}, format="json")
+        bad = self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "smoke-a1", "value": 2_000_000.0}]}, format="json")
         self.assertEqual(bad.status_code, 400)
         self.assertIn("must be between", bad.content.decode())
 
     def test_sensor_history_returns_readings_oldest_first(self):
         for v in (20, 30, 40):
-            self.device.post("/api/iot/sensors/temp-c1/readings", {"value": v}, format="json")
-        h = self.device.get("/api/iot/sensors/temp-c1/history?limit=2").json()
+            self.sensor.post("/api/iot/sensors/temp-c1/readings", {"value": v}, format="json")
+        h = self.op.get("/api/iot/sensors/temp-c1/history?limit=2").json()
         self.assertEqual([r["value"] for r in h["readings"]], [30, 40])
         self.assertEqual(h["unit"], "°C")
 
@@ -911,7 +915,7 @@ class SensorStaleTests(SentinelTestCase):
         watchdog._started -= timedelta(hours=1)  # long running: the start-up window is tested on its own
 
     def read(self, sensor_id, value):
-        return self.device.post(f"/api/iot/sensors/{sensor_id}/readings", {"value": value}, format="json")
+        return self.sensor.post(f"/api/iot/sensors/{sensor_id}/readings", {"value": value}, format="json")
 
     def silence(self, sensor_id, seconds):
         SensorNode.objects.filter(pk=sensor_id).update(last_reading_at=timezone.now() - timedelta(seconds=seconds))
@@ -920,10 +924,10 @@ class SensorStaleTests(SentinelTestCase):
         return list(IncidentAlert.objects.filter(source="SensorLost", sensor_id=sensor_id).order_by("id"))
 
     def state(self, sensor_id):
-        return self.device.get(f"/api/iot/sensors/{sensor_id}").json()["state"]
+        return self.sensor.get(f"/api/iot/sensors/{sensor_id}").json()["state"]
 
     def sprinklers(self, zone):
-        return [s for s in self.device.get("/api/iot/sprinklers").json() if s["zone"] == zone]
+        return [s for s in self.op.get("/api/iot/sprinklers").json() if s["zone"] == zone]
 
     def test_stale_means_at_least_60_s_since_the_last_valid_reading(self):
         t = timezone.now()
@@ -1031,7 +1035,7 @@ class SensorStaleTests(SentinelTestCase):
         for bad in (2_000_000.0, -101, "abc", None):
             with self.subTest(value=bad):
                 self.assertEqual(self.read("temp-a1", bad).status_code, 400)
-        r = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 2_000_000.0}]}, format="json")
+        r = self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 2_000_000.0}]}, format="json")
         self.assertEqual(r.status_code, 400)
         self.assertEqual(SensorNode.objects.get(pk="temp-a1").last_reading_at, before)
         watchdog.check(timezone.now())
@@ -1039,9 +1043,9 @@ class SensorStaleTests(SentinelTestCase):
 
     def test_last_reading_time_is_the_server_clock_not_the_device_clock(self):
         ahead = (timezone.now() + timedelta(days=1)).isoformat()  # a device clock a day fast must not keep a dead sensor fresh
-        self.device.post("/api/iot/sensors/temp-a1/readings", {"value": 21, "recordedAt": ahead}, format="json")
+        self.sensor.post("/api/iot/sensors/temp-a1/readings", {"value": 21, "recordedAt": ahead}, format="json")
         self.assertLessEqual(SensorNode.objects.get(pk="temp-a1").last_reading_at, timezone.now())
-        [reading] = self.device.get("/api/iot/sensors/temp-a1/history").json()["readings"]
+        [reading] = self.op.get("/api/iot/sensors/temp-a1/history").json()["readings"]
         self.assertGreater(reading["recordedAt"], timezone.now().isoformat()[:10])  # the device's own time stays in the history
 
 
@@ -1144,7 +1148,7 @@ class FusionTests(SentinelTestCase):
     cam-lobby, smoke-a1 and temp-a1 share "Ground Floor - Lobby"; smoke-b1 is in the warehouse. Smoke limit 300 ppm, warning 240."""
 
     def smoke(self, sensor_id, value, simulated=True):
-        r = self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": sensor_id, "value": value}], "simulated": simulated},
+        r = self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": sensor_id, "value": value}], "simulated": simulated},
                              format="json")
         self.assertEqual(r.status_code, 200)
 
@@ -1220,9 +1224,9 @@ class FusionTests(SentinelTestCase):
             self.assertEqual(len(self.records()), 1)
 
     def test_temperature_readings_never_confirm_smoke(self):
-        self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 70.0}], "simulated": True}, format="json")
+        self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 70.0}], "simulated": True}, format="json")
         incident = self.camera_fire()
-        self.device.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 75.0}], "simulated": True}, format="json")
+        self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-a1", "value": 75.0}], "simulated": True}, format="json")
         self.assertEqual(self.records(), [])
         self.assertFalse(self.corroborated(incident))
 

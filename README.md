@@ -40,7 +40,7 @@ Pehle se chahiye: Python 3.13, SQL Server (Developer, Express ya LocalDB) aur **
 
 ```powershell
 cd C:\Users\m_fahad\Desktop\Project
-Copy-Item .env.example .env        # phir Jwt__SigningKey, Device__ApiKey, Seed__AdminPassword bharein
+Copy-Item .env.example .env        # phir Jwt__SigningKey, Device__ApiKey, Device__SensorApiKey (alag key), Seed__AdminPassword bharein
 
 # Django server (ek dafa setup)
 cd sentinel-django
@@ -58,7 +58,7 @@ cd ..
 .\start.ps1                 # aag ka demo bhi chahiye to: .\start.ps1 -Simulator
 ```
 
-Takreeban 30 second baad http://localhost:5291 kholein. `start.ps1` `.env` se `Device__ApiKey` parh kar AI service ko deta hai. Purani guides ka `.\start.ps1 -Django` ab bhi chalta hai.
+Takreeban 30 second baad http://localhost:5291 kholein. `start.ps1` `.env` se `Device__ApiKey` parh kar AI service ko deta hai, aur `-Simulator` ke saath `Device__SensorApiKey` bhi (yeh khali ho to simulator start nahi hota). Purani guides ka `.\start.ps1 -Django` ab bhi chalta hai.
 
 `Seed__AdminEmail` aur `Seed__AdminPassword` se login karein. Admin account server ke pehle start par banta hai, jab Users table khali ho (password khali ho to ek random password server window mein ek dafa print hota hai).
 - Admin **Devices** page par customer ke apne cameras add, edit aur delete karta hai. Stream passwords dashboard users ko `***` dikhte hain; asli link sirf AI service ko jata hai.

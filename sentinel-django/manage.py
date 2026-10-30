@@ -9,6 +9,7 @@ if __name__ == "__main__":
         os.environ["SENTINEL_NO_DOTENV"] = "1"
         os.environ.setdefault("Jwt__SigningKey", "test-only-signing-key-0123456789abcdef")
         os.environ.setdefault("Device__ApiKey", "test-device-key")
+        os.environ.setdefault("Device__SensorApiKey", "test-sensor-key")
         os.environ.setdefault("AiService__BaseUrl", "http://127.0.0.1:9")  # nothing listens there
     from django.core.management import execute_from_command_line
     execute_from_command_line(sys.argv)
