@@ -212,7 +212,7 @@ def start(launch: list[str], run_dir: Path, log_dir: Path, ports: list[int], dja
         django, ai = state["children"].get("django", {}), state["children"].get("ai")
         if ai_end is None:
             if django.get("state") == "exited":
-                return fail(f"Django failed to start (exit code {django.get('exitCode')})", log_dir / "django.log", False)
+                return fail(f"Django failed to start (exit code {django.get('exitCode')})", log_dir / "django.log", True)
             answer = sv.health_status(f"http://127.0.0.1:{django['port']}/health") if django.get("state") == "running" else None
             if answer != "ok":
                 if time.monotonic() > django_end:
