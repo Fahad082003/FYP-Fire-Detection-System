@@ -45,6 +45,7 @@ urlpatterns = [
     path("api/floorplans/<int:plan_id>/routes", api.floor_plan_routes, name="api_floor_plan_routes"),
     path("api/floorplans/<int:plan_id>/risk", api.floor_plan_risk, name="api_floor_plan_risk"),
     path("api/ai/status", api.ai_status, name="api_ai_status"),
+    path("api/system/health", api.system_health, name="api_system_health"),
     path("api/ai/analyze", api.ai_analyze, name="api_ai_analyze"),
     path("api/push/vapid-public-key", api.vapid_key, name="api_vapid_key"),
     path("api/push/subscribe", api.push_subscribe, name="api_push_subscribe"),

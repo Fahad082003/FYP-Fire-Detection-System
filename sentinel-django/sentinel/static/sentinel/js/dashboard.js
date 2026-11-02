@@ -1,6 +1,6 @@
 // The command-center dashboard panels (ports of the Angular dashboard components).
 import { SEVERITY_RANK, api, confirmAsk, dateTimeOf, errorMessage, esc, fireSeverityText, relativeTime, timeOf, toast } from './core.js';
-import { HISTORY_POINTS, live } from './shell.js';
+import { HEALTH_STALE_MS, HISTORY_POINTS, live } from './shell.js';
 import { OverlayRenderer, register, unregister } from './overlay.js';
 import { PlanMap } from './planmap.js';
 
@@ -781,6 +781,41 @@ function renderActivity() {
 }
 $('clear-activity').addEventListener('click', () => { live.activity = []; renderActivity(); });
 live.on('activity', renderActivity);
+
+// ================================================================ system health (GET /api/system/health, polled by shell.js)
+const HEALTH_TONE = { healthy: 'text-green', loading: 'text-amber', degraded: 'text-amber', offline: 'text-red', critical: 'text-red' };
+const healthCell = (status, stale) => `<span class="strong ${stale ? 'muted' : HEALTH_TONE[status] ?? 'muted'}">${esc(status)}${stale ? ' (old)' : ''}</span>`;
+let healthHtml = '';
+
+function renderHealth() {
+  const h = live.health;
+  const failed = live.healthError;
+  const stale = Boolean(h) && (Boolean(failed) || live.now - live.healthAt > HEALTH_STALE_MS); // never shown as current
+  const components = { ...h?.components };
+  if (h && live.state !== 'connected') { // the server only sees its own streams; this browser knows its own link
+    components.liveUpdates = { ...components.liveUpdates, status: 'offline', message: `This browser's live link is ${live.state}. ${components.liveUpdates.message}` };
+  }
+  // No answer = Django (or its database) not answering: critical. An old answer without an error (e.g. a sleeping tab): unknown.
+  const overall = failed ? 'critical' : !h ? null : stale ? 'unknown'
+    : h.status === 'healthy' && components.liveUpdates.status !== 'healthy' ? 'degraded' : h.status;
+  const overallEl = $('health-overall');
+  overallEl.textContent = overall ? overall.toUpperCase() : 'CHECKING…';
+  overallEl.className = `small strong ${HEALTH_TONE[overall] ?? 'muted'}`;
+  overallEl.title = failed ? `Health check failed: ${failed}` : h?.message ?? '';
+  $('health-checked').textContent = !h ? (failed ? `Health check failed: ${failed}` : '')
+    : `Last successful check ${timeOf(h.checkedAt)} (${relativeTime(new Date(live.healthAt).toISOString(), live.now)})${failed ? ` · latest check failed: ${failed}` : stale ? ' · out of date' : ''}`;
+  const rows = [];
+  for (const c of Object.values(components)) {
+    rows.push(`<tr><td class="nowrap">${esc(c.name)}${c.optional ? ' <span class="muted">(optional)</span>' : ''}</td><td>${healthCell(c.status, stale)}</td><td>${esc(c.message)}</td></tr>`);
+    for (const e of c.details?.cameras ?? c.details?.sensors ?? []) {
+      rows.push(`<tr><td class="nowrap dim">↳ ${esc(e.name ?? `${e.type} ${e.id}`)}</td><td>${healthCell(e.state, stale)}</td><td>${esc(e.message)}</td></tr>`);
+    }
+  }
+  const html = h ? `<table class="data"><thead><tr><th>Component</th><th>Status</th><th>Details</th></tr></thead><tbody>${rows.join('')}</tbody></table>`
+    : `<p class="empty">${failed ? 'Health check failed.' : 'Checking system health…'}</p>`;
+  if (html !== healthHtml) $('health').innerHTML = healthHtml = html; // the clock re-renders every second: rebuild only on change
+}
+for (const name of ['health', 'state', 'tick']) live.on(name, renderHealth);
 
 renderActivity();
 renderKpis();

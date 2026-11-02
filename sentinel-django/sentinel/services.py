@@ -126,6 +126,8 @@ def process_detection(payload) -> tuple[dict, int | None]:
         if cache.get(deleted_key(frame["cameraId"])):  # 404 tells the AI service to stop this camera
             raise Http404(f"Camera '{frame['cameraId']}' was deleted; frame ignored.")
         watchdog.frame_received(frame["cameraId"])
+        if frame["simulated"]:
+            watchdog.simulated_at = timezone.now()
         events.publish("detection", frame)  # overlay first: dashboards draw boxes before any database work
         incident = alerts.evaluate_detection(frame)
     return frame, incident.id if incident else None
@@ -166,6 +168,8 @@ def ingest_reading(sensor_id: str, value, recorded_at=None, simulated: bool = Fa
 
 
 def ingest_bulk(readings: list[dict], simulated: bool) -> dict:
+    if simulated:
+        watchdog.simulated_at = timezone.now()
     updated, errors = [], []
     for r in readings:
         try:

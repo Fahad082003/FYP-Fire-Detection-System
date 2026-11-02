@@ -37,22 +37,29 @@ def mask(source: str) -> str:
 class Engine:
     """Loads every model in the manifest; a missing model is reported, never replaced by fake output."""
 
-    def __init__(self, models_dir: Path, settings: dict | None = None, detector_factory=YoloxDetector):
+    def __init__(self, models_dir: Path, settings: dict | None = None, detector_factory=YoloxDetector, load: bool = True):
+        self.models_dir, self.detector_factory = models_dir, detector_factory
         self.settings = settings or {}
         self.detectors, self.models, self.missing = [], [], []
-        for spec in load_manifest(models_dir):
+        self.loading = True  # running is not ready: /health says "loading" until every model was tried
+        self.lock = threading.Lock()  # one inference at a time: CPU-bound, parallel runs only add latency
+        self.count, self.total_ms, self.last_ms = 0, 0.0, None
+        if load:
+            self.load()
+
+    def load(self) -> None:
+        for spec in load_manifest(self.models_dir):
             entry = {"name": spec["name"], "file": spec["file"], "license": spec.get("license"),
                      "categories": sorted(set(spec["categories"].values())), "threshold": spec["threshold"]}
             try:
-                self.detectors.append(detector_factory(spec, models_dir))
+                self.detectors.append(self.detector_factory(spec, self.models_dir))
                 entry.update(loaded=True, error=None)
             except ModelError as e:
                 self.missing.append(spec["name"])
                 entry.update(loaded=False, error=str(e))
                 log.warning("model %s not loaded: %s", spec["name"], e)
             self.models.append(entry)
-        self.lock = threading.Lock()  # one inference at a time: CPU-bound, parallel runs only add latency
-        self.count, self.total_ms, self.last_ms = 0, 0.0, None
+        self.loading = False
 
     def pipeline(self, camera_id: str, simulated: bool, zones=None) -> CameraPipeline:
         return CameraPipeline(self.detectors, camera_id, simulated, self.settings, zones, self.missing)
@@ -68,7 +75,8 @@ class Engine:
     def health(self, cameras) -> dict:
         return {
             "service": "sentinel-ai", "version": VERSION,
-            "status": "ok" if self.detectors and not self.missing else ("degraded" if self.detectors else "no-model"),
+            "status": "loading" if self.loading else "ok" if self.detectors and not self.missing
+                      else "degraded" if self.detectors else "no-model",
             "models": self.models,
             "capabilities": sorted({c for m in self.models if m["loaded"] for c in m["categories"]}),
             "inference": {"count": self.count, "avgMs": round(self.total_ms / self.count, 1) if self.count else None,
@@ -206,6 +214,11 @@ def sync_cameras(workers: list, managed: dict, wanted: dict, make_worker) -> Non
             w.start()
 
 
+class Server(ThreadingHTTPServer):
+    # The default sets SO_REUSEADDR, which on Windows lets a second AI service bind the same port and share its requests.
+    allow_reuse_address = False
+
+
 def make_handler(engine: Engine, cameras: list):
     class Handler(BaseHTTPRequestHandler):
         def _json(self, code: int, body: dict):
@@ -234,6 +247,8 @@ def make_handler(engine: Engine, cameras: list):
             img = cv2.imdecode(np.frombuffer(self.rfile.read(length), np.uint8), cv2.IMREAD_COLOR)
             if img is None:
                 return self._json(400, {"error": "cannot decode image (PNG or JPG expected)"})
+            if engine.loading:
+                return self._json(503, {"error": "AI models are still loading, try again in a few seconds"})
             if not engine.detectors:
                 return self._json(503, {"error": "no AI model loaded: " + "; ".join(m["error"] for m in engine.models)})
             try:
@@ -250,10 +265,10 @@ def make_handler(engine: Engine, cameras: list):
 
 
 def serve(config: dict, models_dir: Path):
-    engine = Engine(models_dir, config.get("settings"))
+    engine = Engine(models_dir, config.get("settings"), load=False)
     api = os.environ.get("SENTINEL_API_URL", config.get("api", "http://localhost:5291"))
     key = os.environ.get("SENTINEL_DEVICE_KEY", "")
-    cameras = []
+    configured = []
     for cam in config.get("cameras", []):
         if not cam.get("enabled", True):
             continue
@@ -261,31 +276,51 @@ def serve(config: dict, models_dir: Path):
             raise SystemExit(f"invalid cameraId in config: {cam.get('cameraId')!r}")
         if not key:
             raise SystemExit("SENTINEL_DEVICE_KEY is not set: camera workers cannot post to the API")
-        cameras.append(CameraWorker(engine, cam, api, key))
+        configured.append(cam)
+    cameras = []
     host, port = config.get("listen", "127.0.0.1:8008").rsplit(":", 1)
-    server = ThreadingHTTPServer((host, int(port)), make_handler(engine, cameras))
-    for w in cameras:
-        w.start()
-    if key:  # cameras added in the dashboard need no entry in config.json
-        fixed = {w.cam["cameraId"] for w in cameras}
-        managed: dict = {}
+    try:
+        server = Server((host, int(port)), make_handler(engine, cameras))
+    except OSError as e:  # never take over a port another service holds
+        raise SystemExit(f"cannot listen on {host}:{port}, the port is in use (is another AI service running?): {e}")
+    failed = []
 
-        def keep_in_sync():
-            while True:
-                try:
-                    wanted = {i: u for i, u in api_cameras(api, key).items() if i not in fixed}
-                    sync_cameras(cameras, managed, wanted, lambda cam: CameraWorker(engine, cam, api, key))
-                except (urllib.error.URLError, OSError, ValueError) as e:
-                    log.warning("camera list from the API is unavailable: %s", e)
-                time.sleep(CAMERA_SYNC_SECONDS)
+    def start_up():
+        """Models load while /health already answers "loading"; cameras start only once the models are ready."""
+        try:
+            engine.load()
+        except Exception as e:  # noqa: BLE001 - e.g. no models.json: exit as before instead of staying "loading" forever
+            failed.append(e)
+            server.shutdown()
+            return
+        cameras.extend(CameraWorker(engine, cam, api, key) for cam in configured)
+        for w in cameras:
+            w.start()
+        if key:  # cameras added in the dashboard need no entry in config.json
+            fixed = {w.cam["cameraId"] for w in cameras}
+            managed: dict = {}
 
-        threading.Thread(target=keep_in_sync, daemon=True, name="camera-sync").start()
-    else:
-        log.info("SENTINEL_DEVICE_KEY not set: only cameras from config.json run (dashboard cameras need the key)")
-    log.info("sentinel-ai %s on http://%s:%s, models loaded: %s, missing: %s, cameras: %d",
-             VERSION, host, port, [d.name for d in engine.detectors], engine.missing, len(cameras))
+            def keep_in_sync():
+                while True:
+                    try:
+                        wanted = {i: u for i, u in api_cameras(api, key).items() if i not in fixed}
+                        sync_cameras(cameras, managed, wanted, lambda cam: CameraWorker(engine, cam, api, key))
+                    except (urllib.error.URLError, OSError, ValueError) as e:
+                        log.warning("camera list from the API is unavailable: %s", e)
+                    time.sleep(CAMERA_SYNC_SECONDS)
+
+            threading.Thread(target=keep_in_sync, daemon=True, name="camera-sync").start()
+        else:
+            log.info("SENTINEL_DEVICE_KEY not set: only cameras from config.json run (dashboard cameras need the key)")
+        log.info("sentinel-ai %s ready, models loaded: %s, missing: %s, cameras: %d",
+                 VERSION, [d.name for d in engine.detectors], engine.missing, len(cameras))
+
+    log.info("sentinel-ai %s on http://%s:%s, loading models", VERSION, host, port)
+    threading.Thread(target=start_up, daemon=True, name="start-up").start()
     try:
         server.serve_forever()
     finally:
         for w in cameras:
             w.stop_event.set()
+    if failed:
+        raise failed[0]

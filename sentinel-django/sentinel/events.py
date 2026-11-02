@@ -7,16 +7,24 @@ import asyncio
 import json
 import logging
 import threading
+import time
 
 from django.utils import timezone
 from rest_framework.utils.encoders import JSONEncoder
 
 log = logging.getLogger("sentinel.events")
 QUEUE_LIMIT = 500  # a dashboard that stops reading is dropped instead of growing memory
+KEEPALIVE_SECONDS = 15  # an idle stream still sends a comment this often
 
 # shortcut: subscribers live in this process; with several server processes each one sees only its own events.
 _subscribers: set[tuple[asyncio.AbstractEventLoop, asyncio.Queue]] = set()
 _lock = threading.Lock()
+last_delivery = 0.0  # time.monotonic() when a stream last handed a message to its dashboard (the health check reads it)
+
+
+def delivered() -> None:
+    global last_delivery
+    last_delivery = time.monotonic()
 
 
 def subscribe() -> asyncio.Queue:

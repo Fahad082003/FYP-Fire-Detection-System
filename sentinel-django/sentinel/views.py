@@ -28,7 +28,6 @@ from .rules import mask_credentials
 from .security import is_operator
 
 log = logging.getLogger("sentinel")
-KEEPALIVE_SECONDS = 15
 
 
 # ---------------------------------------------------------------- sign in / out
@@ -161,11 +160,13 @@ async def event_stream(request):
         try:
             snapshot = await sync_to_async(services.snapshot)()
             yield f"event: snapshot\ndata: {json.dumps(snapshot, cls=JSONEncoder, separators=(',', ':'))}\n\n"
+            events.delivered()  # resumed only after the server sent the previous chunk
             while events.is_subscribed(queue):
                 try:
-                    yield await asyncio.wait_for(queue.get(), KEEPALIVE_SECONDS)
+                    yield await asyncio.wait_for(queue.get(), events.KEEPALIVE_SECONDS)
                 except TimeoutError:
                     yield ": keep-alive\n\n"
+                events.delivered()
         finally:
             events.unsubscribe(queue)
 

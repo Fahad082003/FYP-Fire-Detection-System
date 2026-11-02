@@ -17,7 +17,7 @@ import numpy as np
 
 from sentinel_ai.detector import ModelError, YoloxDetector
 from sentinel_ai.pipeline import CameraPipeline, fire_area_percent, fire_severity
-from sentinel_ai.service import STREAM_TIMEOUT_MS, CameraWorker, Engine, make_handler, mask, sync_cameras
+from sentinel_ai.service import STREAM_TIMEOUT_MS, CameraWorker, Engine, Server, make_handler, mask, serve, sync_cameras
 from sentinel_ai.tracker import IouTracker
 
 N = 52 * 52 + 26 * 26 + 13 * 13  # YOLOX anchors for a 416x416 input
@@ -46,6 +46,12 @@ def raw(boxes, classes=2):
         out[0, i, :4] = [cx / 8 - gx, cy / 8 - gy, np.log(w / 8), np.log(h / 8)]
         out[0, i, 4], out[0, i, 5 + cls] = 1.0, score
     return out
+
+
+def free_port():
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
 
 
 SPEC_PERSON = {"name": "person", "file": "p.onnx", "input": [416, 416], "categories": {"0": "Human"},
@@ -103,6 +109,49 @@ class DetectorTests(unittest.TestCase):
             (Path(tmp) / "p.onnx").write_bytes(b"tampered")
             with self.assertRaisesRegex(ModelError, "sha256 mismatch"):
                 YoloxDetector({**SPEC_PERSON, "sha256": "0" * 64}, Path(tmp))
+
+
+class WarmUpTests(unittest.TestCase):
+    """A real model file is run once on a blank frame at load; onnxruntime is faked, so no weights are needed."""
+
+    def load(self, spec, session=None, error=None):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / spec["file"]).write_bytes(b"not checked: the session is faked")
+            factory = mock.Mock(side_effect=error) if error else mock.Mock(return_value=session)
+            with mock.patch("onnxruntime.InferenceSession", factory):
+                return YoloxDetector(spec, Path(tmp))
+
+    def test_a_compatible_model_loads_after_one_blank_run(self):
+        session = FakeSession([raw([(200, 200, 50, 80, 0.9, 0)])])
+        d = self.load(SPEC_PERSON, session)
+        self.assertEqual(session.calls, 1)  # FakeSession also checks the 1x3x416x416 input
+        self.assertEqual(d.name, "person")
+
+    def test_an_incompatible_model_is_refused_at_load(self):
+        wrong_shape = FakeSession([np.zeros((1, 100, 7), np.float32)])
+        one_class = FakeSession([raw([], classes=1)])
+        rejects = mock.Mock(**{"get_inputs.return_value": [type("I", (), {"name": "images"})()],
+                               "run.side_effect": RuntimeError("Got invalid dimensions for input: images")})
+        for name, spec, session, message in (("output shape", SPEC_PERSON, wrong_shape, "unexpected output shape"),
+                                             ("class count", SPEC_FIRE, one_class, "has 1 classes but the manifest maps class 1"),
+                                             ("input size", SPEC_PERSON, rejects, "does not accept a 416x416 input")):
+            with self.subTest(name), self.assertRaisesRegex(ModelError, message):
+                self.load(spec, session)
+
+    def test_a_file_onnxruntime_cannot_read_is_a_model_error(self):
+        with self.assertRaisesRegex(ModelError, "cannot be loaded by onnxruntime: INVALID_PROTOBUF"):
+            self.load(SPEC_PERSON, error=RuntimeError("INVALID_PROTOBUF"))
+
+    def test_the_engine_reports_a_failed_warm_up_as_not_loaded(self):
+        def factory(spec, models_dir):
+            raise ModelError(f"{spec['name']}: unexpected output shape (1, 100, 7)")
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "models.json").write_text(json.dumps({"models": [SPEC_PERSON]}))
+            engine = Engine(Path(tmp), detector_factory=factory)
+        health = engine.health([])
+        self.assertEqual(health["status"], "no-model")
+        self.assertEqual(health["models"][0]["loaded"], False)
+        self.assertIn("unexpected output shape", health["models"][0]["error"])
 
 
 class TrackerTests(unittest.TestCase):
@@ -185,12 +234,80 @@ class PipelineTests(unittest.TestCase):
 
 
 class ServiceTests(unittest.TestCase):
-    def start(self, engine, cameras=()):
-        from http.server import ThreadingHTTPServer
-        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(engine, list(cameras)))
+    def start(self, engine, cameras=(), server_class=Server):
+        server = server_class(("127.0.0.1", 0), make_handler(engine, list(cameras)))
         threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
         return f"http://127.0.0.1:{server.server_address[1]}"
+
+    def test_health_answers_loading_until_the_models_are_tried(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "models.json").write_text(json.dumps({"models": [SPEC_PERSON]}))
+            engine = Engine(Path(tmp), detector_factory=lambda spec, d: detector(spec, []), load=False)
+            url = self.start(engine)
+            self.assertEqual(json.loads(urllib.request.urlopen(url + "/health").read())["status"], "loading")
+            status, body = self.post(url, cv2.imencode(".png", np.zeros((64, 64, 3), np.uint8))[1].tobytes())
+            self.assertEqual((status, body["error"]), (503, "AI models are still loading, try again in a few seconds"))
+            engine.load()
+            self.assertEqual(json.loads(urllib.request.urlopen(url + "/health").read())["status"], "ok")
+            self.assertEqual(self.post(url, cv2.imencode(".png", np.zeros((64, 64, 3), np.uint8))[1].tobytes())[0], 200)
+
+    def test_serve_opens_the_port_before_loading_and_starts_cameras_after(self):
+        release, servers = threading.Event(), []
+
+        class Recorded(Server):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                servers.append(self)
+
+        def slow_manifest(models_dir):
+            release.wait(10)
+            return []
+
+        port = free_port()
+        started = []
+        with mock.patch("sentinel_ai.service.Server", Recorded), mock.patch("sentinel_ai.service.load_manifest", slow_manifest), \
+                mock.patch.object(CameraWorker, "start", lambda w: started.append(w.cam["cameraId"])), \
+                mock.patch.dict("os.environ", {"SENTINEL_DEVICE_KEY": "test-key", "SENTINEL_API_URL": "http://127.0.0.1:9"}), \
+                mock.patch("sentinel_ai.service.api_cameras", return_value={}):
+            thread = threading.Thread(target=serve, args=({"listen": f"127.0.0.1:{port}", "cameras": [
+                {"cameraId": "cam-a", "source": "0"}]}, Path(".")), daemon=True)
+            thread.start()
+            health = lambda: json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/health").read())
+            deadline = time.monotonic() + 10
+            while not servers and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertEqual(health()["status"], "loading")
+            self.assertEqual(started, [])  # no camera reads frames before the models are ready
+            release.set()
+            while health()["status"] == "loading" and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertEqual(health()["status"], "no-model")  # empty manifest: tried, nothing loaded
+            while not started and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertEqual(started, ["cam-a"])
+            servers[0].shutdown()
+            thread.join(10)
+            servers[0].server_close()
+
+    def test_serve_exits_when_the_manifest_cannot_be_read(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {"SENTINEL_DEVICE_KEY": ""}):
+            with self.assertRaises(FileNotFoundError):  # instead of answering "loading" forever
+                serve({"listen": f"127.0.0.1:{free_port()}"}, Path(tmp))
+
+    def test_a_second_service_on_a_busy_port_exits_and_the_first_keeps_serving(self):
+        from http.server import ThreadingHTTPServer
+        with tempfile.TemporaryDirectory() as tmp:
+            engine = self.engine(tmp, YoloxDetector)
+            for first in (Server, ThreadingHTTPServer):  # this version, and an older one that still set SO_REUSEADDR
+                with self.subTest(first=first.__name__):
+                    url = self.start(engine, server_class=first)
+                    with mock.patch.dict("os.environ", {"SENTINEL_DEVICE_KEY": ""}), \
+                            mock.patch.object(Server, "serve_forever", side_effect=AssertionError("a second service bound the port")), \
+                            self.assertRaisesRegex(SystemExit, "port is in use"):
+                        serve({"listen": url.removeprefix("http://")}, Path(tmp))
+                    self.assertEqual(json.loads(urllib.request.urlopen(url + "/health").read())["service"], "sentinel-ai")
 
     def engine(self, tmp, factory):
         (Path(tmp) / "models.json").write_text(json.dumps({"models": [SPEC_PERSON]}))

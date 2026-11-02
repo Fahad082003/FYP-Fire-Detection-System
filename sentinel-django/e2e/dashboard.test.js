@@ -44,7 +44,7 @@ test('dashboard: cameras, sensors, sprinklers and a green banner only once the A
     await page.route(url, async (route) => { await released; await route.continue(); });
     return release;
   };
-  const releaseLive = await hold('**/api/events'), releaseAi = await hold('**/api/ai/status');
+  const releaseLive = await hold('**/api/events'), releaseAi = await hold('**/api/system/health');
   await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
   await banner(page).filter({ hasText: /^MONITORING DEGRADED · LIVE LINK DOWN$/ }).waitFor(); // neither confirmed: never green
   releaseLive();
@@ -72,15 +72,48 @@ test('a dashboard whose page modules load after the live snapshot still renders 
   await page.context().close();
 });
 
-test('status banner follows AI health: offline, model missing, camera offline, then nominal again', async () => {
+test('status banner follows AI health: offline, loading, model missing, camera offline, then nominal again', async () => {
   const page = await dashboard();
-  for (const [mode, text] of [['offline', 'MONITORING DEGRADED · AI OFFLINE'], ['model-missing', 'MONITORING DEGRADED · AI MODEL MISSING'],
+  for (const [mode, text] of [['offline', 'MONITORING DEGRADED · AI OFFLINE'], ['loading', 'MONITORING DEGRADED · AI LOADING'],
+    ['model-missing', 'MONITORING DEGRADED · AI MODEL MISSING'],
     ['camera-error', 'MONITORING DEGRADED · CAMERA OFFLINE'], ['ok', 'ALL SYSTEMS NOMINAL']]) {
     await setAiMode(mode);
     await banner(page).filter({ hasText: new RegExp(`^${text}$`) }).waitFor(POLL);
     assert.equal(await banner(page).getAttribute('class'), `status-pill level-${mode === 'ok' ? 'nominal' : 'elevated'}`);
   }
   assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('system health panel: component states from the server, AI loading then ready, a failed check is critical and old data is marked', async () => {
+  const page = await dashboard();
+  const row = (name) => page.locator('#health tr', { hasText: name }).first();
+  const overall = page.locator('#health-overall');
+  await row('Database').filter({ hasText: 'healthy' }).waitFor(POLL);
+  for (const name of ['Django Backend', 'AI Service', 'AI Models', 'Cameras', 'Sensors', 'Live Updates', 'Simulator']) await row(name).waitFor();
+  // This page's own stream, seen by the server (the first check on page load may run before the stream is open: next poll).
+  await row('Live Updates').filter({ hasText: /healthy.*1 dashboard\(s\) connected/s }).waitFor(POLL);
+  assert.match(await row('Simulator').textContent(), /\(optional\)/);
+
+  await setAiMode('loading');
+  await row('AI Service').filter({ hasText: /loading.*models still loading/s }).waitFor(POLL);
+  assert.match(await row('AI Models').textContent(), /loading/);
+  assert.notEqual(await overall.textContent(), 'HEALTHY'); // never healthy while the AI loads
+  await setAiMode('model-missing');
+  await row('AI Models').filter({ hasText: /degraded.*fire_smoke: file not found/s }).waitFor(POLL);
+  await setAiMode('ok');
+  await row('AI Service').filter({ hasText: /healthy.*Ready/s }).waitFor(POLL);
+  const checked = await page.locator('#health-checked').textContent();
+  assert.match(checked, /^Last successful check /);
+
+  await page.route('**/api/system/health', (route) => route.abort()); // the server stops answering
+  await overall.filter({ hasText: /^CRITICAL$/ }).waitFor(POLL);
+  await page.locator('#health-checked', { hasText: 'latest check failed' }).waitFor();
+  assert.match(await row('Database').textContent(), /healthy \(old\)/); // the last answer stays visible, never as current
+  await banner(page).filter({ hasText: 'MONITORING DEGRADED · AI STATUS UNKNOWN' }).waitFor();
+  await page.unroute('**/api/system/health');
+  await page.waitForFunction(() => !document.getElementById('health').textContent.includes('(old)'), null, POLL); // current again
+  assert.notEqual(await overall.textContent(), 'CRITICAL');
   await page.context().close();
 });
 

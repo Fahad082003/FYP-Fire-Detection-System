@@ -32,6 +32,12 @@ class Watchdog:
         self._online: set[str] = set()  # status already written as Online by this process
         self._seeded: set[str] = set()  # watched since start-up but no frame yet: its status must not turn Online
         self._started = timezone.now()
+        self.simulated_at: datetime | None = None  # last frame or reading marked simulated (the health check's simulator state)
+
+    def snapshot(self) -> tuple[dict[str, datetime], set[str], set[str]]:
+        """Copies of the last-frame times, the lost cameras and the cameras still waiting for a first frame."""
+        with self._lock:
+            return dict(self._last_frame), set(self._lost), set(self._seeded)
 
     def frame_received(self, camera_id: str, now: datetime | None = None) -> None:
         with self._lock:

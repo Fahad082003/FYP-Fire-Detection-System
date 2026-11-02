@@ -2,8 +2,12 @@
 // emergency-dispatch dialog. Port of the Angular SignalRService, ShellComponent and AlarmService.
 import { SEVERITY_RANK, api, errorMessage, esc, systemLevel, toast } from './core.js';
 
-/** AI health (models + per-camera stream state) is a cheap status call: 10 s keeps the banner within ~10 s of a camera failure. */
+/** System health (AI models + per-camera stream state, database, sensors...) is one status call: 10 s keeps the banner within
+ * ~10 s of a camera failure. */
 export const AI_POLL_MS = 10_000;
+/** A health answer older than this is no longer shown as current (the request has its own shorter timeout). */
+export const HEALTH_STALE_MS = 25_000;
+const HEALTH_TIMEOUT_MS = 8_000; // shorter than the poll interval: requests never pile up on a slow server
 /** A camera whose AI frames stopped 8-120 s ago marks monitoring degraded before the next poll or the 10 s camera-lost alarm
  * (normal gaps measured up to 5.4 s at 3-4 cameras). Longer silences are left to the AI poll and the alarm. */
 export const FRAMES_STALE_MS = 8_000;
@@ -22,7 +26,8 @@ export const live = {
   loaded: false,
   cameras: [], sensors: [], sprinklers: [], incidents: [], activity: [],
   frameStats: {}, // cameraId -> { humanCount, dangerCount, fireDetected, fireSeverity, simulated, smokeDetected, model, receivedAt }
-  ai: null, // GET /api/ai/status, null = could not be read
+  ai: null, // the AI service part of the health answer (GET /api/ai/status shape), null = could not be read
+  health: null, healthAt: 0, healthError: null, // last GET /api/system/health answer, when it arrived, why the latest one failed
   now: Date.now(),
 
   on(name, fn) { (listeners.get(name) ?? listeners.set(name, []).get(name)).push(fn); },
@@ -159,8 +164,9 @@ function onNotification(n) {
 export function degradedReason() {
   if (live.state !== 'connected' || !live.loaded) return 'LIVE LINK DOWN'; // before the first snapshot, "no incidents" is unknown
   const s = live.ai;
-  if (!s) return 'AI STATUS UNKNOWN';
+  if (!s || live.now - live.healthAt > HEALTH_STALE_MS) return 'AI STATUS UNKNOWN'; // an old "ok" is not shown as current
   if (!s.online) return 'AI OFFLINE';
+  if (s.service?.status === 'loading') return 'AI LOADING'; // running, but no model is ready to detect anything yet
   if (s.service?.status !== 'ok') return 'AI MODEL MISSING';
   // The server's "camera lost" alarm needs 10 s of silence; the AI service knows at once which stream it cannot read.
   if ((s.service.cameras ?? []).some((c) => c.state === 'error' || c.state === 'reconnecting')) return 'CAMERA OFFLINE';
@@ -193,16 +199,21 @@ function renderBanner() {
 let aiPoll = 0;
 async function pollAi() {
   const poll = ++aiPoll; // a slow older reply must not overwrite a newer one
-  let status = null;
-  try { status = await api('/api/ai/status'); } catch { /* unknown */ }
+  let health = null, error = null;
+  try { health = await api('/api/system/health', { signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS) }); } catch (err) {
+    error = err?.name === 'TimeoutError' ? `no answer within ${HEALTH_TIMEOUT_MS / 1000} s` : errorMessage(err);
+  }
   if (poll !== aiPoll) return;
-  live.ai = status;
+  if (health) Object.assign(live, { health, healthAt: Date.now(), healthError: null }); else live.healthError = error; // keep the last answer, marked stale
+  live.ai = health?.components.ai.details ?? null;
+  const status = live.ai;
   const s = status;
   const missing = s?.service?.models?.filter((m) => !m.loaded).map((m) => m.name) ?? [];
   document.getElementById('ai-dot').className = `dot ${!s?.online ? 'dot-red' : s.service?.status === 'ok' ? 'dot-green' : 'dot-amber'}`;
   document.getElementById('ai-link').title = !s ? 'AI service status unknown' : !s.online ? `AI service offline: ${s.error ?? ''}`
-    : missing.length ? `AI online, missing model(s): ${missing.join(', ')}` : 'AI online, all models loaded';
+    : s.service?.status === 'loading' ? 'AI service is loading its models' : missing.length ? `AI online, missing model(s): ${missing.join(', ')}` : 'AI online, all models loaded';
   live.emit('ai');
+  live.emit('health');
   renderBanner();
 }
 

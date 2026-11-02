@@ -26,12 +26,12 @@ export class ApiError extends Error {
 }
 
 /** fetch() for the JSON API. `body` is JSON unless it is FormData. A 401 means the session ended: back to sign-in. */
-export async function api(path, { method = 'GET', body } = {}) {
+export async function api(path, { method = 'GET', body, signal } = {}) {
   const headers = { Accept: 'application/json' };
   if (method !== 'GET') headers['X-CSRFToken'] = csrfToken();
   if (body !== undefined && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
   const response = await fetch(path, {
-    method, headers, credentials: 'same-origin',
+    method, headers, credentials: 'same-origin', signal,
     body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
   });
   if (response.status === 401) {

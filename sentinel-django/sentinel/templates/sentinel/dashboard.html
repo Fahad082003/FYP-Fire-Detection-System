@@ -62,6 +62,15 @@
   <div class="col">
     <section class="kpis" aria-label="Key metrics" id="kpis"></section>
 
+    <section class="panel" aria-labelledby="health-title">
+      <header class="panel-head">
+        <h2 id="health-title" class="panel-title">System Health</h2>
+        <span class="small strong" id="health-overall" role="status">CHECKING…</span>
+      </header>
+      <p class="small muted" id="health-checked" style="padding:0 1rem"></p>
+      <div class="scroll scroll-360" id="health"><p class="empty">Checking system health…</p></div>
+    </section>
+
     <section class="panel" aria-labelledby="sensor-title">
       <header class="panel-head">
         <h2 id="sensor-title" class="panel-title">Sensor Telemetry</h2>

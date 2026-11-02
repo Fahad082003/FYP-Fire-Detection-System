@@ -42,7 +42,8 @@ HEALTH = {
 }
 HEALTH["model-missing"] = {**HEALTH["ok"], "status": "degraded",
                            "models": [HEALTH["ok"]["models"][0], {**HEALTH["ok"]["models"][1], "loaded": False, "error": "file not found"}]}
-HEALTH["camera-error"] = {**HEALTH["ok"], "cameras": [{"cameraId": "cam-warehouse", "kind": "stream", "source": "rtsp://***@10.0.0.5/live",
+HEALTH["loading"] = {**HEALTH["ok"], "status": "loading", "models": [], "capabilities": []}
+HEALTH["camera-error"] ={**HEALTH["ok"], "cameras": [{"cameraId": "cam-warehouse", "kind": "stream", "source": "rtsp://***@10.0.0.5/live",
                                                        "simulated": False, "state": "error", "error": "cannot open stream source",
                                                        "framesSent": 0, "postFailures": 0}]}
 stub = {"mode": "ok"}

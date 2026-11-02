@@ -56,6 +56,7 @@ class YoloxDetector:
         bad = set(self.categories.values()) - CATEGORIES
         if bad:
             raise ModelError(f"{self.name}: unknown categories {bad}")
+        warm_up = session is None  # a real file; injected test sessions replay recorded outputs and are not warmed up
         if session is None:
             path = models_dir / self.file
             if not path.is_file():
@@ -63,9 +64,26 @@ class YoloxDetector:
             if spec.get("sha256") and sha256(path) != spec["sha256"]:
                 raise ModelError(f"{path.name}: sha256 mismatch, refusing to load an unverified file")
             import onnxruntime as ort  # imported lazily: unit tests do not need it
-            session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+            try:
+                session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+            except Exception as e:  # noqa: BLE001 - onnxruntime raises its own types for a broken file
+                raise ModelError(f"{path.name}: cannot be loaded by onnxruntime: {e}")
         self.session = session
         self.input_name = session.get_inputs()[0].name
+        if warm_up:
+            self.warm_up()
+
+    def warm_up(self) -> None:
+        """One run on a blank frame of the manifest's input size: an incompatible model fails here, at load, instead of on the
+        first camera frame. Only shapes are checked; the result is discarded (no thresholds, NMS or detections involved)."""
+        blank = np.full((1, 3, self.input_h, self.input_w), 114, dtype=np.float32)
+        try:
+            raw = self.session.run(None, {self.input_name: blank})[0]
+        except Exception as e:  # noqa: BLE001 - e.g. onnxruntime rejects the input size
+            raise ModelError(f"{self.name}: warm-up failed, the model does not accept a {self.input_w}x{self.input_h} input: {e}")
+        out = self.decode(raw)  # raises ModelError on an unexpected output shape
+        if out.shape[1] - 5 <= max(self.categories):
+            raise ModelError(f"{self.name}: the model has {out.shape[1] - 5} classes but the manifest maps class {max(self.categories)}")
 
     def preprocess(self, bgr: np.ndarray) -> tuple[np.ndarray, float]:
         """Letterbox to the model size with grey (114) padding; YOLOX 0.1.1rc0 models take raw 0-255 BGR."""

@@ -17,6 +17,7 @@ from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import exception_handler
 
 from . import ai_client, alerts, dto, services, sprinklers
+from . import health as health_checks  # api.health is the liveness route
 from .forms import CameraForm
 from .models import (CameraFeed, FloorPlan, IncidentAlert, IncidentLogType, SensorNode, SmartSprinkler, SprinklerMode,
                      WebPushSubscription)
@@ -483,4 +484,10 @@ def push_unsubscribe(request):
 @permission_classes([AllowAny])
 def health(request):
     return Response({"status": "ok", "time": timezone.now()})
+
+
+@api_view(["GET"])
+def system_health(request):
+    """Every component from a real check (sentinel/health.py); operators only, it names cameras and sensors."""
+    return Response(health_checks.system_health())
 
