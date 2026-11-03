@@ -1,8 +1,16 @@
 {% extends "sentinel/shell.html" %}
 {% load static %}
-{% block title %}Floor Plans · FireVision AI{% endblock %}
+{% block title %}Building Map · Edit plan · Sentinel{% endblock %}
 {% block page %}
-<main class="page page-floorplans">
+<main class="page">
+  <header class="page-head">
+    <h1>Building Map</h1>
+    <nav class="seg push-right" aria-label="Mode">
+      <a class="seg-btn" href="{% url 'map' %}">View</a>
+      <a class="seg-btn" href="{% url 'floor_plans' %}" aria-current="page">Edit plan</a>
+    </nav>
+  </header>
+  <div class="page-floorplans">
   <section class="panel" aria-labelledby="plans-title">
     <header class="panel-head">
       <h2 id="plans-title" class="panel-title">Floor Plans</h2>
@@ -61,7 +69,7 @@
 
     <section class="panel panel-body stack" aria-label="Camera calibration">
       <h3 class="panel-title">Camera calibration</h3>
-      <p class="tiny muted">Links a camera to this plan, so people it sees appear as amber dots in the dashboard's evacuation panel.
+      <p class="tiny muted">Links a camera to this plan, so people it sees appear as amber dots on the Building Map.
         Choose 4 floor corners that the camera sees. <b>Camera px</b>: read x, y from a camera snapshot (Paint shows them at the bottom).
         <b>Plan m</b>: type them, or press <b>Plan m ⌖</b> and click the plan. Save the plan first.</p>
       <select class="input" id="calib-camera" aria-label="Camera"><option value="">Choose a camera…</option></select>
@@ -82,6 +90,7 @@
       </ul>
     </section>
   </aside>
+  </div>
 </main>
 {% endblock %}
 {% block scripts %}{{ block.super }}<script type="module" src="{% static 'sentinel/js/floorplans.js' %}"></script>{% endblock %}

@@ -1,6 +1,7 @@
-// The command-center dashboard panels (ports of the Angular dashboard components).
+// The live panels of every page (dashboard, cameras, sensors, sprinklers, incidents, activity, building map, AI, settings).
+// Each section runs only where its element is on the page.
 import { SEVERITY_RANK, api, confirmAsk, dateTimeOf, errorMessage, esc, fireSeverityText, relativeTime, timeOf, toast } from './core.js';
-import { HEALTH_STALE_MS, HISTORY_POINTS, live } from './shell.js';
+import { FRAMES_STALE_MS, HEALTH_STALE_MS, HISTORY_POINTS, degradedReason, live } from './shell.js';
 import { OverlayRenderer, register, unregister } from './overlay.js';
 import { PlanMap } from './planmap.js';
 
@@ -8,7 +9,7 @@ const $ = (id) => document.getElementById(id);
 
 // ================================================================ video wall
 const MJPEG_RETRY_MS = 5000;
-const wall = { filter: 'all', heatmap: true, focused: null, tiles: new Map() };
+const wall = { filter: 'all', heatmap: true, focused: null, selected: new URLSearchParams(location.search).get('camera'), tiles: new Map() };
 let hlsLoading = null;
 
 function loadHls() { // vendored hls.js (Apache-2.0), fetched only when an HLS feed exists
@@ -19,18 +20,36 @@ function loadHls() { // vendored hls.js (Apache-2.0), fetched only when an HLS f
   return hlsLoading;
 }
 
+/** A camera's state from the central health check (GET /api/system/health, polled every 10 s): the page snapshot's status is
+ * only the state at page load. [label, tone, explanation]; unknown while there is no current health answer. */
+const CAMERA_STATE = { connected: ['Online', 'on'], recovering: ['Recovering', 'warn'], stale: ['Stale', 'warn'], disconnected: ['Offline', 'off'],
+  'not-monitored': ['Simulated', 'muted'] };
+function cameraState(camera) {
+  const current = live.health && live.now - live.healthAt <= HEALTH_STALE_MS;
+  const entry = current ? live.health.components.cameras?.details?.cameras?.find((x) => x.id === camera.id) : null;
+  const last = live.frameStats[camera.id]?.receivedAt; // between polls this page sees first that frames started or stopped
+  if (last && live.now - last <= FRAMES_STALE_MS && last > live.healthAt) return ['Online', 'on', 'AI frames arriving now.'];
+  if (!entry || !CAMERA_STATE[entry.state]) return ['Status unknown', 'muted', 'No current health check.'];
+  if (entry.state === 'connected' && last && live.now - last > FRAMES_STALE_MS) return ['Stale', 'warn', `No AI frame for ${Math.round((live.now - last) / 1000)} s.`];
+  return [...CAMERA_STATE[entry.state], entry.message];
+}
+
 class Tile {
   constructor(camera) {
     this.el = document.createElement('article');
     this.el.className = 'tile';
     this.el.tabIndex = 0;
     this.el.setAttribute('role', 'button');
-    this.el.innerHTML = `<div class="stage"><canvas aria-hidden="true"></canvas><div class="tile-top"></div><div class="chips"></div></div>`;
+    this.el.innerHTML = `<div class="stage"><canvas aria-hidden="true"></canvas><div class="tile-top"></div><div class="chips"></div><div class="tile-state"></div></div>`;
     this.stage = this.el.firstElementChild;
     this.renderer = new OverlayRenderer(this.stage, this.stage.querySelector('canvas'), (stale) => { this.stale = stale; this.renderInfo(); });
     this.stale = true;
     register(this.renderer);
-    const toggle = () => { wall.focused = wall.focused === this.camera.id ? null : this.camera.id; renderWall(); };
+    const toggle = () => { // cameras page: select it (details beside the grid); dashboard: open it on the cameras page
+      if (!$('camera-detail')) { location.href = `/cameras?camera=${encodeURIComponent(this.camera.id)}`; return; }
+      wall.selected = this.camera.id;
+      renderWall();
+    };
     this.el.addEventListener('click', toggle);
     this.el.addEventListener('keydown', (e) => { if (e.key === 'Enter') toggle(); });
     this.setCamera(camera);
@@ -100,20 +119,26 @@ class Tile {
   renderInfo() {
     const c = this.camera;
     const s = this.stale ? null : live.frameStats[c.id] ?? null;
+    const camState = cameraState(c);
     const alert = !s ? '' : s.dangerCount > 0 || s.fireSeverity === 'Critical' || (s.fireDetected && s.humanCount > 0) ? 'critical' : s.fireDetected ? 'elevated' : '';
     this.el.classList.toggle('tile-critical', alert === 'critical');
     this.el.classList.toggle('tile-elevated', alert === 'elevated');
-    this.stage.querySelector('.tile-top').innerHTML = `<span class="feed-type ${c.feedType === 'Drone' ? 'drone' : ''}">${esc(c.feedType.toUpperCase())}</span>
-      <span class="tile-name">${esc(c.name)} <span>(${esc(c.locationZone)})</span></span>
+    this.el.classList.toggle('tile-selected', wall.selected === c.id && !!$('camera-detail'));
+    this.stage.querySelector('.tile-top').innerHTML = `<span class="tile-name" title="${esc(`${c.feedType} · ${c.locationZone}`)}">${esc(c.name)}</span>
+      <span class="cam-status ${camState[1]}" title="${esc(camState[2])}">${camState[0]}</span>
       <span class="live-flag ${this.stale ? 'stale' : ''}"><span class="dot ${this.stale ? 'dot-slate' : 'dot-red blink'}" style="width:6px;height:6px"></span>${this.stale ? 'NO AI DATA' : 'LIVE'}</span>`;
     const model = s?.model;
-    this.stage.querySelector('.chips').innerHTML = `<span class="chip">HUM <b class="hum">${s?.humanCount ?? 0}</b></span>
-      <span class="chip ${(s?.dangerCount ?? 0) > 0 ? 'chip-danger' : ''}">DANGER <b>${s?.dangerCount ?? 0}</b></span>
-      ${s?.simulated ? '<span class="chip" title="Producer marked this data as simulated">SIM DATA</span>' : ''}
-      ${model ? `<span class="chip" title="Detections from AI model: ${esc(model)}">AI</span>` : ''}
+    this.stage.querySelector('.chips').innerHTML = s ? `${s.humanCount ? `<span class="chip">HUM <b class="hum">${s.humanCount}</b></span>` : ''}
+      ${s.dangerCount ? `<span class="chip chip-danger">DANGER <b>${s.dangerCount}</b></span>` : ''}
       ${model?.includes(':missing') ? `<span class="chip text-amber" title="Model not loaded: ${esc(model)}">MODEL MISSING</span>` : ''}
-      ${s?.smokeDetected ? '<span class="chip chip-fire">SMOKE</span>' : ''}
-      <span class="chip ${s?.fireDetected ? 'chip-fire' : ''}" title="Fire severity = share of the image covered by fire boxes, not a calibrated physical size">FIRE <b>${s?.fireDetected ? esc(fireSeverityText(s.fireSeverity) ?? 'YES') : '—'}</b></span>`;
+      ${s.smokeDetected ? '<span class="chip chip-fire">SMOKE</span>' : ''}
+      ${s.fireDetected ? `<span class="chip chip-fire" title="Fire severity = share of the image covered by fire boxes, not a calibrated physical size">FIRE <b>${esc(fireSeverityText(s.fireSeverity) ?? 'YES')}</b></span>` : ''}` : '';
+    // A camera without a stream link only gets data from the simulator (start.ps1 -Simulator): say so instead of "waiting".
+    const [state, tone] = camState[1] === 'off' ? ['Camera Offline', 'danger'] : s?.fireDetected ? ['Fire Detected', 'danger']
+      : s?.smokeDetected ? ['Smoke Detected', 'warn'] : s ? ['Normal', 'ok']
+        : !c.streamUrl ? ['No camera connected', 'muted'] : ['Waiting for AI', 'muted'];
+    this.stage.querySelector('.tile-state').innerHTML = `<span class="state-pill sp-${tone}" title="${esc(!c.streamUrl && !s
+      ? 'This is a demo camera without a stream link. Start with .\\start.ps1 -Simulator for demo data, or add the real link under Settings.' : '')}">${state}</span>`;
   }
 
   destroy() {
@@ -125,13 +150,21 @@ class Tile {
   }
 }
 
+/** A camera with something to look at: not working, or fire or smoke seen now. */
+function cameraProblem(c) {
+  const s = live.liveStats().find((x) => x.cameraId === c.id);
+  return ['off', 'warn'].includes(cameraState(c)[1]) || !!s?.fireDetected || !!s?.smokeDetected;
+}
+
 function renderWall() {
   const container = $('video-wall');
-  if (!live.loaded) return;
-  const visible = live.cameras.filter((c) => (wall.filter === 'all' || c.feedType === wall.filter) && (!wall.focused || c.id === wall.focused));
+  if (!container || !live.loaded) return;
+  const shown = (c) => (wall.filter === 'all' || (wall.filter === 'problems' ? cameraProblem(c) : c.feedType === wall.filter));
+  const visible = live.cameras.filter((c) => shown(c) && (!wall.focused || c.id === wall.focused));
   for (const [id, tile] of wall.tiles) if (!live.cameras.some((c) => c.id === id)) { tile.destroy(); wall.tiles.delete(id); }
   if (!visible.length) {
-    container.innerHTML = '<p class="empty">No camera feeds registered.</p>';
+    container.innerHTML = `<p class="empty">${live.cameras.length ? 'No camera matches this filter.' : 'No camera added yet. Add one under Settings.'}</p>`;
+    renderCameraDetail();
     return;
   }
   let grid = container.querySelector('.video-grid');
@@ -143,18 +176,55 @@ function renderWall() {
     tile.renderer.showHeatmap = wall.heatmap;
   }
   grid.replaceChildren(...visible.map((c) => wall.tiles.get(c.id).el));
+  wall.tiles.forEach((t) => t.renderInfo());
+  renderCameraDetail();
 }
 
-$('feed-filter').addEventListener('click', (e) => {
+/** Cameras page: the selected camera, in plain words. */
+function renderCameraDetail() {
+  const box = $('camera-detail');
+  if ($('camera-count')) {
+    const working = live.cameras.filter((c) => cameraState(c)[0] === 'Online').length;
+    $('camera-count').textContent = live.loaded ? `${working} of ${live.cameras.length} working` : '';
+  }
+  if (!box) return;
+  const c = live.cameras.find((x) => x.id === wall.selected);
+  if (!c) { if (!box.dataset.empty) { box.innerHTML = '<p class="muted">Click a camera to see its details.</p>'; box.dataset.empty = '1'; } return; }
+  delete box.dataset.empty;
+  const s = live.liveStats().find((x) => x.cameraId === c.id);
+  const [label, tone, why] = cameraState(c);
+  const seen = !s ? 'no AI data right now' : [`${s.humanCount} people`, s.fireDetected ? 'FIRE' : 'no fire', s.smokeDetected ? 'SMOKE' : 'no smoke'].join(' · ');
+  const last = live.frameStats[c.id]?.receivedAt;
+  const html = `<h2 class="section-title">${esc(c.name)}</h2>
+    <dl class="facts">
+      <div><dt>Status</dt><dd class="${{ on: 'text-green', off: 'text-red', warn: 'text-amber' }[tone] ?? 'dim'}" title="${esc(why)}">${label}</dd></div>
+      <div><dt>AI sees</dt><dd>${esc(seen)}</dd></div>
+      <div><dt>Area</dt><dd>${esc(c.locationZone)}</dd></div>
+      <div><dt>Type</dt><dd>${esc(c.feedType)}${c.streamUrl ? '' : ' · demo camera (no stream link)'}</dd></div>
+      <div><dt>Last picture</dt><dd>${last ? relativeTime(new Date(last).toISOString(), live.now) : 'none yet'}</dd></div>
+    </dl>
+    <div class="row">
+      <button type="button" class="btn btn-primary" data-full>${wall.focused === c.id ? 'Show all cameras' : 'Full screen'}</button>
+      <a class="btn btn-ghost" href="/map">Show on map</a>
+    </div>`;
+  if (html !== box.dataset.html) { box.innerHTML = html; box.dataset.html = html; }
+}
+$('camera-detail')?.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-full]')) return;
+  wall.focused = wall.focused === wall.selected ? null : wall.selected;
+  renderWall();
+});
+
+$('feed-filter')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-filter]');
   if (!b) return;
   wall.filter = b.dataset.filter;
   for (const x of $('feed-filter').children) x.setAttribute('aria-selected', String(x === b));
   renderWall();
 });
-$('heatmap-toggle').addEventListener('change', (e) => { wall.heatmap = e.target.checked; renderWall(); });
+$('heatmap-toggle')?.addEventListener('change', (e) => { wall.heatmap = e.target.checked; renderWall(); });
 live.on('detection', (f) => wall.tiles.get(f.cameraId)?.renderer.update(f));
-live.on('stats', () => wall.tiles.forEach((t) => t.renderInfo()));
+for (const name of ['stats', 'health', 'tick']) live.on(name, () => { wall.tiles.forEach((t) => t.renderInfo()); renderCameraDetail(); });
 live.on('cameras', renderWall);
 
 // ================================================================ KPIs
@@ -173,24 +243,105 @@ export function peopleCount(stats, cameras) {
 }
 
 function renderKpis() {
+  if (!$('kpis')) return;
   const open = live.openIncidents();
   const critical = open.filter((i) => i.severity === 'Critical').length;
   const top = Math.max(-1, ...open.map((i) => SEVERITY_RANK[i.severity]));
-  const stats = live.liveStats();
-  const { humans, danger } = peopleCount(stats, live.cameras);
-  const peak = (type) => live.sensors.filter((s) => s.type === type).reduce((best, s) => (!best || s.currentValue > best.currentValue ? s : best), null);
-  const tone = (s) => (!s ? 'neutral' : s.state === 'Normal' ? 'ok' : s.state === 'Warning' || s.state === 'Stale' ? 'warn' : 'danger');
-  const temp = peak('Temperature'), smoke = peak('Smoke');
-  const kpis = [
-    ['Open Incidents', String(open.length), critical ? `${critical} critical` : open.length ? 'monitoring' : 'none open', top >= SEVERITY_RANK.High ? 'danger' : top >= 0 ? 'warn' : 'ok'],
-    ['Humans Tracked', String(humans), `${danger} in danger · ${stats.length} live feed(s)`, danger > 0 ? 'danger' : humans > 0 ? 'ok' : 'neutral'],
-    ['Peak Temperature', temp ? `${temp.currentValue.toFixed(1)}°C` : '—', temp ? `${temp.locationZone} · ${temp.id}${temp.state === 'Stale' ? ' · stale' : ''}` : 'no sensors', tone(temp)],
-    ['Peak Smoke', smoke ? `${Math.round(smoke.currentValue)} ppm` : '—', smoke ? `${smoke.locationZone} · ${smoke.id}${smoke.state === 'Stale' ? ' · stale' : ''}` : 'no sensors', tone(smoke)],
+  const { humans, danger } = peopleCount(live.liveStats(), live.cameras);
+  const cams = live.cameras.length, camsOnline = live.cameras.filter((c) => cameraState(c)[0] === 'Online').length;
+  const demo = live.cameras.filter((c) => cameraState(c)[0] === 'Simulated').length; // no stream link: only the simulator feeds them
+  const sensors = live.sensors.length, reporting = live.sensors.filter((s) => s.state !== 'Stale').length;
+  const overLimit = live.sensors.filter((s) => s.state === 'Alarm' || s.state === 'Critical').length;
+  const relays = live.sprinklers.length, spraying = live.sprinklers.filter((s) => s.isActive).length;
+  const kpis = [ // [label, value, hint, tone]
+    ['Cameras', camsOnline, `of ${cams} working${demo ? ` · ${demo} demo` : ''}${humans ? ` · ${humans} people` : ''}${danger ? ` · ${danger} in danger` : ''}`,
+      danger > 0 ? 'danger' : !cams ? 'neutral' : camsOnline < cams ? 'warn' : 'ok'],
+    ['Sensors', reporting, `of ${sensors} working${overLimit ? ` · ${overLimit} over the limit` : ''}`,
+      overLimit ? 'danger' : !sensors ? 'neutral' : reporting < sensors ? 'warn' : 'ok'],
+    ['Sprinklers', relays, spraying ? `${spraying} spraying now` : relays ? 'all ready' : 'none registered',
+      spraying ? 'info' : relays ? 'ok' : 'neutral'],
+    ['Open Incidents', open.length, critical ? `${critical} critical` : open.length ? 'monitoring' : 'none open',
+      top >= SEVERITY_RANK.High ? 'danger' : top >= 0 ? 'warn' : 'ok'],
   ];
   $('kpis').innerHTML = kpis.map(([label, value, hint, t]) => `<article class="kpi kpi-${t}"><span class="kpi-label">${label}</span>
-    <span class="kpi-value">${esc(value)}</span><span class="kpi-hint">${esc(hint)}</span></article>`).join('');
+    <span class="kpi-value">${esc(String(value))}</span><span class="kpi-hint">${esc(hint)}</span></article>`).join('');
+  renderStatus();
 }
-for (const name of ['incidents', 'stats', 'sensors', 'cameras', 'tick']) live.on(name, renderKpis);
+for (const name of ['incidents', 'stats', 'sensors', 'cameras', 'sprinklers', 'health', 'tick']) live.on(name, renderKpis);
+
+/** The status banner's reasons, said simply. */
+const PLAIN_REASON = {
+  'LIVE LINK DOWN': 'Server se live connection nahi hai', 'AI STATUS UNKNOWN': 'AI Service ka haal maloom nahi',
+  'AI OFFLINE': 'AI Service Band Hai', 'AI UNRESPONSIVE': 'AI Service jawab nahi de rahi', 'AI RESTARTING': 'AI Service restart ho rahi hai',
+  'AI RECOVERING': 'AI Service dobara shuru ho rahi hai', 'AI RECOVERY FAILED': 'AI Service shuru nahi ho saki',
+  'AI LOADING': 'AI Models load ho rahe hain', 'AI MODEL MISSING': 'AI Model Load Nahi Hua', 'CAMERA OFFLINE': 'Camera Offline',
+  'AI DATA STALE': 'Camera se AI data aana ruk gaya hai',
+};
+
+/** Safe / Warning / Emergency, from the same rules as the status banner (open incidents, sensor states, monitoring gaps). */
+function renderStatus() {
+  const box = $('building-status');
+  const level = live.level(), reason = live.loaded ? degradedReason() : 'LIVE LINK DOWN';
+  const worst = [...live.openIncidents()].sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity] || b.timestamp.localeCompare(a.timestamp))[0];
+  const alarming = live.sensors.filter((s) => s.state === 'Alarm' || s.state === 'Critical');
+  const [tone, title] = level === 'critical' ? ['danger', 'Emergency'] : level === 'elevated' || reason ? ['warn', 'Warning'] : ['ok', 'Building is Safe'];
+  const text = worst ? `${worst.message} · ${locationOf(worst)} · since ${timeOf(worst.timestamp)}`
+    : alarming.length ? `${alarming.map((s) => `${s.type} sensor ${s.id} (${s.locationZone}) ${s.state}`).join('; ')}`
+      : reason ? `${PLAIN_REASON[reason] ?? reason}. Fire detection may not be working right now.`
+        : 'No fire or smoke anywhere.';
+  box.className = `building-status bs-${tone}`;
+  if (box.dataset.tone !== tone) { // the mark says the same as the words: tick, exclamation, warning sign
+    box.dataset.tone = tone;
+    box.querySelector('.bs-icon').innerHTML = `<svg viewBox="0 0 24 24">${{ ok: '<path d="m5 12 4.5 4.5L19 7"/>', warn: '<path d="M12 6v8m0 4v.01"/>',
+      danger: '<path d="M12 3 2 21h20L12 3zm0 7v5m0 3v.01"/>' }[tone]}</svg>`;
+  }
+  box.querySelector('[data-title]').textContent = title;
+  box.querySelector('[data-text]').textContent = text;
+  box.title = reason && (worst || alarming.length) ? `Also: ${PLAIN_REASON[reason] ?? reason}` : '';
+  const actions = !worst ? '' : `<a class="btn btn-danger" href="/incidents">Open incident</a>${worst.cameraId
+    ? `<button type="button" class="btn btn-ghost" data-show-camera="${esc(worst.cameraId)}">Show camera</button>` : ''}`;
+  if (actions !== statusActions) box.querySelector('[data-actions]').innerHTML = statusActions = actions; // rebuilt every second otherwise
+  const now = new Date(live.now);
+  $('today').textContent = `${now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })} · ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  renderAttention();
+}
+let statusActions = '';
+$('building-status')?.addEventListener('click', (e) => {
+  const id = e.target.closest('[data-show-camera]')?.dataset.showCamera;
+  if (id) location.href = `/cameras?camera=${encodeURIComponent(id)}`;
+});
+
+/** Only what is wrong right now, each in one plain line with where and since when; nothing else. */
+function renderAttention() {
+  const items = []; // [tone, text, where, link]
+  for (const i of [...live.openIncidents()].sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity])) {
+    items.push([SEVERITY_RANK[i.severity] >= SEVERITY_RANK.High ? 'danger' : 'warn', `${i.severity}: ${i.message}`,
+      `${locationOf(i)} · since ${timeOf(i.timestamp)}`, '/incidents']);
+  }
+  for (const c of live.cameras) {
+    const [label, tone, why] = cameraState(c);
+    if (tone === 'off' || tone === 'warn') items.push([tone === 'off' ? 'danger' : 'warn', `Camera ${c.name}: ${label}`, `${c.locationZone} · ${why}`, `/cameras?camera=${encodeURIComponent(c.id)}`]);
+  }
+  const stale = live.sensors.filter((s) => s.state === 'Stale');
+  if (stale.length) {
+    items.push(['warn', `${stale.length} sensor(s) not reporting`, stale.map((s) => `${s.type} ${s.id} (${s.locationZone})`).join(', '), '/sensors']);
+  }
+  for (const s of live.sensors.filter((x) => ['Warning', 'Alarm', 'Critical'].includes(x.state))) {
+    items.push([s.state === 'Warning' ? 'warn' : 'danger', `${s.type} sensor ${s.id}: ${s.state}`,
+      `${s.locationZone} · ${s.type === 'Temperature' ? s.currentValue.toFixed(1) : Math.round(s.currentValue)} ${s.unit}`, '/sensors']);
+  }
+  const h = live.health;
+  if (live.healthError && !h) items.push(['danger', 'Server jawab nahi de raha', live.healthError, '/ai']);
+  for (const [key, c] of Object.entries(h?.components ?? {})) {
+    if (c.optional || c.status === 'healthy' || key === 'cameras' || key === 'sensors') continue; // cameras and sensors: listed above
+    items.push([c.status === 'offline' ? 'danger' : 'warn', `${c.name}: ${HEALTH_SPECIFIC[key]?.[c.status] ?? HEALTH_PLAIN[c.status] ?? c.status}`, c.message, '/ai']);
+  }
+  const html = items.length ? items.map(([tone, text, where, link]) => `<li class="att att-${tone}"><span class="att-dot" aria-hidden="true"></span>
+      <div class="grow"><b>${esc(text)}</b><span>${esc(where)}</span></div><a href="${link}">Open</a></li>`).join('')
+    : `<li class="attention-ok">${live.loaded ? 'Everything is working. Problems appear here as soon as they happen.' : 'Checking…'}</li>`;
+  if (html !== attentionHtml) $('attention').innerHTML = attentionHtml = html;
+}
+let attentionHtml = '';
 
 // ================================================================ sensors and sprinklers
 const STATE_COLORS = { Normal: '#10b981', Warning: '#f59e0b', Alarm: '#ef4444', Critical: '#ef4444', Stale: '#94a3b8' };
@@ -228,45 +379,87 @@ function drawSparkline(canvas, data, threshold, color) {
   ctx.fill();
 }
 
+const SENSOR_LABEL = { Stale: 'Not reporting' };
+
 function renderSensors() {
-  $('sensor-count').textContent = `${live.sensors.length} nodes`;
+  if (!$('sensors')) return;
   if (!live.loaded) return;
-  if (!live.sensors.length) { $('sensors').innerHTML = '<p class="empty">No sensors registered.</p>'; return; }
-  $('sensors').innerHTML = `<div class="sensor-grid">${live.sensors.map((s) => {
+  $('sensor-count').textContent = `${live.sensors.filter((s) => s.state !== 'Stale').length} of ${live.sensors.length} working · limits in the table`;
+  if (!live.sensors.length) { $('sensors').innerHTML = '<tr><td colspan="6" class="empty">No sensor added yet.</td></tr>'; return; }
+  $('sensors').innerHTML = live.sensors.map((s) => {
     const color = STATE_COLORS[s.state];
-    const value = s.type === 'Temperature' ? s.currentValue.toFixed(1) : String(Math.round(s.currentValue));
-    const pct = Math.max(0, Math.min(100, (s.currentValue / (s.criticalThreshold * 1.1)) * 100)); // scale ends 10 % above critical
-    return `<article class="sensor ${s.state}" aria-label="${esc(`${s.type} ${s.id} in ${s.locationZone}: ${value} ${s.unit}, ${s.state}`)}">
-      <div class="gauge" style="--pct:${pct};--tone:${color}"><div class="gauge-ring"></div><div class="gauge-value"><b>${value}</b><span>${esc(s.unit)}</span></div></div>
-      <div class="grow"><div class="sensor-head">${s.type}<span class="state-badge" style="color:${color};background:${color}22">${s.state}</span></div>
-        <div class="tiny muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.locationZone)} · ${esc(s.id)}</div>
-        <canvas class="sparkline" data-sensor="${esc(s.id)}" aria-hidden="true"></canvas>
-        <div class="tiny muted">Limit <b class="mono" style="color:var(--text-2)">${s.threshold}${esc(s.unit)}</b>${s.state === 'Stale'
-          ? ` · <span class="text-amber">${s.lastReadingAt ? `last reading ${relativeTime(s.lastReadingAt, live.now)}` : 'no reading yet'}</span>` : ''}</div></div></article>`;
-  }).join('')}</div>`;
+    const value = s.lastReadingAt ? `${s.type === 'Temperature' ? s.currentValue.toFixed(1) : Math.round(s.currentValue)} ${s.unit}` : 'no reading';
+    return `<tr class="sensor ${s.state}">
+      <td><button type="button" class="link-btn" data-sensor-history="${esc(s.id)}"><b>${esc(s.type)}</b> <span class="muted">${esc(s.id)}</span></button></td>
+      <td>${esc(s.locationZone)}</td>
+      <td class="strong">${esc(value)} <span class="tiny muted">limit ${s.threshold} ${esc(s.unit)}</span></td>
+      <td><span class="state-badge" style="color:${color};background:${color}22">${SENSOR_LABEL[s.state] ?? s.state}</span></td>
+      <td class="${s.state === 'Stale' ? 'text-amber' : 'dim'}" data-age="${esc(s.id)}">${sensorAge(s)}</td>
+      <td><canvas class="sparkline" data-sensor="${esc(s.id)}" aria-hidden="true"></canvas></td></tr>`;
+  }).join('');
   for (const s of live.sensors) {
     const canvas = $('sensors').querySelector(`[data-sensor="${CSS.escape(s.id)}"]`);
     if (canvas) drawSparkline(canvas, s.history ?? [], s.threshold, STATE_COLORS[s.state]);
   }
 }
 
-const relayTime = (s) => (s.isActive ? `spraying · ${relativeTime(s.lastTriggeredAt, live.now)}` : `last ${relativeTime(s.lastTriggeredAt, live.now)}`);
+const sensorAge = (s) => (s.lastReadingAt ? `${s.state === 'Stale' ? 'last reading' : 'updated'} ${relativeTime(s.lastReadingAt, live.now)}` : 'no reading yet');
+$('sensors')?.addEventListener('click', async (e) => { // a sensor's saved readings (GET …/history), drawn as one line
+  const id = e.target.closest('[data-sensor-history]')?.dataset.sensorHistory;
+  const box = $('sensor-history');
+  if (!id || !box) return;
+  box.classList.remove('hidden');
+  box.innerHTML = `<h2 class="section-title">History · ${esc(id)}</h2><p class="muted">Loading…</p>`;
+  try {
+    const h = await api(`/api/iot/sensors/${encodeURIComponent(id)}/history?limit=500`);
+    const path = chartPath(h.readings.map((r) => ({ t: Date.parse(r.recordedAt), v: r.value })));
+    box.innerHTML = `<div class="section-head"><h2 class="section-title">History · ${esc(id)} (${esc(h.unit)})</h2>
+      <button type="button" class="btn btn-ghost btn-sm" data-close-history>Close</button></div>${path
+      ? `<svg class="chart" viewBox="0 0 ${CHART_W} ${CHART_H}" preserveAspectRatio="none" role="img" aria-label="Readings of ${esc(id)}">
+          <polyline points="${path.line}" fill="none" stroke="#3b82f6" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+        <div class="chart-axis"><span>${dateTimeOf(path.from)}</span><span>max scale ${path.max.toFixed(1)} ${esc(h.unit)}</span><span>${dateTimeOf(path.to)}</span></div>`
+      : '<p class="muted">No saved readings yet.</p>'}`;
+  } catch (err) {
+    box.innerHTML = `<p class="text-red" role="alert">${esc(errorMessage(err))}</p>`;
+  }
+});
+$('sensor-history')?.addEventListener('click', (e) => { if (e.target.closest('[data-close-history]')) $('sensor-history').classList.add('hidden'); });
+live.on('tick', () => $('sensors')?.querySelectorAll('[data-age]').forEach((el) => {
+  const s = live.sensors.find((x) => x.id === el.dataset.age);
+  if (s) el.textContent = sensorAge(s);
+}));
+/** Ready = Auto and closed (opens by itself in an emergency); Manual = closed, only a person opens it; Active = spraying. */
+const relayState = (s) => (s.isActive ? ['Active', 'info'] : s.mode === 'Auto' ? ['Ready', 'ok'] : ['Manual', 'muted']);
+const relayTime = (s) => (s.isActive ? `spraying since ${relativeTime(s.lastTriggeredAt, live.now)}`
+  : s.lastTriggeredAt ? `last used ${relativeTime(s.lastTriggeredAt, live.now)}` : 'never used');
+let selectedRelay = null;
 
 function renderRelays() {
+  if (!$('relays')) return;
   const relays = live.sprinklers;
   const active = relays.filter((s) => s.isActive).length;
-  $('active-relays').textContent = active;
-  $('master-switch').checked = relays.length > 0 && active === relays.length;
-  $('relays').innerHTML = relays.length ? relays.map((s) => {
-    const busy = relayBusy.has(s.id);
-    return `<li class="relay ${s.isActive ? 'on' : ''} ${busy ? 'busy' : ''}" data-relay="${esc(s.id)}">
-      <div class="relay-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v5M8 8h8l-1 3H9zM7 15l-1 2M12 15v3M17 15l1 2M9.5 14l-.5 1M14.5 14l.5 1"/></svg></div>
-      <div style="min-width:0"><div class="mono strong">${esc(s.id)}</div><div class="tiny muted">${esc(s.zone)} · <span data-rel>${relayTime(s)}</span></div></div>
-      <div class="seg" role="group" aria-label="Control mode">${['Auto', 'Manual'].map((m) => `<button type="button" class="seg-btn" style="padding:4px 8px;font-size:11px"
-        data-mode="${m}" aria-pressed="${s.mode === m}" ${busy ? 'disabled' : ''}>${m}</button>`).join('')}</div>
-      <label class="switch-label"><input type="checkbox" role="switch" class="sr-only" data-toggle ${s.isActive ? 'checked' : ''} ${busy ? 'disabled' : ''}
-        aria-label="${esc(s.id)} relay ${s.isActive ? 'on' : 'off'}"><span class="switch"></span></label></li>`;
-  }).join('') : '<li class="empty">No sprinkler relays registered.</li>';
+  const all = relays.length > 0 && active === relays.length;
+  $('relay-summary').textContent = `${relays.filter((s) => !s.isActive && s.mode === 'Auto').length} ready · ${active ? `${active} spraying` : 'none spraying'}`;
+  $('master-switch').textContent = all ? 'Turn ALL off…' : 'Turn ALL on…';
+  $('master-switch').dataset.activate = String(!all);
+  const zones = [...new Set(relays.map((s) => s.zone))].sort();
+  $('relays').innerHTML = relays.length ? zones.map((zone) => `<li class="panel relay-area"><h2 class="section-title">${esc(zone)}</h2><ul class="stack">${
+    relays.filter((s) => s.zone === zone).map((s) => `<li class="relay ${s.isActive ? 'on' : ''} ${relayBusy.has(s.id) ? 'busy' : ''}" data-relay="${esc(s.id)}">
+      <button type="button" class="relay-pick ${selectedRelay === s.id ? 'selected' : ''}" data-pick="${esc(s.id)}" aria-pressed="${selectedRelay === s.id}">
+        <span><b class="mono">${esc(s.id)}</b><span class="tiny muted">${s.mode} · <span data-rel>${relayTime(s)}</span></span></span>
+        <span class="state-pill sp-${relayState(s)[1]}">${relayState(s)[0]}</span></button></li>`).join('')}</ul></li>`).join('')
+    : '<li class="empty">No sprinkler added yet.</li>';
+  renderRelayDetail();
+}
+
+function renderRelayDetail() {
+  const box = $('relay-detail');
+  const s = live.sprinklers.find((x) => x.id === selectedRelay);
+  if (!box || !s) return;
+  const busy = relayBusy.has(s.id) ? 'disabled' : '';
+  box.innerHTML = `<h2 class="section-title grow">${esc(s.id)} · ${esc(s.zone)} <span class="state-pill sp-${relayState(s)[1]}">${relayState(s)[0]}</span></h2>
+    <div class="seg" role="group" aria-label="Mode">${['Auto', 'Manual'].map((m) => `<button type="button" class="seg-btn" data-mode="${m}" aria-pressed="${s.mode === m}" ${busy}>${m}</button>`).join('')}</div>
+    <button type="button" class="btn ${s.isActive ? 'btn-ghost' : 'btn-primary'}" data-toggle-relay ${busy}>${s.isActive ? 'Turn off' : 'Turn on'}</button>`;
 }
 
 async function sendRelay(id, body) {
@@ -282,20 +475,26 @@ async function sendRelay(id, body) {
   }
 }
 
-$('relays').addEventListener('click', (e) => {
+$('relays')?.addEventListener('click', (e) => {
+  const id = e.target.closest('[data-pick]')?.dataset.pick;
+  if (id) { selectedRelay = id; renderRelays(); }
+});
+$('relay-detail')?.addEventListener('click', async (e) => {
+  const s = live.sprinklers.find((x) => x.id === selectedRelay);
+  if (!s) return;
   const mode = e.target.closest('[data-mode]');
-  const id = e.target.closest('[data-relay]')?.dataset.relay;
-  if (mode && id && mode.getAttribute('aria-pressed') !== 'true') sendRelay(id, { mode: mode.dataset.mode });
+  if (mode && mode.getAttribute('aria-pressed') !== 'true') sendRelay(s.id, { mode: mode.dataset.mode });
+  if (e.target.closest('[data-toggle-relay]') && await confirmAsk(s.isActive ? `Turn ${s.id} off?` : `Turn ${s.id} on?`,
+    s.isActive ? 'Water stops in this area.' : `Water comes out in ${s.zone}.`, s.isActive ? 'Turn off' : 'Turn on')) {
+    sendRelay(s.id, { isActive: !s.isActive });
+  }
 });
-$('relays').addEventListener('change', (e) => {
-  if (e.target.matches('[data-toggle]')) sendRelay(e.target.closest('[data-relay]').dataset.relay, { isActive: e.target.checked });
-});
-$('master-switch').addEventListener('change', async (e) => {
-  const activate = e.target.checked;
+$('master-switch')?.addEventListener('click', async (e) => {
+  const activate = e.target.dataset.activate !== 'false';
   const ok = await confirmAsk(activate ? 'Activate ALL sprinklers?' : 'Deactivate all sprinklers?',
     activate ? 'Every relay in every zone will open and discharge water, including relays in Manual mode.'
       : 'All relays will close. Only do this once the area is confirmed safe.', activate ? 'Activate all' : 'Deactivate all');
-  if (!ok) { renderRelays(); return; }
+  if (!ok) return;
   e.target.disabled = true;
   try {
     const res = await api('/api/iot/sprinklers/master', { method: 'POST', body: { isActive: activate } });
@@ -310,20 +509,21 @@ $('master-switch').addEventListener('change', async (e) => {
 });
 live.on('sensors', renderSensors);
 live.on('sprinklers', renderRelays);
-live.on('tick', () => $('relays').querySelectorAll('[data-relay]').forEach((li) => {
+live.on('tick', () => $('relays')?.querySelectorAll('[data-relay]').forEach((li) => {
   const s = live.sprinklers.find((x) => x.id === li.dataset.relay);
   if (s) li.querySelector('[data-rel]').textContent = relayTime(s);
 }));
 
 // ================================================================ alert logs
 const SOURCE_LABEL = { Vision: 'AI Vision', Sensor: 'Sensor', Manual: 'Manual', CameraLost: 'Camera lost', SensorLost: 'Sensor lost' };
-let incidentFilter = 'open';
+let incidentFilter = 'open', selectedIncident = null;
 const resolving = new Set();
 const locationOf = (i) => (i.cameraName ? `${i.zone} (${i.cameraName})` : i.sensorId ? `${i.zone} (sensor ${i.sensorId})` : i.zone);
 
 function renderIncidents() {
-  $('open-count').textContent = live.openIncidents().length;
   const body = $('incident-rows');
+  if (!body) return;
+  $('open-count').textContent = live.openIncidents().length;
   if (!live.loaded) {
     body.innerHTML = `<tr><td colspan="10" class="empty">${live.state === 'disconnected' ? 'Cannot reach the realtime server — retrying…' : 'Loading incidents…'}</td></tr>`;
     return;
@@ -331,28 +531,57 @@ function renderIncidents() {
   const rows = incidentFilter === 'open' ? live.openIncidents() : live.incidents;
   body.innerHTML = rows.length ? rows.map((i) => {
     const critical = i.severity === 'Critical' && !i.isResolved;
-    return `<tr class="${critical ? 'row-critical' : ''} ${i.isResolved ? 'row-resolved' : ''}">
-      <td class="mono">${i.id}</td><td class="nowrap" title="${esc(dateTimeOf(i.timestamp))}">${timeOf(i.timestamp)}</td>
+    return `<tr class="inc ${critical ? 'row-critical' : ''} ${i.isResolved ? 'row-resolved' : ''} ${selectedIncident === i.id ? 'selected' : ''}">
       <td><span class="sev sev-${i.severity}">${i.severity}</span></td>
-      <td style="min-width:180px;color:var(--text-2)" title="${esc(i.message)}">${esc(locationOf(i))}</td>
-      <td class="nowrap">${SOURCE_LABEL[i.source] ?? esc(i.source)}${i.corroborated
+      <td class="inc-main"><button type="button" class="link-btn" data-pick-incident="${i.id}">${esc(i.message)}</button>
+        <div class="tiny muted" title="${esc(dateTimeOf(i.timestamp))}">${esc(locationOf(i))} · #${i.id} · since ${timeOf(i.timestamp)}</div></td>
+      <td class="nowrap small">${SOURCE_LABEL[i.source] ?? esc(i.source)}${i.corroborated
         ? ' <span class="tag tag-fire" title="A smoke sensor in the same zone read its warning level within the fusion window">+ SMOKE SENSOR</span>' : ''}</td>
-      <td class="mono">${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'Yes') : '—'}</td>
-      <td class="num">${i.humanCount}</td><td class="num ${i.dangerCount > 0 ? 'text-amber' : ''}">${i.dangerCount}</td>
-      <td class="tiny strong ${i.falseAlarm ? 'muted' : i.isResolved ? 'text-green' : 'text-amber'}">${i.falseAlarm ? 'False alarm' : i.isResolved ? 'Resolved' : 'Open'}</td>
-      <td class="nowrap">${i.isResolved ? '' : `<button type="button" class="btn btn-sm btn-success" data-resolve="${i.id}" ${resolving.has(i.id) ? 'disabled' : ''}>Resolve</button>
-        <button type="button" class="btn btn-sm btn-ghost" data-resolve="${i.id}" data-false-alarm ${resolving.has(i.id) ? 'disabled' : ''}>False alarm</button>`}</td></tr>`;
-  }).join('') : `<tr><td colspan="10" class="empty">${incidentFilter === 'open' ? 'No open incidents.' : 'No incidents recorded.'}</td></tr>`;
+      <td class="small">${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'Yes') : '—'}</td>
+      <td class="small nowrap">${i.humanCount} people${i.dangerCount > 0 ? ` · <span class="text-amber">${i.dangerCount} in danger</span>` : ''}</td>
+      <td class="small strong ${i.falseAlarm ? 'muted' : i.isResolved ? 'text-green' : 'text-amber'}">${i.falseAlarm ? 'False alarm' : i.isResolved ? 'Resolved' : 'Open'}</td>
+      <td class="nowrap">${i.isResolved ? '' : resolveButtons(i)}</td></tr>`;
+  }).join('') : `<tr><td colspan="7" class="empty">${incidentFilter === 'open' ? 'No open incidents.' : 'No incidents recorded.'}</td></tr>`;
+  renderIncidentDetail();
 }
 
-$('incident-filter').addEventListener('click', (e) => {
+const resolveButtons = (i) => `<button type="button" class="btn btn-sm btn-success" data-resolve="${i.id}" ${resolving.has(i.id) ? 'disabled' : ''}>Resolve</button>
+  <button type="button" class="btn btn-sm btn-ghost" data-resolve="${i.id}" data-false-alarm ${resolving.has(i.id) ? 'disabled' : ''}>False alarm</button>`;
+
+/** The selected incident in plain words; its history is the "What happened" panel below it. */
+function renderIncidentDetail() {
+  const box = $('incident-detail');
+  const i = live.incidents.find((x) => x.id === selectedIncident);
+  if (!box || !i) return;
+  const by = i.cameraName ? `${i.cameraName} camera` : i.sensorId ? `sensor ${i.sensorId}` : SOURCE_LABEL[i.source] ?? i.source;
+  box.innerHTML = `<p class="tiny strong ${i.isResolved ? 'text-green' : 'text-red'}">${i.severity.toUpperCase()} · ${i.falseAlarm ? 'FALSE ALARM' : i.isResolved ? 'RESOLVED' : 'OPEN'} · #${i.id}</p>
+    <h2 class="detail-title">${esc(i.message)}</h2>
+    <dl class="facts">
+      <div><dt>Where</dt><dd>${esc(i.zone)}</dd></div>
+      <div><dt>Seen by</dt><dd>${esc(by)}${i.corroborated ? ' · confirmed by a smoke sensor' : ''}</dd></div>
+      <div><dt>Fire size</dt><dd>${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'yes') : 'no fire'}</dd></div>
+      <div><dt>People</dt><dd>${i.humanCount} seen · ${i.dangerCount} in danger</dd></div>
+      <div><dt>Opened</dt><dd>${esc(dateTimeOf(i.timestamp))}</dd></div>
+      ${i.resolvedAt ? `<div><dt>Resolved</dt><dd>${esc(dateTimeOf(i.resolvedAt))}</dd></div>` : ''}
+    </dl>
+    ${i.isResolved ? '' : `<div class="row">${resolveButtons(i)}</div>`}`;
+}
+
+$('incident-filter')?.addEventListener('click', (e) => {
   const b = e.target.closest('[data-filter]');
   if (!b) return;
   incidentFilter = b.dataset.filter;
   for (const x of $('incident-filter').children) x.setAttribute('aria-selected', String(x === b));
   renderIncidents();
 });
-$('incident-rows').addEventListener('click', async (e) => {
+async function onIncidentClick(e) {
+  const picked = Number(e.target.closest('[data-pick-incident]')?.dataset.pickIncident);
+  if (picked) { // select it: its details and its history
+    selectedIncident = picked;
+    renderIncidents();
+    if ($('history-incident')) { $('history-incident').value = String(picked); history.incidentId = picked; loadHistory(); }
+    return;
+  }
   const button = e.target.closest('[data-resolve]');
   const id = Number(button?.dataset.resolve);
   if (!id || resolving.has(id)) return;
@@ -369,9 +598,36 @@ $('incident-rows').addEventListener('click', async (e) => {
     resolving.delete(id);
     renderIncidents();
   }
-});
+}
+$('incident-rows')?.addEventListener('click', onIncidentClick);
+$('incident-detail')?.addEventListener('click', onIncidentClick);
 live.on('incidents', renderIncidents);
 live.on('state', renderIncidents);
+
+// ================================================================ fire & smoke tracking
+const percent = (v) => (v === null || v === undefined ? '' : ` · confidence ${Math.round(v * 100)}%`);
+
+function renderFireSmoke() {
+  if (!$('fire-smoke') || !live.loaded) return;
+  const stats = live.liveStats();
+  const where = (s) => { const c = live.cameras.find((x) => x.id === s.cameraId); return c ? `${c.name} · ${c.locationZone}` : s.cameraId; };
+  const item = (title, text) => `<li><b>${esc(title)}</b><span>${esc(text)}</span></li>`;
+  const fireNow = stats.filter((s) => s.fireDetected);
+  const fire = [...fireNow.map((s) => item(where(s), `AI camera, now${percent(s.fireConfidence)}${s.fireSeverity ? ` · ${fireSeverityText(s.fireSeverity)}` : ''}`)),
+    ...live.openIncidents().filter((i) => i.fireDetected).map((i) => item(`Incident #${i.id} · ${locationOf(i)}`,
+      `${i.severity}, open since ${timeOf(i.timestamp)} (${relativeTime(i.timestamp, live.now)})`))];
+  const smokeNow = stats.filter((s) => s.smokeDetected);
+  const smokeSensors = live.sensors.filter((s) => s.type === 'Smoke' && ['Warning', 'Alarm', 'Critical'].includes(s.state));
+  const smoke = [...smokeNow.map((s) => item(where(s), `AI camera, now${percent(s.smokeConfidence)}`)),
+    ...smokeSensors.map((s) => item(`Smoke sensor ${s.id} · ${s.locationZone}`, `${Math.round(s.currentValue)} ${s.unit}, ${s.state} · ${relativeTime(s.lastReadingAt, live.now)}`))];
+  const card = (kind, label, count, items, clear) => `<article class="fs-card fs-${kind} ${items.length ? 'active' : ''}">
+    <div class="fs-head"><span>${label}</span><b>${count}</b></div>
+    <p class="tiny">${count ? `${count} camera(s) see it now` : items.length ? 'not seen by a camera now' : clear}</p>
+    ${items.length ? `<ul class="fs-list">${items.join('')}</ul>` : ''}</article>`;
+  $('fire-smoke').innerHTML = `<div class="fs-grid">${card('fire', 'Fire', fireNow.length, fire, 'No fire detected right now.')}
+    ${card('smoke', 'Smoke', smokeNow.length, smoke, 'No smoke detected right now.')}</div>`;
+}
+for (const name of ['stats', 'incidents', 'sensors', 'cameras', 'snapshot', 'tick']) live.on(name, renderFireSmoke);
 
 // ================================================================ incident history
 const CHART_W = 600, CHART_H = 140;
@@ -422,6 +678,7 @@ function loadTrend() {
 
 function renderHistory() {
   const select = $('history-incident');
+  if (!select) return;
   const chosen = select.value;
   select.innerHTML = '<option value="">All incidents</option>' + live.incidents.map((i) =>
     `<option value="${i.id}">#${i.id} · ${i.severity} · ${esc(i.zone)}</option>`).join('');
@@ -463,8 +720,8 @@ function renderHistory() {
           : '<tr><td colspan="4" class="empty">No history entries for this filter.</td></tr>'}</tbody></table>`;
 }
 
-$('history-incident').addEventListener('change', (e) => { history.incidentId = e.target.value ? Number(e.target.value) : null; loadHistory(); });
-$('history-type').addEventListener('change', (e) => { history.type = e.target.value; loadHistory(); });
+$('history-incident')?.addEventListener('change', (e) => { history.incidentId = e.target.value ? Number(e.target.value) : null; loadHistory(); });
+$('history-type')?.addEventListener('change', (e) => { history.type = e.target.value; loadHistory(); });
 live.on('incidentLog', (l) => {
   if ((history.incidentId === null || l.incidentId === history.incidentId) && (!history.type || l.type === history.type)) {
     history.logs = [l, ...history.logs].slice(0, 500);
@@ -474,9 +731,9 @@ live.on('incidentLog', (l) => {
 });
 live.on('incidents', () => {
   const select = $('history-incident');
-  if (select.options.length !== live.incidents.length + 1) renderHistory();
+  if (select && select.options.length !== live.incidents.length + 1) renderHistory();
 });
-loadHistory();
+if ($('history-table')) loadHistory();
 
 // ================================================================ evacuation route
 const PEOPLE_EXPIRE_MS = 4500; // as the camera tile: a camera that sent nothing for this long no longer places people
@@ -528,9 +785,9 @@ function riskLayer() {
 function renderEvacuation() {
   const box = $('evacuation');
   const plan = currentPlan();
-  if (!plan) return;
+  if (!box || !plan) return;
   if (!evac.map) {
-    box.innerHTML = '<div class="panel-body" style="padding:12px"><div data-map></div><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-compare></div><div data-rescue></div><div data-safe></div></div>';
+    box.innerHTML = '<div class="map-layout"><div class="panel map-main" data-map></div><div class="panel evac-details"><h2 class="section-title">Way out from the clicked point</h2><p class="small muted" data-hint>Click a point on the plan, or an amber dot (a person a calibrated camera sees).</p><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-compare></div><div data-rescue></div><div data-safe></div></div></div>';
     evac.map = new PlanMap(box.querySelector('[data-map]'), onPlanPointer);
     box.addEventListener('click', (e) => { // "Show" in the exit comparison: draw that exit's route
       const b = e.target.closest('[data-exit]');
@@ -540,7 +797,8 @@ function renderEvacuation() {
   const shown = evac.highlight !== null ? evac.compare?.results?.[0]?.exits?.[evac.highlight] : null;
   evac.map.set({ width: plan.widthMeters, height: plan.heightMeters, elements: plan.elements, imageUrl: evac.imageUrl,
     route: shown?.found ? shown.path : evac.result?.path ?? null,
-    start: evac.start, people: evac.people, riskLayer: evac.riskLayerCache ?? null, activeDanger: evac.result?.activeDangerZones ?? evac.risk?.activeDangerZones ?? [] });
+    start: evac.start, people: evac.people, riskLayer: evac.riskLayerCache ?? null, activeDanger: evac.result?.activeDangerZones ?? evac.risk?.activeDangerZones ?? [],
+    cameras: cameraMarks(plan) });
 
   const rk = evac.risk;
   box.querySelector('[data-risk]').innerHTML = rk?.active ? `<div class="risk-box" role="status"><p class="strong text-orange">⚠ Fire risk: ${esc(rk.message)}</p>
@@ -551,8 +809,7 @@ function renderEvacuation() {
   const r = evac.result;
   let result;
   if (!evac.start) {
-    result = `<p class="muted">Click the person's <b>known</b> position on the plan, or an <span class="text-amber">amber dot</span>: a person seen by a camera
-      calibrated to this plan (Floor Plans → Camera calibration). The dot is an estimate from the camera.</p>`;
+    result = '';
   } else if (evac.routing) {
     result = '<p class="muted">Calculating…</p>';
   } else if (evac.error) {
@@ -566,14 +823,15 @@ function renderEvacuation() {
     result += `<p class="tiny muted" style="margin-top:4px">Start (${evac.start[0]}, ${evac.start[1]}) m · recalculated automatically when incidents open or close.</p>`;
   }
   box.querySelector('[data-result]').innerHTML = result ?? '';
+  box.querySelector('[data-hint]').classList.toggle('hidden', !!evac.start);
   box.querySelector('[data-compare]').innerHTML = compareHtml();
   renderRescue();
 
   const safe = plan.elements.filter((e) => e.type === 'SafeZone');
-  box.querySelector('[data-safe]').innerHTML = `<h3 class="panel-title" style="margin-top:16px">Safe zones on this floor</h3>${safe.length
+  box.querySelector('[data-safe]').innerHTML = !safe.length ? '' : `<h3 class="panel-title" style="margin-top:16px">Safe zones on this floor</h3>${safe.length
     ? `<ul class="tiny" style="margin-top:4px;color:var(--text-2)">${safe.map((z) => `<li class="row" style="padding:2px 0"><span class="swatch" style="border:1px solid #22c55e;background:rgb(34 197 94 / .25)"></span>
         <b>${esc(z.name || 'Safe zone')}</b> — x ${z.x} m, y ${z.y} m, ${z.width} × ${z.height} m</li>`).join('')}</ul>`
-    : '<p class="tiny muted" style="margin-top:4px">No safe zone marked on this floor plan.</p>'}`;
+    : ''}`;
 }
 
 /** Every exit from the chosen start point (POST …/routes, read-only). A row without a route shows no distance, time or line. */
@@ -597,7 +855,7 @@ function compareHtml() {
 
 /** Rescue list: the current camera person markers on this plan (not identified people), each with its nearest safe exit. */
 function renderRescue() {
-  const box = $('evacuation').querySelector('[data-rescue]');
+  const box = $('evacuation')?.querySelector('[data-rescue]');
   if (!box || !currentPlan()) return;
   const now = Date.now();
   const r = evac.rescue;
@@ -625,9 +883,9 @@ function renderRescue() {
       <th>Nearest safe exit</th><th>Distance</th><th>Est. time</th></tr></thead><tbody>${rows}</tbody></table></div>`
       : '<p class="tiny muted">No person markers from cameras calibrated to this plan right now.</p>'}
     ${unknown.map((c) => `<p class="tiny text-amber">${esc(c.name)}: ${live.frameStats[c.id].humanCount} person(s) seen — location unknown (camera not calibrated to this plan).</p>`).join('')}
-    <p class="tiny muted">Markers are camera estimates of where feet touch the floor, refreshed every ${RESCUE_EVERY_MS / 1000} s. They are not identified
+    ${rows ? `<p class="tiny muted">Markers are camera estimates of where feet touch the floor, refreshed every ${RESCUE_EVERY_MS / 1000} s. They are not identified
       people: one person seen by two cameras can appear twice, and numbers change between refreshes. Danger status is computed from the plan
-      position, not from the camera's own at-risk flag.</p>`;
+      position, not from the camera's own at-risk flag.</p>` : ''}`;
 }
 
 async function loadComparison() {
@@ -712,8 +970,45 @@ async function calculateRoute() {
   renderEvacuation();
 }
 
+/** Cameras calibrated to this plan: the floor area they see (calibration points) and how they are doing. */
+function cameraMarks(plan) {
+  return live.cameras.filter((c) => c.calibration?.floorPlanId === plan.id && c.calibration.planPoints?.length === 4).map((c) => {
+    const s = live.liveStats().find((x) => x.cameraId === c.id);
+    const tone = cameraState(c)[1] === 'off' ? 'off' : s?.fireDetected ? 'danger' : s?.smokeDetected ? 'warn' : 'ok';
+    return { id: c.id, name: c.name, points: c.calibration.planPoints, tone };
+  });
+}
+
+function refreshCameraMarks() {
+  if (evac.cameraShown) showCamera(evac.cameraShown); // its details follow the camera, as the marks do
+  const plan = currentPlan();
+  if (!plan || !evac.map) return;
+  const cameras = cameraMarks(plan);
+  const key = JSON.stringify(cameras.map((c) => [c.id, c.tone]));
+  if (key !== evac.camerasKey) { evac.camerasKey = key; evac.map.set({ cameras }); }
+}
+for (const name of ['cameras', 'stats', 'health', 'tick']) live.on(name, refreshCameraMarks);
+
+function showCamera(id) {
+  const c = live.cameras.find((x) => x.id === id);
+  evac.cameraShown = c ? id : null;
+  if (!c) return;
+  const s = live.liveStats().find((x) => x.cameraId === id);
+  const [label, tone, why] = cameraState(c);
+  const seen = tone === 'off' ? `<b class="text-red">Camera Offline</b> (${esc(why)})` : !s ? '<span class="muted">no AI data right now</span>'
+    : `${s.fireDetected ? '<b class="text-red">Fire detected</b> · ' : ''}${s.smokeDetected ? '<b class="text-amber">Smoke detected</b> · ' : ''}${s.humanCount} person(s) in view`;
+  const html = `<b>${esc(c.name)}</b> · ${esc(c.locationZone)} · ${label} · ${seen}
+    <button type="button" class="btn btn-ghost btn-sm" data-open-camera="${esc(c.id)}">Open camera</button>`;
+  if (html !== evac.cameraHtml) $('map-detail').innerHTML = evac.cameraHtml = html; // refreshed every second: rebuilt only on change
+}
+$('map-detail')?.addEventListener('click', (e) => {
+  const id = e.target.closest('[data-open-camera]')?.dataset.openCamera;
+  if (id) location.href = `/cameras?camera=${encodeURIComponent(id)}`;
+});
+
 function onPlanPointer(p) {
   if (p.kind !== 'down') return;
+  if (p.camera) { showCamera(p.camera); return; } // a camera mark: its details, not a route
   const person = evac.people.find((q) => Math.hypot(q.x - p.x, q.y - p.y) < 1); // clicked a live person dot
   evac.start = person ? [round1(person.x), round1(person.y)] : [round1(p.x), round1(p.y)];
   calculateRoute();
@@ -742,7 +1037,7 @@ function refreshPeople() {
   if (people.length || evac.people.length) { evac.people = people; if (evac.map) evac.map.set({ people }); }
 }
 
-$('evac-plan').addEventListener('change', (e) => choosePlan(Number(e.target.value)));
+$('evac-plan')?.addEventListener('change', (e) => choosePlan(Number(e.target.value)));
 live.on('detection', placePeople);
 live.on('tick', () => { refreshPeople(); renderRescue(); }); // ages and stale labels move on between rescue refreshes
 setInterval(loadRescue, RESCUE_EVERY_MS);
@@ -754,7 +1049,7 @@ live.on('incidents', () => { // open incidents change the active danger zones: r
   if (evac.start) calculateRoute();
 });
 
-(async () => {
+if ($('evacuation')) (async () => {
   try {
     evac.plans = await api('/api/floorplans');
   } catch (err) {
@@ -762,7 +1057,7 @@ live.on('incidents', () => { // open incidents change the active danger zones: r
     return;
   }
   if (!evac.plans.length) {
-    $('evacuation').innerHTML = `<p class="empty">No floor plan yet. Draw or upload one under <a class="text-cyan" href="/floor-plans">Floor Plans</a> to calculate evacuation routes.</p>`;
+    $('evacuation').innerHTML = `<p class="empty">No floor plan yet. Draw or upload one under <a href="/floor-plans">Edit plan</a> to see the building and the way out.</p>`;
     return;
   }
   $('evac-plan').innerHTML = evac.plans.map((p) => `<option value="${p.id}">${esc(p.building ? `${p.building} · ` : '')}${esc(p.name)} (floor ${p.floorNumber})</option>`).join('');
@@ -773,13 +1068,24 @@ live.on('incidents', () => { // open incidents change the active danger zones: r
 // ================================================================ live event log
 const ACTIVITY_DOT = { info: 'dot-info', success: 'dot-success', warning: 'dot-warning', critical: 'dot-critical', notify: 'dot-notify' };
 
+let activityFilter = null; // a RegExp on the message, from the Activity Log's filter buttons
+
 function renderActivity() {
-  $('activity').innerHTML = live.activity.length ? live.activity.map((a) => `<li class="${a.level === 'critical' ? 'critical' : ''}">
+  if (!$('activity')) return;
+  const entries = activityFilter ? live.activity.filter((a) => activityFilter.test(a.message)) : live.activity;
+  $('activity').innerHTML = entries.length ? entries.map((a) => `<li class="${a.level === 'critical' ? 'critical' : ''}">
     <time>${timeOf(a.timestamp)}</time><span class="dot ${ACTIVITY_DOT[a.level] ?? 'dot-info'}"></span>
     <span style="overflow-wrap:anywhere">${esc(a.message)}${a.zone ? `<span class="zone">${esc(a.zone)}</span>` : ''}</span></li>`).join('')
-    : '<li class="empty" style="display:block">Waiting for events…</li>';
+    : `<li class="empty" style="display:block">${live.activity.length ? 'Nothing of this kind yet.' : 'Waiting for events…'}</li>`;
 }
-$('clear-activity').addEventListener('click', () => { live.activity = []; renderActivity(); });
+$('clear-activity')?.addEventListener('click', () => { live.activity = []; renderActivity(); });
+$('activity-filter')?.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-filter]');
+  if (!b) return;
+  activityFilter = b.dataset.filter ? new RegExp(b.dataset.filter, 'i') : null;
+  for (const x of $('activity-filter').children) x.setAttribute('aria-selected', String(x === b));
+  renderActivity();
+});
 live.on('activity', renderActivity);
 
 // ================================================================ system health (GET /api/system/health, polled by shell.js)
@@ -799,10 +1105,12 @@ function renderHealth() {
   const overall = failed ? 'critical' : !h ? null : stale ? 'unknown'
     : h.status === 'healthy' && components.liveUpdates.status !== 'healthy' ? 'degraded' : h.status;
   const overallEl = $('health-overall');
-  overallEl.textContent = overall ? overall.toUpperCase() : 'CHECKING…';
-  overallEl.className = `small strong ${HEALTH_TONE[overall] ?? 'muted'}`;
-  overallEl.title = failed ? `Health check failed: ${failed}` : h?.message ?? '';
-  $('health-checked').textContent = !h ? (failed ? `Health check failed: ${failed}` : '')
+  if (overallEl) {
+    overallEl.textContent = overall ? overall.toUpperCase() : 'CHECKING…';
+    overallEl.className = `small strong ${HEALTH_TONE[overall] ?? 'muted'}`;
+    overallEl.title = failed ? `Health check failed: ${failed}` : h?.message ?? '';
+  }
+  if ($('health-checked')) $('health-checked').textContent = !h ? (failed ? `Health check failed: ${failed}` : '')
     : `Last successful check ${timeOf(h.checkedAt)} (${relativeTime(new Date(live.healthAt).toISOString(), live.now)})${failed ? ` · latest check failed: ${failed}` : stale ? ' · out of date' : ''}`;
   const rows = [];
   for (const c of Object.values(components)) {
@@ -813,8 +1121,31 @@ function renderHealth() {
   }
   const html = h ? `<table class="data"><thead><tr><th>Component</th><th>Status</th><th>Details</th></tr></thead><tbody>${rows.join('')}</tbody></table>`
     : `<p class="empty">${failed ? 'Health check failed.' : 'Checking system health…'}</p>`;
-  if (html !== healthHtml) $('health').innerHTML = healthHtml = html; // the clock re-renders every second: rebuild only on change
+  if ($('health') && html !== healthHtml) $('health').innerHTML = healthHtml = html; // the clock re-renders every second: rebuild only on change
+  const strip = failed && !h ? '<div class="hs hs-danger"><span class="hs-icon">×</span><div><div class="hs-name">Django</div><div class="hs-state">Server jawab nahi de raha</div></div></div>'
+    : !h ? '<p class="empty">Checking system health…</p>'
+      : Object.entries(components).map(([key, c]) => {
+        const tone = stale ? 'muted' : c.status === 'healthy' ? 'ok' : c.status === 'offline' ? 'danger' : c.status === 'unknown' ? 'muted' : 'warn';
+        const label = HEALTH_SPECIFIC[key]?.[c.status] ?? HEALTH_PLAIN[c.status] ?? c.status;
+        return `<div class="hs hs-${tone}" title="${esc(c.message)}"><span class="hs-icon" aria-hidden="true">${{ ok: '✓', danger: '×', warn: '!', muted: '?' }[tone]}</span>
+          <div><div class="hs-name">${esc(c.name)}${c.optional ? ' <span class="muted">(optional)</span>' : ''}</div><div class="hs-state">${esc(label)}${stale ? ' (purani khabar)' : ''}</div></div></div>`;
+      }).join('');
+  if ($('health-strip') && strip !== healthStrip) $('health-strip').innerHTML = healthStrip = strip;
 }
+let healthStrip = '';
+$('health-details-toggle')?.addEventListener('click', (e) => {
+  const open = $('health-details').classList.toggle('hidden') === false;
+  e.currentTarget.setAttribute('aria-expanded', String(open));
+  e.currentTarget.textContent = open ? 'Hide details' : 'Show details';
+});
+
+const HEALTH_PLAIN = { healthy: 'Healthy', loading: 'Shuru ho raha hai', degraded: 'Masla hai', offline: 'Band hai', unknown: 'Maloom nahi' };
+const HEALTH_SPECIFIC = {
+  database: { offline: 'Database Connection Failed' }, ai: { offline: 'AI Service Band Hai', loading: 'AI Models load ho rahe hain' },
+  models: { offline: 'AI Model Load Nahi Hua', degraded: 'Kuch AI Models Load Nahi Hue', loading: 'Load ho rahe hain' },
+  cameras: { offline: 'Camera Offline', degraded: 'Kuch Cameras Offline', loading: 'Cameras jur rahe hain' },
+  sensors: { offline: 'Sensors Offline', degraded: 'Kuch Sensors Offline' }, liveUpdates: { offline: 'Live Updates Band Hain' },
+};
 for (const name of ['health', 'state', 'tick']) live.on(name, renderHealth);
 
 renderActivity();

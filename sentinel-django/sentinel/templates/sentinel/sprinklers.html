@@ -1,0 +1,14 @@
+{% extends "sentinel/shell.html" %}
+{% block title %}Sprinklers · Sentinel{% endblock %}
+{% block page %}
+<main class="page">
+  <header class="page-head">
+    <h1>Sprinklers</h1>
+    <span class="page-sub" id="relay-summary"></span>
+    <button type="button" class="btn btn-danger-soft push-right" id="master-switch">Turn ALL on…</button>
+  </header>
+  <p class="page-note">Auto = opens by itself in an emergency in its area. Manual = only a person opens it. Every switch asks once before it changes.</p>
+  <ul class="relay-areas" id="relays"><li class="empty">Loading sprinklers…</li></ul>
+  <section class="panel relay-detail" id="relay-detail" aria-live="polite"><p class="muted">Click a sprinkler to change it.</p></section>
+</main>
+{% endblock %}

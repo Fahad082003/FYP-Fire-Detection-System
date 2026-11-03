@@ -106,10 +106,10 @@ class PageTests(SentinelTestCase):
                 "stream_url": "", "stream_format": "Simulated"}
         self.assertContains(self.client.post("/devices?add", {**form, "location_zone": "Gate"}), "Floor - Area")  # validation shown
         self.assertRedirects(self.client.post("/devices?add", form), "/devices", fetch_redirect_response=False)
-        self.assertContains(self.client.get("/devices"), '<td class="strong">Main Gate</td>', html=False)
+        self.assertContains(self.client.get("/devices"), '<td><b>Main Gate</b>', html=False)
         self.assertRedirects(self.client.post("/devices", {"delete": "cam-gate"}), "/devices", fetch_redirect_response=False)
         page = self.client.get("/devices")
-        self.assertNotContains(page, '<td class="strong">Main Gate</td>', html=False)
+        self.assertNotContains(page, '<td><b>Main Gate</b>', html=False)
         self.assertContains(page, "Camera deleted: Main Gate")
 
     def test_logout_needs_a_post(self):

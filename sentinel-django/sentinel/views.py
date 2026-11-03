@@ -64,6 +64,13 @@ def dashboard(request):
 
 
 @login_required
+def section(request, page):
+    """The pages that are views of the live state (cameras, sensors, sprinklers, incidents, activity, building map): the
+    browser fills them from the event stream and the APIs, like the dashboard."""
+    return render(request, f"sentinel/{page}.html", {"page": page})
+
+
+@login_required
 def floor_plans(request):
     return render(request, "sentinel/floor_plans.html", {"page": "floor_plans"})
 
@@ -98,8 +105,9 @@ def reports(request):
         report.update(busiest=max(d["count"] for d in report["daily"]),
                       false_alarm_percent=None if report["falseAlarmRate"] is None else round(report["falseAlarmRate"] * 100, 1))
     breakdowns = report and [("By severity", "Severity", report["bySeverity"]), ("By source", "Source", report["bySource"])]
-    return render(request, "sentinel/reports.html", {"page": "reports", "form": form, "report": report, "breakdowns": breakdowns},
-                  status=200 if report else 400)
+    periods = [(label, str(today - timedelta(days=days - 1)), str(today)) for label, days in (("Last 7 days", 7), ("Last 30 days", 30))]
+    return render(request, "sentinel/reports.html", {"page": "reports", "form": form, "report": report, "breakdowns": breakdowns,
+                                                     "periods": periods}, status=200 if report else 400)
 
 
 @login_required

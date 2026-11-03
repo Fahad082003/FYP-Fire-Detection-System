@@ -6,11 +6,12 @@ import { BASE, api, banner, closeBrowser, newPage, postFrame, resolveAll, setAiM
 after(closeBrowser);
 const POLL = { timeout: 15_000 }; // the AI status poll runs every 10 s
 
-async function dashboard() {
+/** A signed-in page at `path` (default the dashboard) once its live link is up. */
+async function dashboard(path = '/') {
   await setAiMode('ok');
   await resolveAll();
   const page = await newPage();
-  await page.goto(`${BASE}/`);
+  await page.goto(`${BASE}${path}`);
   await page.locator('#link-label', { hasText: 'Live' }).waitFor();
   return page;
 }
@@ -52,11 +53,15 @@ test('dashboard: cameras, sensors, sprinklers and a green banner only once the A
   releaseAi();
   await banner(page).filter({ hasText: 'ALL SYSTEMS NOMINAL' }).waitFor(POLL);
   assert.equal(await page.locator('.tile').count(), 4);
-  assert.equal(await page.locator('.sensor').count(), 6);
-  assert.equal(await page.locator('.relay').count(), 5);
   assert.equal(await page.locator('#ai-dot').getAttribute('class'), 'dot dot-green');
   assert.match(await page.locator('#kpis').textContent(), /Open Incidents\s*0/);
-  assert.match(await page.locator('#activity').textContent(), /Realtime link established/);
+  for (const [path, selector, count] of [['/sensors', '.sensor', 6], ['/sprinklers', '.relay', 5]]) {
+    await page.goto(`${BASE}${path}`);
+    await page.locator(selector).nth(count - 1).waitFor();
+    assert.equal(await page.locator(selector).count(), count, path);
+  }
+  await page.goto(`${BASE}/activity`);
+  await page.locator('#activity', { hasText: 'Realtime link established' }).waitFor();
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -65,9 +70,12 @@ test('a dashboard whose page modules load after the live snapshot still renders 
   await setAiMode('ok');
   const page = await newPage();
   await page.route('**/static/sentinel/js/planmap.js', async (route) => { await new Promise((ok) => setTimeout(ok, 1500)); await route.continue(); });
-  await page.goto(`${BASE}/`);
+  await page.goto(`${BASE}/sensors`);
   await page.locator('.sensor').nth(5).waitFor();
-  assert.deepEqual([await page.locator('.tile').count(), await page.locator('.sensor').count(), await page.locator('.relay').count()], [4, 6, 5]);
+  assert.equal(await page.locator('.sensor').count(), 6);
+  await page.goto(`${BASE}/`);
+  await page.locator('.tile').nth(3).waitFor();
+  assert.equal(await page.locator('.tile').count(), 4);
   assert.deepEqual(page.problems, []);
   await page.context().close();
 });
@@ -86,7 +94,8 @@ test('status banner follows AI health: offline, loading, model missing, camera o
 });
 
 test('system health panel: component states from the server, AI loading then ready, a failed check is critical and old data is marked', async () => {
-  const page = await dashboard();
+  const page = await dashboard('/ai');
+  await page.locator('#health-details-toggle').click(); // the table is behind "Show details"
   const row = (name) => page.locator('#health tr', { hasText: name }).first();
   const overall = page.locator('#health-overall');
   await row('Database').filter({ hasText: 'healthy' }).waitFor(POLL);
@@ -133,19 +142,23 @@ test('IL-9: frames stop -> "AI DATA STALE" within 9 s; with the AI offline an op
   await setAiMode('offline');
   // Also open by now: the watchdog's "Camera lost" for cameras that went silent for more than 10 s.
   await banner(page).filter({ hasText: /^ELEVATED RISK · \d+ OPEN · AI OFFLINE$/ }).waitFor(POLL);
-  const rows = page.locator('#incident-rows');
+  const list = await newPage();
+  await list.goto(`${BASE}/incidents`);
+  const rows = list.locator('#incident-rows');
+  await rows.locator('tr', { hasText: 'Warehouse Floor' }).waitFor();
   assert.match(await rows.locator('tr', { hasText: 'Warehouse Floor' }).textContent(), /Medium.*AI Vision.*Open/s); // still listed while the AI is down
   assert.match(await rows.locator('tr', { hasText: 'Main Lobby' }).textContent(), /Medium.*Camera lost.*Open/s);
 
   await setAiMode('ok');
   await banner(page).filter({ hasText: /^ELEVATED RISK · \d+ OPEN · AI DATA STALE$/ }).waitFor(POLL); // AI back, incidents still open
   assert.equal(await rows.locator('tr', { hasText: 'Warehouse Floor' }).filter({ hasText: 'AI Vision' }).count(), 1);
-  assert.deepEqual(page.problems, []);
+  assert.deepEqual([...page.problems, ...list.problems], []);
+  await list.context().close();
   await page.context().close();
 });
 
 test('incidents: a fire alert appears live with a toast, raises the alarm frame, and is resolved from the alert log', async () => {
-  const page = await dashboard();
+  const page = await dashboard('/incidents');
   await postFrame({ cameraId: 'cam-server', fireSeverity: 'High', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 200, 200] }] });
   await page.locator('.toast', { hasText: /HIGH — Incident #\d+/ }).waitFor();
   await banner(page).filter({ hasText: 'CRITICAL ALERT · 1 OPEN' }).waitFor();
@@ -163,7 +176,7 @@ test('incidents: a fire alert appears live with a toast, raises the alarm frame,
 });
 
 test('false alarm: an operator marks an open incident as a false alarm after confirming; it stays in the history', async () => {
-  const page = await dashboard();
+  const page = await dashboard('/incidents');
   const { body } = await postFrame({ cameraId: 'cam-lobby', fireSeverity: 'Medium', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 200, 200] }] });
   const row = page.locator('#incident-rows tr', { hasText: 'Ground Floor - Lobby (Main Lobby)' });
   await row.getByRole('button', { name: 'False alarm' }).click();
@@ -189,6 +202,7 @@ test('fire size labels: the AI fire severity keeps its name and adds Small/Mediu
   assert.deepEqual(texts, ['Low · Small', 'Medium · Medium', 'High · Large', 'Critical · Large', null, 'Unknown']); // no guessed size
   await postFrame({ cameraId: 'cam-warehouse', fireSeverity: 'Low', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 60, 60] }] });
   await page.locator('.tile', { hasText: 'Warehouse Floor' }).locator('.chips', { hasText: 'FIRE Low · Small' }).waitFor();
+  await page.goto(`${BASE}/incidents`);
   await page.locator('#incident-rows tr', { hasText: 'Warehouse Floor' }).filter({ hasText: 'Low · Small' }).waitFor();
   await page.locator('#history-table', { hasText: 'FIRE Low · Small' }).waitFor();
   assert.deepEqual(page.problems, []);
@@ -196,7 +210,7 @@ test('fire size labels: the AI fire severity keeps its name and adds Small/Mediu
 });
 
 test('fire trend: the history chart of a camera incident shows the server trend, "Insufficient data" with one measurement', async () => {
-  const page = await dashboard();
+  const page = await dashboard('/incidents');
   await postFrame({ cameraId: 'cam-server', fireSeverity: 'Low', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 60, 60] }] });
   await page.locator('#incident-rows tr', { hasText: 'Server Hall' }).waitFor();
   const [incident] = (await api('/api/incidents?resolved=false')).filter((i) => i.cameraId === 'cam-server');
@@ -215,7 +229,7 @@ test('risk warning: a room within 5 m of a fire appears in the Live Event Log an
       { type: 'DangerZone', name: 'Lobby fire', x: 0, y: 0, width: 1, height: 2, zone: 'Ground Floor - Lobby' },
       { type: 'Room', name: 'Near room', x: 5, y: 0, width: 1, height: 2 }] }) });
   try {
-    const page = await dashboard();
+    const page = await dashboard('/activity');
     await postFrame({ cameraId: 'cam-lobby', fireSeverity: 'Low', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 60, 60] }] });
     await page.locator('#activity', { hasText: "Proximity-based risk warning (not a fire-spread prediction): room 'Near room' is 5 m" }).waitFor();
     await page.locator('#history-table tr', { hasText: 'RiskWarning' }).first().waitFor();
@@ -236,7 +250,7 @@ test('route comparison and rescue list: every exit with its status, then camera 
   await api('/api/cameras/cam-lobby/calibration', { method: 'PUT', body: JSON.stringify({ floorPlanId: plan.id,
     imagePoints: [[0, 240], [640, 240], [640, 480], [0, 480]], planPoints: [[2, 3], [18, 3], [18, 7], [2, 7]] }) });
   try {
-    const page = await dashboard();
+    const page = await dashboard('/map');
     await page.selectOption('#evac-plan', String(plan.id));
     const map = page.locator('#evacuation svg');
     await map.scrollIntoViewIfNeeded();
@@ -366,10 +380,10 @@ test('floor plans: draw a corridor and an exit, save, then the dashboard routes 
   const plan = plans.find((p) => p.name === 'New floor plan');
   assert.deepEqual(plan.elements.map((e) => e.type), ['Corridor', 'Exit']);
 
-  await page.goto(`${BASE}/`);
+  await page.goto(`${BASE}/map`);
   await page.selectOption('#evac-plan', String(plan.id));
   const map = page.locator('#evacuation svg');
-  await map.scrollIntoViewIfNeeded(); // the panel is below the fold
+  await map.scrollIntoViewIfNeeded();
   const m = await map.boundingBox();
   const s = Math.min(m.width, m.height * 31.8 / 21.8) / 31.8;
   await page.mouse.click(m.x + m.width / 2 + (5 - 15) * s, m.y + m.height / 2 + (10 - 10) * s);
@@ -390,11 +404,68 @@ test('floor plans: draw a corridor and an exit, save, then the dashboard routes 
   await page.context().close();
 });
 
+test('overview: building status, device counts, fire and smoke apart, camera state and health cards follow the server', async () => {
+  const page = await dashboard();
+  const card = (label) => page.locator('#kpis .kpi', { hasText: label });
+  const [cameras, sensors, sprinklers] = await Promise.all(['/api/cameras', '/api/iot/sensors', '/api/iot/sprinklers'].map((p) => api(p)));
+  for (const [label, list] of [['Cameras', cameras], ['Sensors', sensors]]) { // "X of Y working"
+    assert.match(await card(label).locator('.kpi-hint').textContent(), new RegExp(`^of ${list.length} working`), label);
+  }
+  assert.equal(Number(await card('Sprinklers').locator('.kpi-value').textContent()), sprinklers.length);
+  const status = page.locator('#building-status');
+  const agrees = () => page.waitForFunction(() => { // Safe / Warning / Emergency always say what the status banner says
+    const pill = document.getElementById('status-pill').textContent.split(' ')[0];
+    return { ALL: 'Building is Safe', MONITORING: 'Warning', ELEVATED: 'Warning', CRITICAL: 'Emergency' }[pill] === document.querySelector('#building-status [data-title]').textContent;
+  }, null, POLL);
+  await agrees();
+  if (await status.locator('[data-title]').textContent() === 'Building is Safe') assert.equal(await status.locator('[data-text]').textContent(), 'No fire or smoke anywhere.');
+
+  for (let i = 0; i < 3; i++) { // simulated data: no sprinkler is switched
+    await postFrame({ cameraId: 'cam-warehouse', simulated: true, fireSeverity: 'High', detections: [
+      { category: 'Fire', confidence: 0.91, bbox: [200, 150, 160, 140] }, { category: 'Smoke', confidence: 0.77, bbox: [180, 60, 220, 100] }] });
+    await postFrame({ cameraId: 'cam-lobby', simulated: true, detections: [{ category: 'Smoke', confidence: 0.66, bbox: [100, 80, 200, 120] }] });
+  }
+  await page.locator('.tile', { hasText: 'Warehouse Floor' }).locator('.tile-state', { hasText: 'Fire Detected' }).waitFor();
+  await page.locator('.tile', { hasText: 'Main Lobby' }).locator('.tile-state', { hasText: 'Smoke Detected' }).waitFor();
+  await status.locator('[data-title]', { hasText: /^(Emergency|Warning)$/ }).waitFor();
+  await page.locator('#attention .att', { hasText: 'Warehouse' }).first().waitFor(); // the problem is listed under "Needs your attention"
+  await agrees();
+  assert.match(await status.locator('[data-text]').textContent(), /Warehouse/);
+
+  const list = await newPage(); // the fire and smoke cards on the incidents page, while the frames are still current
+  await list.goto(`${BASE}/incidents`);
+  for (let i = 0; i < 2; i++) {
+    await postFrame({ cameraId: 'cam-warehouse', simulated: true, fireSeverity: 'High', detections: [
+      { category: 'Fire', confidence: 0.91, bbox: [200, 150, 160, 140] }, { category: 'Smoke', confidence: 0.77, bbox: [180, 60, 220, 100] }] });
+    await postFrame({ cameraId: 'cam-lobby', simulated: true, detections: [{ category: 'Smoke', confidence: 0.66, bbox: [100, 80, 200, 120] }] });
+  }
+  const fire = list.locator('#fire-smoke .fs-fire'), smoke = list.locator('#fire-smoke .fs-smoke');
+  await fire.filter({ hasText: 'Warehouse Floor' }).filter({ hasText: 'confidence 91%' }).waitFor();
+  assert.doesNotMatch(await fire.locator('.fs-list li', { hasText: 'AI camera' }).allTextContents().then((t) => t.join('|')), /Main Lobby/); // smoke alone is never a fire
+  await smoke.filter({ hasText: 'Main Lobby' }).filter({ hasText: 'confidence 66%' }).waitFor();
+  assert.equal((await api('/api/iot/sprinklers')).filter((s) => s.isActive).length, 0);
+
+  await list.goto(`${BASE}/ai`); // the health cards
+  await list.locator('#health-strip .hs', { hasText: 'Database' }).filter({ hasText: 'Healthy' }).waitFor(POLL);
+  await list.locator('#health-strip .hs', { hasText: 'AI Models' }).filter({ hasText: 'Healthy' }).waitFor(POLL);
+  for (const [name, path] of [['Cameras', '/cameras'], ['Sensors', '/sensors'], ['Sprinklers', '/sprinklers'], ['Incidents', '/incidents'],
+    ['Activity Log', '/activity'], ['Building Map', '/map'], ['AI Service', '/ai'], ['Reports', '/reports'], ['Settings', '/devices'], ['Dashboard', '/']]) {
+    await list.locator('.sidebar .nav-link', { hasText: name }).click(); // every menu item opens its page and is the highlighted one
+    await list.waitForURL(`${BASE}${path}`);
+    assert.equal(await list.locator('.sidebar .nav-link[aria-current="page"]').textContent().then((t) => t.trim()), name);
+  }
+  assert.deepEqual([...page.problems, ...list.problems], []);
+  await resolveAll();
+  await list.context().close();
+  await page.context().close();
+});
+
 test('accessibility basics and no broken routes on every page, also at phone width', async () => {
   for (const width of [1600, 375]) {
     const page = await newPage();
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ['/', '/floor-plans', '/ai', '/devices', '/devices?add', '/reports']) {
+    for (const path of ['/', '/cameras', '/sensors', '/sprinklers', '/incidents', '/activity', '/map', '/floor-plans', '/ai', '/devices',
+      '/devices?add', '/reports']) {
       const response = await page.goto(`${BASE}${path}`);
       assert.equal(response.status(), 200, path);
       await page.waitForLoadState('networkidle').catch(() => undefined); // the live stream keeps one request open
@@ -415,7 +486,7 @@ test('accessibility basics and no broken routes on every page, also at phone wid
 });
 
 test('fusion: a camera fire and a smoke warning in the same zone mark the incident "+ SMOKE SENSOR" and log it once', async () => {
-  const page = await dashboard();
+  const page = await dashboard('/incidents');
   const { body } = await postFrame({ cameraId: 'cam-server', fireSeverity: 'Medium', detections: [{ category: 'Fire', confidence: 0.9, bbox: [100, 100, 200, 200] }] });
   const row = page.locator('#incident-rows tr', { hasText: 'First Floor - Server Hall (Server Hall)' });
   await row.waitFor();
@@ -472,19 +543,21 @@ test('reports: totals, false-alarm rate and breakdowns for the last 7 days; a cu
 
 // Last on purpose: a sensor read here goes Stale again 5 s later (Alerts__SensorStaleSeconds=5 in e2e/run.py).
 test('sensor staleness: a silent sensor turns Stale with its last reading time and a "Sensor lost" incident; a reading restores it', async () => {
-  const page = await dashboard();
+  const page = await dashboard('/sensors');
   const card = page.locator('.sensor', { hasText: 'temp-c1' });
   const read = (value) => fetch(`${BASE}/api/iot/sensors/temp-c1/readings`, { method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Device-Key': process.env.SENSOR_KEY }, body: JSON.stringify({ value }) });
   const relays = async () => (await api('/api/iot/sprinklers')).map((s) => `${s.id}:${s.isActive}`);
   const before = await relays();
-  assert.equal(await card.locator('.state-badge').textContent(), 'Stale'); // never reported: not shown as Normal
+  assert.equal(await card.locator('.state-badge').textContent(), 'Not reporting'); // never reported: not shown as Normal
   assert.match(await card.textContent(), /no reading yet/);
   await read(21);
   await card.locator('.state-badge', { hasText: 'Normal' }).waitFor();
-  await card.locator('.state-badge', { hasText: 'Stale' }).waitFor(POLL); // pushed by the server, no page reload
+  await card.locator('.state-badge', { hasText: 'Not reporting' }).waitFor(POLL); // pushed by the server, no page reload
   assert.match(await card.textContent(), /last reading /);
-  const row = page.locator('#incident-rows tr', { hasText: '(sensor temp-c1)' });
+  const list = await newPage();
+  await list.goto(`${BASE}/incidents`);
+  const row = list.locator('#incident-rows tr', { hasText: '(sensor temp-c1)' });
   await row.filter({ hasText: 'Sensor lost' }).waitFor();
   const [episode] = (await api('/api/incidents?resolved=false')).filter((i) => i.source === 'SensorLost' && i.sensorId === 'temp-c1');
   assert.match(episode.message, /^Sensor unavailable: no valid reading from Temperature sensor temp-c1 since /);
@@ -492,6 +565,7 @@ test('sensor staleness: a silent sensor turns Stale with its last reading time a
   await card.locator('.state-badge', { hasText: 'Normal' }).waitFor();
   assert.equal((await api(`/api/incidents/logs?incidentId=${episode.id}&type=SensorRecovered`)).length, 1);
   assert.deepEqual(await relays(), before); // staleness and recovery never switch a relay
-  assert.deepEqual(page.problems, []);
+  assert.deepEqual([...page.problems, ...list.problems], []);
+  await list.context().close();
   await page.context().close();
 });

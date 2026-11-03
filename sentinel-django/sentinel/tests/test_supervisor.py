@@ -330,8 +330,8 @@ class SupervisorTests(SimpleTestCase):
         first = ready["pid"]
         self.assertTrue(supervisor.same_process(ready))
         os.kill(first, signal.SIGTERM)  # the AI service crashes (a child this test's supervisor started, identity checked)
-        recovered = self.wait_for(lambda: (c := supervisor.read_state(self.state_path)["children"]["ai"])["restarts"] == 1
-                                  and c["state"] == "ready" and c)
+        recovered = self.wait_for(lambda: (c := supervisor.read_state(self.state_path).get("children", {}).get("ai", {}))
+                                  .get("restarts") == 1 and c.get("state") == "ready" and c)  # {} for a moment while it is replaced
         self.assertNotEqual(recovered["pid"], first)
         self.assertEqual(recovered["exitCode"], 15)  # os.kill on Windows: TerminateProcess with the signal number as exit code
         self.assertGreater(recovered["lastReadyAt"], ready["lastReadyAt"])

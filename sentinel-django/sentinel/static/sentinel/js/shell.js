@@ -127,7 +127,13 @@ function onDetection(frame) {
   pendingStats.set(frame.cameraId, {
     cameraId: frame.cameraId, humanCount: frame.humanCount, dangerCount: frame.dangerCount, fireDetected: frame.fireDetected,
     fireSeverity: frame.fireSeverity, simulated: frame.simulated, smokeDetected: frame.smokeDetected, model: frame.model, receivedAt: Date.now(),
+    fireConfidence: topConfidence(frame, 'Fire'), smokeConfidence: topConfidence(frame, 'Smoke'), // the Fire & Smoke cards show them
   });
+}
+
+function topConfidence(frame, category) {
+  const values = (frame.detections ?? []).filter((d) => d.category === category).map((d) => d.confidence);
+  return values.length ? Math.max(...values) : null;
 }
 
 // Frames arrive many times a second in total; tiles and KPIs only need ~4 updates a second.

@@ -1,18 +1,15 @@
 {% extends "sentinel/base.html" %}
-{% block title %}Sign in · FireVision AI{% endblock %}
+{% block title %}Sign in · Sentinel{% endblock %}
 {% block body %}
 <main class="login">
   <form method="post" class="panel" novalidate>
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
-    <div class="row">
-      <svg viewBox="0 0 32 32" width="36" height="36" fill="rgb(239 68 68 / .15)" stroke="#ef4444" stroke-width="1.6" aria-hidden="true">
-        <path d="M16 2 4 7v8c0 7.2 5.1 13.4 12 15 6.9-1.6 12-7.8 12-15V7z"/><path d="M8 17h4l2-5 3 9 2-4h5" fill="none" stroke="#f1f5f9" stroke-linecap="round"/></svg>
-      <div>
-        <h1>FIREVISION AI</h1>
-        <p class="small muted">Emergency Command Center — operator sign in</p>
-      </div>
+    <div class="login-brand">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3c3 4 5 6.5 5 9.5a5 5 0 0 1-10 0C7 9.5 9 7 12 3z"/></svg></span>
+      <div><h1>Sentinel</h1><p class="small muted">Fire Safety</p></div>
     </div>
+    <p class="dim">Sign in to see your building.</p>
     <label class="field"><span>Email</span>
       <input class="input" type="email" name="email" value="{{ form.email.value|default_if_none:'' }}" autocomplete="username"
              placeholder="admin@sentinel.local" required {% if form.email.errors %}aria-invalid="true"{% endif %}>
@@ -22,7 +19,7 @@
              {% if form.password.errors %}aria-invalid="true"{% endif %}>
       {% for e in form.password.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
     {% if error %}<p class="alert-box" role="alert">{{ error }}</p>{% endif %}
-    <button type="submit" class="btn btn-danger" style="height:40px">Sign in</button>
+    <button type="submit" class="btn btn-primary btn-lg">Sign in</button>
   </form>
 </main>
 {% endblock %}

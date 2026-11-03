@@ -1,0 +1,18 @@
+{% extends "sentinel/shell.html" %}
+{% block title %}Sensors · Sentinel{% endblock %}
+{% block page %}
+<main class="page">
+  <header class="page-head">
+    <h1>Sensors</h1>
+    <span class="page-sub" id="sensor-count"></span>
+  </header>
+  <section class="panel table-box" aria-label="Sensors">
+    <table class="data data-lg">
+      <thead><tr><th>Sensor</th><th>Where</th><th>Reading</th><th>Status</th><th>Last update</th><th>Last readings</th></tr></thead>
+      <tbody id="sensors"><tr><td colspan="6" class="empty">Awaiting telemetry…</td></tr></tbody>
+    </table>
+  </section>
+  <section class="panel hidden" id="sensor-history" aria-live="polite"></section>
+  <p class="page-note">Click a sensor to see its history. Warning starts below the limit; Alarm at the limit; Critical well above it.</p>
+</main>
+{% endblock %}

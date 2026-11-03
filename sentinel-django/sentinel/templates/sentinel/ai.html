@@ -1,67 +1,69 @@
 {% extends "sentinel/shell.html" %}
-{% block title %}AI Analysis · FireVision AI{% endblock %}
+{% block title %}AI Service · Sentinel{% endblock %}
 {% block page %}
-<main class="page page-ai">
-  <section class="panel" aria-labelledby="ai-status-title">
-    <header class="panel-head">
-      <h2 id="ai-status-title" class="panel-title">AI inference service</h2>
-      <a class="btn btn-sm" href="{% url 'ai' %}">Refresh</a>
-    </header>
-    <div class="panel-body stack small">
-      {% if not status.configured %}
-        <p class="strong text-amber">Not configured: {{ status.error }}</p>
-      {% elif not status.online %}
-        <p class="strong text-red" role="alert">OFFLINE · {{ status.error }}</p>
-        <p class="tiny muted">No AI detections are produced while the service is offline. Start it with <code>python -m sentinel_ai</code> in
-          <code>ai-service/</code>.</p>
-      {% else %}{% with svc=status.service %}
-        <p class="strong {% if svc.status == 'ok' %}text-green{% else %}text-amber{% endif %}">ONLINE ·
-          {% if svc.status == 'ok' %}all models loaded{% elif svc.status == 'degraded' %}some models missing{% else %}no model loaded{% endif %}</p>
-        <ul class="stack" style="gap:8px">
-          {% for m in svc.models %}
-            <li class="panel" style="padding:8px">
-              <div class="row"><span class="dot {% if m.loaded %}dot-green{% else %}dot-red{% endif %}"></span><b>{{ m.name }}</b>
-                <span class="tiny muted">{{ m.categories|join:", " }} · threshold {{ m.threshold }}</span></div>
-              <div class="tiny dim">{{ m.file }} · {{ m.license }}</div>
-              {% if m.note %}<div class="tiny text-amber">{{ m.note }}</div>{% endif %}
-              {% if m.error %}<div class="tiny text-red">{{ m.error }}</div>{% endif %}
-            </li>
+<main class="page">
+  <header class="page-head">
+    <h1>AI Service</h1>
+    <a class="btn btn-sm btn-ghost push-right" href="{% url 'ai' %}">Refresh</a>
+  </header>
+
+  {% if not status.configured %}
+    <section class="state-card state-warn"><span class="state-dot" aria-hidden="true"></span>
+      <div><p class="state-title">Not configured: {{ status.error }}</p></div></section>
+  {% elif not status.online %}
+    <section class="state-card state-danger"><span class="state-dot" aria-hidden="true"></span>
+      <div><p class="state-title" role="alert">OFFLINE · {{ status.error }}</p>
+        <p class="state-text">No AI detections are produced while the service is offline. Start it with <code>.\start.ps1</code> in the project folder.</p></div></section>
+  {% else %}{% with svc=status.service %}
+    <section class="state-card {% if svc.status == 'ok' %}state-ok{% else %}state-warn{% endif %}"><span class="state-dot" aria-hidden="true"></span>
+      <div><p class="state-title">ONLINE · {% if svc.status == 'ok' %}all models loaded{% elif svc.status == 'degraded' %}some models missing{% else %}no model loaded{% endif %}</p>
+        <p class="state-text">Watching {{ svc.cameras|length }} camera(s){% if svc.inference.avgMs is not None %} · about {{ svc.inference.avgMs|floatformat:0 }} ms per picture{% endif %} · {{ svc.inference.count }} pictures checked</p></div></section>
+
+    <section class="card-grid" aria-label="Models">
+      {% for m in svc.models %}
+        <article class="panel card">
+          <div class="card-head"><b>{{ m.name }}</b><span class="{% if m.loaded %}text-green{% else %}text-red{% endif %} strong small">{% if m.loaded %}Loaded{% else %}Not loaded{% endif %}</span></div>
+          <p class="small dim">Finds: {{ m.categories|join:", " }} · threshold {{ m.threshold }}</p>
+          <p class="tiny muted">{{ m.file }} · {{ m.license }}</p>
+          {% if m.note %}<p class="tiny text-amber">{{ m.note }}</p>{% endif %}
+          {% if m.error %}<p class="tiny text-red">{{ m.error }}</p>{% endif %}
+        </article>
+      {% endfor %}
+    </section>
+
+    <section class="panel" aria-labelledby="sources-title">
+      <h2 id="sources-title" class="section-title">Camera sources the AI reads</h2>
+      {% if svc.cameras %}
+        <ul class="plain-list">
+          {% for c in svc.cameras %}
+            <li><b>{{ c.cameraId }}</b> · {{ c.kind }}{% if c.simulated %} · <span class="text-amber">SIMULATED / TEST INPUT</span>{% endif %}
+              · {{ c.state }} · sent {{ c.framesSent }}{% if c.error %} · <span class="text-red">{{ c.error }}</span>{% endif %}</li>
           {% endfor %}
         </ul>
-        <p class="tiny dim">Inferences: {{ svc.inference.count }}{% if svc.inference.avgMs is not None %} · average {{ svc.inference.avgMs }} ms{% endif %}</p>
-        <h3 class="panel-title">Camera sources</h3>
-        {% if svc.cameras %}
-          <ul class="tiny stack" style="gap:4px">
-            {% for c in svc.cameras %}
-              <li><b>{{ c.cameraId }}</b> · {{ c.kind }}{% if c.simulated %} · <span class="text-amber">SIMULATED / TEST INPUT</span>{% endif %}
-                · {{ c.state }} · sent {{ c.framesSent }}{% if c.error %} · <span class="text-red">{{ c.error }}</span>{% endif %}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="tiny muted">No camera configured in ai-service/config.json. Dashboard feeds without an AI source show "NO AI DATA".</p>
-        {% endif %}
-      {% endwith %}{% endif %}
-    </div>
-  </section>
+      {% else %}
+        <p class="small muted">No camera with a stream link yet. Add one under Settings; demo cameras without a link show "NO AI DATA".</p>
+      {% endif %}
+    </section>
+  {% endwith %}{% endif %}
 
-  <section class="panel" aria-labelledby="ai-test-title">
-    <header class="panel-head">
-      <h2 id="ai-test-title" class="panel-title">Test image analysis</h2>
-    </header>
-    <div class="panel-body stack small">
-      <p class="note">TEST INPUT · preview only. The real models run on this image, but no incident, alert, notification or sprinkler action is
-        created. A single image has no multi-frame confirmation, so expect more false positives than on live cameras.</p>
-      <form method="post" enctype="multipart/form-data" class="row" id="analyze-form">{% csrf_token %}
-        <label class="field grow"><span>PNG or JPG, up to {{ max_mb }} MB</span>
+  <section class="panel split" aria-labelledby="ai-test-title">
+    <div class="split-main stack">
+      <h2 id="ai-test-title" class="section-title">Test with a picture</h2>
+      <p class="small dim">Upload a photo to see what the AI finds. This never opens an incident, sends an alert or switches a sprinkler.
+        A single picture has no multi-frame check, so expect more false alarms than on live cameras.</p>
+      <form method="post" enctype="multipart/form-data" class="stack" id="analyze-form">{% csrf_token %}
+        <label class="field"><span>Picture: PNG or JPG, up to {{ max_mb }} MB</span>
           <input class="input" type="file" name="file" accept="image/png,image/jpeg" required data-max-mb="{{ max_mb }}"></label>
-        <button type="submit" class="btn btn-success" style="align-self:end">Analyze</button>
+        <button type="submit" class="btn btn-primary" style="align-self:flex-start">Analyze</button>
       </form>
-      <p class="dim hidden" id="analyze-busy" role="status">Running inference… (CPU inference can take a few seconds)</p>
+      <p class="dim hidden" id="analyze-busy" role="status">Checking the picture… (this can take a few seconds)</p>
       {% if error %}<p class="strong text-red" role="alert">{{ error }}</p>{% endif %}
+    </div>
+    <div class="split-side">
       {% if result %}{% with f=result.frame %}
-        {# The box overlay is sized by this wrapper, so it must be exactly as wide as the picture: align-self stops .stack (flex column) stretching it; no max-height on the image (it would shrink the picture, not the wrapper). #}
-        <div style="position:relative;display:inline-block;max-width:100%;align-self:flex-start">
-          <img src="{{ image }}" alt="Uploaded test image" style="display:block;max-width:100%">
+        {# The box overlay is sized by this wrapper, so it must be exactly as wide as the picture. #}
+        <div style="position:relative;display:inline-block;max-width:100%">
+          <img src="{{ image }}" alt="Uploaded test image" style="display:block;max-width:100%;border-radius:12px">
           <svg viewBox="0 0 {{ f.frameWidth }} {{ f.frameHeight }}" preserveAspectRatio="none" aria-hidden="true"
                style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
             {% for d in f.detections %}<rect x="{{ d.bbox.0 }}" y="{{ d.bbox.1 }}" width="{{ d.bbox.2 }}" height="{{ d.bbox.3 }}" fill="none"
@@ -69,12 +71,12 @@
               stroke-width="3" vector-effect="non-scaling-stroke"/>{% endfor %}
           </svg>
         </div>
-        <p class="tiny dim">Model: <b>{{ f.model|default:"not reported" }}</b> · inference {{ result.inferenceMs|floatformat:0 }} ms ·
+        <p class="tiny dim">Model: <b>{{ f.model|default:"not reported" }}</b> · {{ result.inferenceMs|floatformat:0 }} ms ·
           fire {% if f.fireDetected %}{{ f.fireSeverity|default:"yes" }} (by image area, not physical size){% else %}no{% endif %} ·
           smoke {{ f.smokeDetected|yesno:"yes,no" }} · people {{ f.humanCount }}</p>
         {% if f.detections %}
           <table class="data">
-            <thead><tr><th>Class</th><th>Confidence</th><th>Box (px)</th><th>Why (evidence)</th></tr></thead>
+            <thead><tr><th>Found</th><th>Sure</th><th>Box (px)</th><th>Why</th></tr></thead>
             <tbody>{% for d in f.detections %}
               <tr><td class="strong">{{ d.label|default:d.category }}</td><td>{% widthratio d.confidence 1 100 %}%</td>
                 <td class="mono">{{ d.bbox.0|floatformat:0 }}, {{ d.bbox.1|floatformat:0 }}, {{ d.bbox.2|floatformat:0 }}×{{ d.bbox.3|floatformat:0 }}</td>
@@ -82,11 +84,24 @@
             {% endfor %}</tbody>
           </table>
         {% else %}
-          <p class="dim">The loaded models found nothing above their confidence thresholds. This is not proof the scene is safe, especially if a model is
-            missing (see status).</p>
+          <p class="dim">The models found nothing above their thresholds. This is not proof the scene is safe, especially if a model is missing.</p>
         {% endif %}
-      {% endwith %}{% endif %}
+      {% endwith %}{% else %}
+        <div class="placeholder">The checked picture with boxes appears here.</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="health-title">
+    <div class="section-head"><h2 id="health-title" class="section-title">System health</h2>
+      <span class="small strong" id="health-overall" role="status">CHECKING…</span>
+      <button type="button" class="btn btn-ghost btn-sm" id="health-details-toggle" aria-expanded="false" aria-controls="health-details">Show details</button></div>
+    <div class="health-strip" id="health-strip"><p class="empty">Checking system health…</p></div>
+    <div class="hidden" id="health-details">
+      <p class="small muted" id="health-checked"></p>
+      <div class="scroll scroll-360" id="health"><p class="empty">Checking system health…</p></div>
     </div>
   </section>
 </main>
 {% endblock %}
+{% block scripts %}{{ block.super }}{% endblock %}

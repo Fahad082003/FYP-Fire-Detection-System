@@ -1,0 +1,20 @@
+{% extends "sentinel/shell.html" %}
+{% block title %}Cameras · Sentinel{% endblock %}
+{% block page %}
+<main class="page">
+  <header class="page-head">
+    <h1>Cameras</h1>
+    <span class="page-sub" id="camera-count"></span>
+    <div class="seg push-right" role="tablist" aria-label="Show" id="feed-filter">
+      <button type="button" role="tab" class="seg-btn" aria-selected="true" data-filter="all">All</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="problems">Problems</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="CCTV">CCTV</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="Drone">Drone</button>
+    </div>
+  </header>
+  <div class="split">
+    <section class="split-main" aria-label="Camera grid"><div id="video-wall"><p class="empty">Loading cameras…</p></div></section>
+    <aside class="panel split-side" id="camera-detail" aria-label="Selected camera"><p class="muted">Click a camera to see its details.</p></aside>
+  </div>
+</main>
+{% endblock %}

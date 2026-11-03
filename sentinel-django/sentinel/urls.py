@@ -8,6 +8,7 @@ urlpatterns = [
     path("login", views.login, name="login"),
     path("logout", views.logout, name="logout"),
     path("floor-plans", views.floor_plans, name="floor_plans"),
+    *[path(page, views.section, {"page": page}, name=page) for page in ("cameras", "sensors", "sprinklers", "incidents", "activity", "map")],
     path("ai", views.ai, name="ai"),
     path("devices", views.devices, name="devices"),
     path("reports", views.reports, name="reports"),

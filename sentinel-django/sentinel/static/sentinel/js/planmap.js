@@ -12,6 +12,7 @@ const STYLE = {
   DangerZone: { fill: 'rgba(239,68,68,0.10)', stroke: '#ef4444', dash: '5 3' },
 };
 const DRAW_ORDER = ['Room', 'Corridor', 'SafeZone', 'DangerZone', 'Wall', 'Door', 'Exit'];
+const CAMERA_TONE = { ok: '#10b981', warn: '#f59e0b', danger: '#ef4444', off: '#64748b' };
 let nextUid = 0;
 
 export class PlanMap {
@@ -20,7 +21,7 @@ export class PlanMap {
     this.uid = `fp${++nextUid}`;
     this.onPointer = onPointer;
     this.props = { width: 1, height: 1, elements: [], imageUrl: null, riskLayer: null, route: null, start: null, people: [], selected: null,
-      preview: null, activeDanger: [], panEnabled: false };
+      preview: null, activeDanger: [], panEnabled: false, cameras: [] }; // cameras: [{ id, name, points (4 plan points), tone }]
     this.view = { x: 0, y: 0, w: 1, h: 1 };
     this.panFrom = null;
     container.innerHTML = `<div class="map"><svg preserveAspectRatio="xMidYMid meet" role="img" aria-label="Floor plan"></svg>
@@ -133,6 +134,15 @@ export class PlanMap {
       parts.push(`<polyline points="${p.route.map((q) => q.join(',')).join(' ')}" fill="none" stroke="#22c55e" stroke-width="${label * 0.6}"
         stroke-linejoin="round" stroke-linecap="round" marker-end="url(#${this.uid}-arrow)" pointer-events="none"/>`);
     }
+    for (const c of p.cameras) { // the floor area a calibrated camera sees (its calibration points), and a mark to click
+      const [cx, cy] = [0, 1].map((k) => c.points.reduce((sum, q) => sum + q[k], 0) / c.points.length);
+      parts.push(`<polygon points="${c.points.map((q) => q.join(',')).join(' ')}" fill="rgba(59,130,246,0.08)" stroke="#3b82f6" stroke-dasharray="3 3"
+        stroke-width="1" vector-effect="non-scaling-stroke" pointer-events="none"/>
+        <g data-camera="${esc(c.id)}" style="cursor:pointer"><title>${esc(c.name)}</title><circle cx="${cx}" cy="${cy}" r="${label * 1.1}"
+        fill="${CAMERA_TONE[c.tone] ?? CAMERA_TONE.ok}" stroke="#fff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+        <rect x="${cx - label * 0.55}" y="${cy - label * 0.35}" width="${label * 0.75}" height="${label * 0.7}" rx="${label * 0.1}" fill="#fff" pointer-events="none"/>
+        <path d="M ${cx + label * 0.2} ${cy} l ${label * 0.4} ${-label * 0.3} v ${label * 0.6} z" fill="#fff" pointer-events="none"/></g>`);
+    }
     for (const q of p.people) {
       parts.push(`<circle cx="${q.x}" cy="${q.y}" r="${label * 0.6}" fill="#f59e0b" stroke="#000" stroke-width="1" vector-effect="non-scaling-stroke" pointer-events="none"/>`);
     }
@@ -145,7 +155,8 @@ export class PlanMap {
   emit(kind, e) {
     const p = this.toPlan(e);
     const index = e.target.closest?.('[data-index]')?.getAttribute('data-index');
-    this.onPointer({ kind, x: p.x, y: p.y, index: index == null ? null : Number(index), handle: !!e.target.closest?.('[data-handle]') });
+    this.onPointer({ kind, x: p.x, y: p.y, index: index == null ? null : Number(index), handle: !!e.target.closest?.('[data-handle]'),
+      camera: e.target.closest?.('[data-camera]')?.getAttribute('data-camera') ?? null });
   }
 
   toPlan(e) {

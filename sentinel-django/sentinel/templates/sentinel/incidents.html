@@ -1,0 +1,38 @@
+{% extends "sentinel/shell.html" %}
+{% block title %}Incidents · Sentinel{% endblock %}
+{% block page %}
+<main class="page">
+  <header class="page-head">
+    <h1>Incidents</h1>
+    <div class="seg" role="tablist" aria-label="Incident filter" id="incident-filter">
+      <button type="button" role="tab" class="seg-btn" aria-selected="true" data-filter="open">Open (<span id="open-count">0</span>)</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="all">All</button>
+    </div>
+  </header>
+  <div id="fire-smoke" aria-label="Fire and smoke right now"></div>
+  <div class="split">
+    <section class="split-main scroll-x" aria-label="Incident list">
+      <table class="data incident-list">
+        <thead class="sr-only"><tr><th>Severity</th><th>What and where</th><th>Source</th><th>Fire size (est.)</th><th>People</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="incident-rows"><tr><td colspan="7" class="empty">Loading incidents…</td></tr></tbody>
+      </table>
+    </section>
+    <aside class="split-side stack" aria-label="Incident details">
+      <section class="panel" id="incident-detail"><p class="muted">Click an incident to see what happened.</p></section>
+      <section class="panel" aria-labelledby="history-title">
+        <div class="section-head"><h2 id="history-title" class="section-title">What happened</h2></div>
+        <div class="row history-filters">
+          <select class="input input-sm" id="history-incident" aria-label="Incident"><option value="">All incidents</option></select>
+          <select class="input input-sm" id="history-type" aria-label="Event type">
+            <option value="">All event types</option>
+            <option>Opened</option><option>Escalated</option><option>Resolved</option><option>FireMeasurement</option>
+            <option>PersonInDanger</option><option>EvacuationRoute</option><option>FireGrowth</option><option>RiskWarning</option><option>FalseAlarm</option><option>SensorRecovered</option><option>Corroborated</option>
+          </select>
+        </div>
+        <div id="history-chart"></div>
+        <div class="scroll scroll-460" id="history-table"><p class="empty">Loading history…</p></div>
+      </section>
+    </aside>
+  </div>
+</main>
+{% endblock %}

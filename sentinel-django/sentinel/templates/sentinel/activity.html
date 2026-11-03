@@ -1,0 +1,34 @@
+{% extends "sentinel/shell.html" %}
+{% block title %}Activity Log · Sentinel{% endblock %}
+{% block page %}
+<main class="page page-narrow">
+  <header class="page-head">
+    <h1>Activity Log</h1>
+    <div class="seg push-right" role="tablist" aria-label="Show" id="activity-filter">
+      <button type="button" role="tab" class="seg-btn" aria-selected="true" data-filter="">Everything</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="fire|smoke">Fire &amp; smoke</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="camera">Cameras</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="sensor">Sensors</button>
+      <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="sprinkler">Sprinklers</button>
+    </div>
+  </header>
+  <section class="panel" aria-labelledby="activity-title">
+    <div class="section-head"><h2 id="activity-title" class="section-title">Live, since this page opened</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="clear-activity">Clear</button></div>
+    <ol class="activity" id="activity" aria-live="polite"><li class="empty" style="display:block">Waiting for events…</li></ol>
+  </section>
+  <section class="panel" aria-labelledby="history-title">
+    <div class="section-head"><h2 id="history-title" class="section-title">Saved history</h2>
+      <div class="row history-filters">
+        <select class="input input-sm" id="history-incident" aria-label="Incident"><option value="">All incidents</option></select>
+        <select class="input input-sm" id="history-type" aria-label="Event type">
+          <option value="">All event types</option>
+          <option>Opened</option><option>Escalated</option><option>Resolved</option><option>FireMeasurement</option>
+          <option>PersonInDanger</option><option>EvacuationRoute</option><option>FireGrowth</option><option>RiskWarning</option><option>FalseAlarm</option><option>SensorRecovered</option><option>Corroborated</option>
+        </select>
+      </div></div>
+    <div id="history-chart"></div>
+    <div class="scroll scroll-460" id="history-table"><p class="empty">Loading history…</p></div>
+  </section>
+</main>
+{% endblock %}

@@ -1,25 +1,25 @@
 {% extends "sentinel/shell.html" %}
-{% block title %}Reports · FireVision AI{% endblock %}
+{% block title %}Reports · Sentinel{% endblock %}
 {% block page %}
 <main class="page page-reports">
-  <section class="panel" aria-labelledby="report-title">
-    <header class="panel-head">
-      <h2 id="report-title" class="panel-title">Incident Report</h2>
-      <form method="get" class="row" id="report-form" novalidate>
-        <label class="row small dim">From <input class="input input-sm" type="date" name="start" value="{{ form.data.start }}" required></label>
-        <label class="row small dim">To <input class="input input-sm" type="date" name="end" value="{{ form.data.end }}" required></label>
-        <button type="submit" class="btn btn-sm">Apply</button>
-      </form>
-    </header>
-    {% if not report %}
-      <div class="panel-body stack">{% for errors in form.errors.values %}{% for e in errors %}<p class="alert-box" role="alert">{{ e }}</p>{% endfor %}{% endfor %}</div>
-    {% else %}
-      <p class="panel-body tiny muted" id="report-range">Incidents opened from {{ report.start|date:"Y-m-d" }} to {{ report.end|date:"Y-m-d" }}
-        (UTC days, both included). Severity is the highest level an incident reached.</p>
-    {% endif %}
-  </section>
+  <header class="page-head">
+    <h1>Reports</h1>
+    <nav class="seg" aria-label="Period">
+      {% for label, start, end in periods %}<a class="seg-btn" href="?start={{ start }}&amp;end={{ end }}"
+        {% if form.data.start == start and form.data.end == end %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+    </nav>
+    <form method="get" class="row push-right" id="report-form" novalidate>
+      <label class="row small dim">From <input class="input input-sm" type="date" name="start" value="{{ form.data.start }}" required></label>
+      <label class="row small dim">To <input class="input input-sm" type="date" name="end" value="{{ form.data.end }}" required></label>
+      <button type="submit" class="btn btn-sm">Apply</button>
+    </form>
+  </header>
+  {% if not report %}
+    <div class="stack">{% for errors in form.errors.values %}{% for e in errors %}<p class="alert-box" role="alert">{{ e }}</p>{% endfor %}{% endfor %}</div>
+  {% else %}
+    <p class="page-note" id="report-range">Incidents opened from {{ report.start|date:"Y-m-d" }} to {{ report.end|date:"Y-m-d" }}
+      (UTC days, both included). Severity is the highest level an incident reached.</p>
 
-  {% if report %}
     <section class="kpis" aria-label="Totals" id="report-kpis">
       <article class="kpi"><span class="kpi-label">Total incidents</span><span class="kpi-value">{{ report.total }}</span>
         <span class="kpi-hint">opened in this period</span></article>
@@ -35,10 +35,22 @@
     {% if not report.total %}
       <section class="panel"><p class="empty" id="report-empty">No incidents were opened in this period.</p></section>
     {% else %}
+      <section class="panel" aria-labelledby="trend-title">
+        <h2 id="trend-title" class="section-title">Incidents per day</h2>
+        <div class="day-bars" role="img" aria-label="Incidents per day from {{ report.start|date:'Y-m-d' }} to {{ report.end|date:'Y-m-d' }}, at most {{ report.busiest }} on one day">
+          {% for d in report.daily %}<span class="day-bar" title="{{ d.date|date:'Y-m-d' }}: {{ d.count }}" style="height:{% widthratio d.count report.busiest 100 %}%"></span>{% endfor %}
+        </div>
+        <div class="chart-axis"><span>{{ report.start|date:"Y-m-d" }}</span><span>busiest day: {{ report.busiest }}</span><span>{{ report.end|date:"Y-m-d" }}</span></div>
+        <details class="small dim" style="margin-top:8px"><summary>Per-day numbers</summary>
+          <table class="data" id="daily-table"><thead><tr><th>Date (UTC)</th><th class="num">Incidents</th></tr></thead>
+            <tbody>{% for d in report.daily %}<tr><td class="mono">{{ d.date|date:"Y-m-d" }}</td><td class="num">{{ d.count }}</td></tr>{% endfor %}</tbody></table>
+        </details>
+      </section>
+
       <div class="report-grid">
         {% for title, column, rows in breakdowns %}
           <section class="panel" aria-label="{{ title }}">
-            <header class="panel-head"><h2 class="panel-title">{{ title }}</h2></header>
+            <h2 class="section-title">{{ title }}</h2>
             <table class="data">
               <thead><tr><th>{{ column }}</th><th class="num">Incidents</th><th><span class="sr-only">Share</span></th></tr></thead>
               <tbody>{% for row in rows %}<tr><td>{{ row.name }}</td><td class="num">{{ row.count }}</td>
@@ -47,20 +59,6 @@
           </section>
         {% endfor %}
       </div>
-
-      <section class="panel" aria-labelledby="trend-title">
-        <header class="panel-head"><h2 id="trend-title" class="panel-title">Incidents per day</h2></header>
-        <div class="panel-body">
-          <div class="day-bars" role="img" aria-label="Incidents per day from {{ report.start|date:'Y-m-d' }} to {{ report.end|date:'Y-m-d' }}, at most {{ report.busiest }} on one day">
-            {% for d in report.daily %}<span class="day-bar" title="{{ d.date|date:'Y-m-d' }}: {{ d.count }}" style="height:{% widthratio d.count report.busiest 100 %}%"></span>{% endfor %}
-          </div>
-          <div class="chart-axis"><span>{{ report.start|date:"Y-m-d" }}</span><span>busiest day: {{ report.busiest }}</span><span>{{ report.end|date:"Y-m-d" }}</span></div>
-          <details class="small dim" style="margin-top:8px"><summary>Per-day numbers</summary>
-            <table class="data" id="daily-table"><thead><tr><th>Date (UTC)</th><th class="num">Incidents</th></tr></thead>
-              <tbody>{% for d in report.daily %}<tr><td class="mono">{{ d.date|date:"Y-m-d" }}</td><td class="num">{{ d.count }}</td></tr>{% endfor %}</tbody></table>
-          </details>
-        </div>
-      </section>
     {% endif %}
   {% endif %}
 </main>
