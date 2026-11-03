@@ -150,8 +150,19 @@ class HealthTests(SentinelTestCase):
         with mock.patch.object(health, "SUPERVISOR_STATE", path):
             for heartbeat, ai_entry, text in [
                 (timezone.now(), {"state": "backoff", "exitCode": 15, "restarts": 1, "nextRestartAt": "2026-11-02T10:00:02+00:00"},
-                 "It exited (code 15); the supervisor restarts it at 2026-11-02T10:00:02+00:00."),
+                 "Restarting: it exited (code 15); the supervisor restarts it at 2026-11-02T10:00:02+00:00."),  # no lastFailure: older file
                 (timezone.now(), {"state": "failed", "exitCode": 1, "restarts": 5}, "The supervisor stopped restarting it after 5 restarts."),
+                (timezone.now(), {"state": "unresponsive", "restarts": 0, "unresponsiveSince": "2026-11-02T10:00:00+00:00"},
+                 "Unresponsive since 2026-11-02T10:00:00+00:00: the supervisor restarts it if it stays silent."),
+                (timezone.now(), {"state": "backoff", "exitCode": 1, "restarts": 0, "nextRestartAt": "2026-11-02T10:00:32+00:00",
+                                  "lastFailure": "hung (3 health checks in a row got no answer, none for 30 s (last: no answer (TimeoutError)))"},
+                 "Restarting: it hung (3 health checks in a row got no answer, none for 30 s (last: no answer (TimeoutError))); "
+                 "the supervisor restarts it at 2026-11-02T10:00:32+00:00."),
+                (timezone.now(), {"state": "starting", "restarts": 1, "lastRestartAt": "2026-11-02T10:00:32+00:00", "lastFailure": "hung (x)"},
+                 "Recovering: restarted at 2026-11-02T10:00:32+00:00 after it hung (x); loading its models."),
+                (timezone.now(), {"state": "starting", "restarts": 0}, "The supervisor is starting it."),
+                (timezone.now(), {"state": "failed", "exitCode": 1, "restarts": 5, "lastFailure": "hung (x)"},
+                 "Recovery failed: it hung (x). The supervisor stopped restarting it after 5 restarts."),
                 (timezone.now() - timedelta(minutes=5), {"state": "backoff", "exitCode": 15}, None)]:  # an old file: no supervisor
                 path.write_text(json.dumps({"heartbeat": heartbeat.isoformat(), "children": {"ai": ai_entry}}), encoding="utf-8")
                 c = self.component("ai")
@@ -161,6 +172,14 @@ class HealthTests(SentinelTestCase):
                     self.assertEqual(c["details"]["supervisor"]["state"], ai_entry["state"])
                 else:
                     self.assertEqual((c["message"], c["details"]["supervisor"]), (AI_OFFLINE["error"], None))
+
+            self.ai_answer = ai()  # recovered: ready again, the last failure and restart time stay visible
+            path.write_text(json.dumps({"heartbeat": timezone.now().isoformat(), "children": {"ai": {
+                "state": "ready", "restarts": 1, "lastRestartAt": "2026-11-02T10:00:32+00:00", "lastFailure": "hung (x)"}}}), encoding="utf-8")
+            c = self.component("ai")
+            self.assertEqual((c["status"], c["message"]), ("healthy", "Ready: all models loaded. Restarted 1 time(s), last at "
+                                                                      "2026-11-02T10:00:32+00:00 after it hung (x)."))
+            self.assertEqual(c["details"]["supervisor"]["lastFailure"], "hung (x)")
 
     def test_models_loaded_missing_warm_up_failure_and_unknown_while_the_ai_is_offline(self):
         self.assertEqual(self.component("models")["status"], "healthy")

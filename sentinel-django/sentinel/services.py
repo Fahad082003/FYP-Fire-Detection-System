@@ -3,6 +3,7 @@ IncidentService, DashboardService, FloorPlanService and DbSeeder)."""
 import logging
 import math
 import secrets
+import sys
 from datetime import date, datetime, time, timedelta, timezone as dt_timezone
 
 from django.conf import settings
@@ -457,15 +458,20 @@ SMOKE_THRESHOLD_PPM, TEMPERATURE_THRESHOLD_C = 300, 57  # 57 °C: standard glass
 def seed() -> None:
     """The first admin account (when Users is empty) and, if enabled, demo cameras, sensors and sprinklers."""
     if not AppUser.objects.exists():
-        password = _opt("SEED_ADMIN_PASSWORD") or secrets.token_urlsafe(12)
-        admin = AppUser(email=_opt("SEED_ADMIN_EMAIL").strip().lower(), display_name="Administrator", role=UserRole.ADMIN)
-        admin.set_password(password)
-        admin.save(force_insert=True)
-        if _opt("SEED_ADMIN_PASSWORD"):
-            log.info("Created admin account %s", admin.email)
+        # A generated password goes to an interactive console only, never through logging: under the supervisor (or any
+        # redirect) stderr is a log file, so no admin is made there rather than one whose password nobody can read safely.
+        if not _opt("SEED_ADMIN_PASSWORD") and not sys.stderr.isatty():
+            log.warning("No admin account created: Seed__AdminPassword is not set and the output is not an interactive console "
+                        "(a generated password would be written to a log). Set Seed__AdminPassword and restart.")
         else:
-            log.warning("Created admin %s with GENERATED password: %s  (set Seed__AdminPassword to choose your own; shown only once)",
-                        admin.email, password)
+            password = _opt("SEED_ADMIN_PASSWORD") or secrets.token_urlsafe(12)
+            admin = AppUser(email=_opt("SEED_ADMIN_EMAIL").strip().lower(), display_name="Administrator", role=UserRole.ADMIN)
+            admin.set_password(password)
+            admin.save(force_insert=True)
+            log.info("Created admin account %s", admin.email)
+            if not _opt("SEED_ADMIN_PASSWORD"):
+                print(f"Admin {admin.email} GENERATED password: {password}  (set Seed__AdminPassword to choose your own; "
+                      "shown only once)", file=sys.stderr, flush=True)
     if not _opt("SEED_DEMO_DATA") or CameraFeed.objects.exists() or SensorNode.objects.exists() or SmartSprinkler.objects.exists():
         return
     # Zones are "Floor - Area" so an alert says where to go; cameras, sensors, sprinklers and plan danger zones share the name.

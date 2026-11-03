@@ -27,8 +27,9 @@ FAST = {"max_restarts": 2, "window": 60, "initial": 0.3, "max_backoff": 0.6}
 # argv: port, seconds of "loading", final status, marker file. The first run exits with code 3 (a crash), later runs serve.
 CRASH_ONCE = """
 import os, sys
-if not os.path.exists(sys.argv[4]):
-    open(sys.argv[4], "w").close()
+marker = sys.argv.pop(4)  # HEALTH_CHILD's own optional argv[4] stays free
+if not os.path.exists(marker):
+    open(marker, "w").close()
     print("crashing once", flush=True)
     sys.exit(3)
 """ + HEALTH_CHILD

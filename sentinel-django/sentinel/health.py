@@ -64,7 +64,8 @@ def supervisor_ai(now) -> dict | None:
         return None
     if heartbeat is None or abs(_seconds(now, heartbeat)) > SUPERVISOR_HEARTBEAT_SECONDS or not isinstance(ai, dict):
         return None
-    return {k: ai.get(k) for k in ("state", "restarts", "exitCode", "lastExitAt", "lastReadyAt", "nextRestartAt")}
+    return {k: ai.get(k) for k in ("state", "restarts", "exitCode", "lastExitAt", "lastReadyAt", "nextRestartAt", "lastRestartAt",
+                                   "lastFailure", "unresponsiveSince")}
 
 
 AI_STATUS = {
@@ -77,18 +78,25 @@ AI_STATUS = {
 
 def ai_service(ai: dict, supervisor: dict | None) -> dict:
     details = {**ai, "supervisor": supervisor}  # ai is GET /api/ai/status; the dashboard's banner reads it from here
+    sv = supervisor or {}
+    failure = sv.get("lastFailure") or f"exited (code {sv.get('exitCode')})"  # older state files have no lastFailure
     if not ai["online"]:
         message = ai["error"]
-        state = (supervisor or {}).get("state")
-        if state == "backoff":
-            message += f" It exited (code {supervisor['exitCode']}); the supervisor restarts it at {supervisor['nextRestartAt']}."
+        state = sv.get("state")
+        if state == "unresponsive":
+            message += f" Unresponsive since {sv['unresponsiveSince']}: the supervisor restarts it if it stays silent."
+        elif state == "backoff":
+            message += f" Restarting: it {failure}; the supervisor restarts it at {sv['nextRestartAt']}."
         elif state == "failed":
-            message += f" The supervisor stopped restarting it after {supervisor['restarts']} restarts."
+            message += f" Recovery failed: it {failure}. The supervisor stopped restarting it after {sv['restarts']} restarts."
         elif state == "starting":
-            message += " The supervisor is starting it."
+            message += (f" Recovering: restarted at {sv['lastRestartAt']} after it {failure}; loading its models."
+                        if sv.get("restarts") else " The supervisor is starting it.")
         return {"status": "offline", "message": message, "details": details}
     reported = (ai["service"] or {}).get("status") if isinstance(ai["service"], dict) else None
     status, message = AI_STATUS.get(reported, ("unknown", f"Unexpected AI status {reported!r}."))
+    if sv.get("restarts"):
+        message += f" Restarted {sv['restarts']} time(s), last at {sv['lastRestartAt']} after it {failure}."
     return {"status": status, "message": message, "details": details}
 
 

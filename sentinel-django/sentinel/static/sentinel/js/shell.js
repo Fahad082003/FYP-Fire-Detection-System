@@ -165,7 +165,10 @@ export function degradedReason() {
   if (live.state !== 'connected' || !live.loaded) return 'LIVE LINK DOWN'; // before the first snapshot, "no incidents" is unknown
   const s = live.ai;
   if (!s || live.now - live.healthAt > HEALTH_STALE_MS) return 'AI STATUS UNKNOWN'; // an old "ok" is not shown as current
-  if (!s.online) return 'AI OFFLINE';
+  if (!s.online) { // what the supervisor (tools/supervisor.py) is doing about it, when one runs
+    return { unresponsive: 'AI UNRESPONSIVE', backoff: 'AI RESTARTING', failed: 'AI RECOVERY FAILED' }[s.supervisor?.state]
+      ?? (s.supervisor?.state === 'starting' && s.supervisor.restarts ? 'AI RECOVERING' : 'AI OFFLINE');
+  }
   if (s.service?.status === 'loading') return 'AI LOADING'; // running, but no model is ready to detect anything yet
   if (s.service?.status !== 'ok') return 'AI MODEL MISSING';
   // The server's "camera lost" alarm needs 10 s of silence; the AI service knows at once which stream it cannot read.

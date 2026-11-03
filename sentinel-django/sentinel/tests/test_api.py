@@ -1,9 +1,13 @@
 """API behaviour on SQL Server. Ports of ApiIntegrationTests, CameraLostAndSimulatedTests, CameraDeletionTests,
 CameraStatusTests and FloorPlanAndLogTests (.NET)."""
 import base64
+import json
+import os
 import shutil
+import smtplib
 import tempfile
 import threading
+import urllib.error
 from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -263,6 +267,21 @@ class CameraTests(SentinelTestCase):
 
         self.assertEqual(admin.delete("/api/cameras/cam-gate").status_code, 204)
         self.assertEqual(admin.get("/api/cameras/cam-gate").status_code, 404)
+
+    def test_a_password_with_a_raw_at_sign_is_hidden_whole_and_kept_on_save(self):
+        link = "rtsp://admin:p@ss@10.0.0.21:554/live"  # FFmpeg splits at the last "@": the password is "p@ss"
+        body = {"id": "cam-at", "name": "At Gate", "feedType": "CCTV", "streamUrl": link, "streamFormat": "Simulated",
+                "locationZone": "Ground Floor - Gate"}
+        admin = self.admin_client
+        self.assertEqual(admin.post("/api/cameras", body, format="json").status_code, 201)
+        seen = admin.get("/api/cameras/cam-at").json()["streamUrl"]
+        self.assertEqual(seen, "rtsp://***@10.0.0.21:554/live")  # was rtsp://***@ss@10.0.0.21:554/live
+        self.client.force_login(self.admin)
+        page = self.client.get("/devices").content.decode()
+        self.assertNotIn("p@ss", page)
+        self.assertIn("rtsp://***@10.0.0.21:554/live", page)
+        admin.put("/api/cameras/cam-at", {**body, "name": "At Gate 2", "streamUrl": seen}, format="json")
+        self.assertEqual(self.device.get("/api/cameras/cam-at").json()["streamUrl"], link)  # the masked link keeps the password
 
     def test_deleting_a_camera_keeps_its_incidents_in_the_history(self):
         self.post_frame(**fire("cam-warehouse"))
@@ -784,6 +803,32 @@ class FireMeasurementTests(SentinelTestCase):
         self.assertFalse(incident.is_resolved)  # never closed by missing detections: no proof the fire is out
         self.assertEqual(IncidentLog.objects.filter(incident=incident, type=IncidentLogType.OPENED).count(), 1)
 
+    def test_smoke_stays_apart_from_fire_repeats_merge_and_a_fire_after_resolving_opens_a_new_incident(self):
+        self.post_frame(cameraId="cam-lobby", frameWidth=1280, frameHeight=720,
+                        detections=[{"category": "Smoke", "confidence": 0.8, "bbox": [100, 100, 200, 200]}])
+        for _ in range(5):  # one ongoing fire, frame after frame, each past the 2 s evaluation throttle
+            cache.delete("vision-eval:cam-server")
+            self.post_frame(**fire("cam-server"))
+        smoke, first = IncidentAlert.objects.get(camera_id="cam-lobby"), IncidentAlert.objects.get(camera_id="cam-server")
+        self.assertEqual((smoke.fire_detected, smoke.fire_severity, smoke.severity, smoke.zone),
+                         (False, None, "Medium", "Ground Floor - Lobby"))  # smoke only: never a fire incident
+        self.assertTrue(smoke.message.startswith("Smoke detected on Main Lobby"), smoke.message)
+        self.assertEqual((first.fire_detected, first.fire_severity, first.zone), (True, "Medium", "First Floor - Server Hall"))
+        self.assertEqual(IncidentLog.objects.filter(incident=first, type=IncidentLogType.OPENED).count(), 1)
+        self.assertGreater(first.updated_at, first.timestamp)  # merged frames refresh it; the opening time stays
+
+        self.op.post(f"/api/incidents/{first.id}/resolve")
+        cache.delete("vision-eval:cam-server")
+        self.post_frame(**fire("cam-server"))  # the fire is back after the operator resolved it
+        first.refresh_from_db()
+        second = IncidentAlert.objects.exclude(pk__in=[smoke.pk, first.pk]).get()
+        self.assertTrue(first.is_resolved)
+        self.assertEqual((second.camera_id, second.fire_detected, second.is_resolved), ("cam-server", True, False))
+        self.assertGreaterEqual(second.timestamp, first.resolved_at)
+        history = list(IncidentLog.objects.filter(incident=first).order_by("id").values_list("type", flat=True))
+        self.assertEqual((history[0], history[-1]), (IncidentLogType.OPENED, IncidentLogType.RESOLVED))
+        self.assertEqual(IncidentLog.objects.filter(incident=second, type=IncidentLogType.OPENED).count(), 1)
+
 
 @mock.patch.dict(settings.SENTINEL, VISION_EVALUATION_INTERVAL_SECONDS=60)  # every frame below falls inside one throttle window
 class PersonInDangerTests(SentinelTestCase):
@@ -1237,3 +1282,64 @@ class FusionTests(SentinelTestCase):
         self.assertEqual(self.records(), [])
         snapshot = self.op.get("/api/dashboard/snapshot").json()
         self.assertFalse(any(i["corroborated"] for i in snapshot["incidents"]))
+
+
+class NotificationSafetyTests(SentinelTestCase):
+    """deliver() itself, with every network call mocked: nothing here can reach Twilio, an SMTP server or a push service."""
+
+    def deliver(self, incident_id):
+        published = []
+        with mock.patch.object(events, "publish", side_effect=lambda kind, data: published.append(data)):
+            notifications.deliver(incident_id)
+        return {p["channel"]: p for p in published}
+
+    def emergency(self, **extra):
+        cache.delete("vision-eval:cam-server")  # each frame past the 2 s evaluation throttle
+        return self.post_frame(**{**fire("cam-server", "Critical"), **extra})
+
+    def test_tests_get_no_provider_and_nothing_reaches_the_network(self):
+        self.assertEqual([n for n in os.environ if n.upper().startswith("NOTIFICATIONS__")], [])  # removed by manage.py test
+        s = settings.SENTINEL
+        self.assertFalse(any(s[k] for k in ("SMS_ACCOUNT_SID", "SMS_AUTH_TOKEN", "SMS_RECIPIENTS", "EMAIL_RECIPIENTS",
+                                            "WEBPUSH_PRIVATE_KEY")))
+        self.assertEqual(settings.EMAIL_BACKEND, "django.core.mail.backends.locmem.EmailBackend")  # Django's test runner
+        self.emergency()
+        with mock.patch("urllib.request.urlopen", side_effect=AssertionError("network call")) as network:
+            result = self.deliver(IncidentAlert.objects.get().id)
+        network.assert_not_called()
+        self.assertEqual({c: r["skipped"] for c, r in result.items()}, {"sms": True, "email": True, "push": True})
+
+    def test_a_failing_provider_is_logged_without_secrets_and_the_other_channels_still_run(self):
+        self.emergency()
+        incident = IncidentAlert.objects.get()
+        fake = {"SMS_ACCOUNT_SID": "ACfake", "SMS_AUTH_TOKEN": "tok-SECRET-4242", "SMS_FROM": "+10000000000",
+                "SMS_RECIPIENTS": "+10000000001,+10000000002", "EMAIL_RECIPIENTS": "ops@test.local"}
+        refused = urllib.error.HTTPError("https://api.twilio.com/x", 401, "Unauthorized", {}, None)
+        with mock.patch.dict(settings.SENTINEL, fake), self.settings(EMAIL_HOST="smtp.test.local", EMAIL_HOST_PASSWORD="smtp-SECRET-77"), \
+                mock.patch("urllib.request.urlopen", side_effect=refused) as twilio, \
+                mock.patch("django.core.mail.EmailMultiAlternatives.send", side_effect=smtplib.SMTPAuthenticationError(535, b"rejected")), \
+                self.assertLogs("sentinel.notifications", "INFO") as logs:
+            result = self.deliver(incident.id)  # must not raise
+        self.assertEqual(twilio.call_count, 2)  # one (mocked) attempt per number, the second after the first failed
+        self.assertEqual((result["sms"]["ok"], result["sms"]["failed"]), (False, 2))
+        self.assertEqual((result["email"]["ok"], result["push"]["skipped"]), (False, True))  # email failed; push still reported
+        text = "\n".join(logs.output) + json.dumps(result, default=str)
+        self.assertIn("Twilio SMS to +10000000001 failed: HTTP Error 401", text)
+        auth = base64.b64encode(b"ACfake:tok-SECRET-4242").decode()
+        for secret in ("tok-SECRET-4242", auth, "smtp-SECRET-77"):
+            self.assertNotIn(secret, text)
+        self.assertFalse(IncidentAlert.objects.get(pk=incident.pk).is_resolved)  # incident processing is untouched
+
+    def test_new_and_escalated_emergencies_notify_repeats_and_resolving_do_not(self):
+        self.post_frame(cameraId="cam-server", frameWidth=1280, frameHeight=720, dangerCount=1,
+                        detections=[{"category": "Human", "confidence": 0.9, "bbox": [100, 100, 40, 120]}])
+        incident = IncidentAlert.objects.get()
+        self.assertEqual((incident.severity, notifications.jobs.qsize()), ("High", 1))  # created: a person in danger
+        self.emergency(dangerCount=1)
+        self.assertEqual((IncidentAlert.objects.get().severity, notifications.jobs.qsize()), ("Critical", 2))  # escalated
+        for _ in range(3):
+            self.emergency(dangerCount=1)  # the same ongoing emergency: merged into the incident, nobody is paged again
+        self.assertEqual((IncidentAlert.objects.count(), notifications.jobs.qsize()), (1, 2))
+        self.op.post(f"/api/incidents/{incident.id}/resolve")
+        self.assertEqual(notifications.jobs.qsize(), 2)  # resolved: dashboard and activity only, no SMS or e-mail
+        self.assertTrue(IncidentLog.objects.filter(incident=incident, type=IncidentLogType.RESOLVED).exists())

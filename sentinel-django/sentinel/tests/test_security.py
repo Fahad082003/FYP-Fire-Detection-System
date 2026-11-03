@@ -1,6 +1,7 @@
 """Sign-in, roles, CSRF and the live event stream (replaces the SignalR hub tests in ApiIntegrationTests.cs)."""
 import asyncio
 import contextlib
+import io
 import json
 import os
 import subprocess
@@ -12,10 +13,10 @@ from django.conf import settings
 from django.test import Client
 from rest_framework.test import APIClient
 
-from sentinel import events
+from sentinel import events, services
 from sentinel.security import hash_password, verify_password
 
-from sentinel.models import SmartSprinkler
+from sentinel.models import AppUser, SmartSprinkler
 
 from .base import ADMIN_EMAIL, PASSWORD, SENSOR_KEY, SentinelTestCase
 
@@ -36,6 +37,31 @@ class PasswordTests(SentinelTestCase):
         self.assertTrue(verify_password(stored, "s3cret-pass"))
         self.assertNotEqual(stored, hash_password("s3cret-pass"))  # random salt
 
+    def seed_first_admin(self, configured, console):
+        """services.seed() on an empty Users table, with stderr a console or a redirect; returns (logs, stderr)."""
+        AppUser.objects.all().delete()
+        stderr = io.StringIO()
+        stderr.isatty = lambda: console
+        with mock.patch.dict(settings.SENTINEL, SEED_ADMIN_PASSWORD=configured), \
+                mock.patch("secrets.token_urlsafe", return_value="Fake-Gen3rated-Pw"), mock.patch("sys.stderr", stderr), \
+                self.assertLogs("sentinel", "INFO") as logs:
+            services.seed()
+        return "\n".join(logs.output), stderr.getvalue()
+
+    def test_a_generated_admin_password_is_never_logged(self):
+        logs, stderr = self.seed_first_admin("", console=False)  # the supervisor: stderr is logs\django.log
+        self.assertFalse(AppUser.objects.exists())  # no admin whose password nobody could safely read
+        self.assertIn("Seed__AdminPassword is not set", logs)
+        self.assertNotIn("Fake-Gen3rated-Pw", logs + stderr)
+
+        logs, stderr = self.seed_first_admin("", console=True)  # run by hand in a console: shown there once
+        self.assertTrue(AppUser.objects.get().check_password("Fake-Gen3rated-Pw"))
+        self.assertIn("GENERATED password: Fake-Gen3rated-Pw", stderr)
+        self.assertNotIn("Fake-Gen3rated-Pw", logs)
+
+        logs, stderr = self.seed_first_admin("Fake-Configured-Pw", console=False)
+        self.assertTrue(AppUser.objects.get().check_password("Fake-Configured-Pw"))
+        self.assertNotIn("Fake-Configured-Pw", logs + stderr)
 
 class PageTests(SentinelTestCase):
     def test_pages_need_a_login_and_the_login_page_signs_in(self):

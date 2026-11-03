@@ -55,6 +55,7 @@ def is_stale(sensor, now) -> bool:
 
 
 def mask_credentials(url: str) -> str:
-    """rtsp://user:pass@host -> rtsp://***@host. Only devices (the AI service) ever see the real link."""
-    return re.sub(r"(?<=://)[^/@]+@", "***@", url or "")
+    """rtsp://user:pass@host -> rtsp://***@host. Only devices (the AI service) ever see the real link. Up to the last "@"
+    before the path, as FFmpeg reads it: a password with a raw "@" (admin:p@ss) is hidden whole."""
+    return re.sub(r"(?<=://)[^/]*@", "***@", url or "")
 

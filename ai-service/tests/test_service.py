@@ -2,6 +2,7 @@
 tracking, confirmation and the HTTP contract, NOT model accuracy (see tools/evaluate.py for that).
 Run: python -m unittest discover -s tests"""
 import json
+import re
 import socket
 import tempfile
 import threading
@@ -15,7 +16,7 @@ from unittest import mock
 import cv2
 import numpy as np
 
-from sentinel_ai.detector import ModelError, YoloxDetector
+from sentinel_ai.detector import ModelError, YoloxDetector, load_manifest
 from sentinel_ai.pipeline import CameraPipeline, fire_area_percent, fire_severity
 from sentinel_ai.service import STREAM_TIMEOUT_MS, CameraWorker, Engine, Server, make_handler, mask, serve, sync_cameras
 from sentinel_ai.tracker import IouTracker
@@ -153,6 +154,25 @@ class WarmUpTests(unittest.TestCase):
         self.assertEqual(health["models"][0]["loaded"], False)
         self.assertIn("unexpected output shape", health["models"][0]["error"])
 
+    def test_an_invalid_threshold_is_a_clear_model_error_and_the_engine_keeps_serving(self):
+        for bad in ("0.4", 0, -0.1, 1.5, float("nan"), None, True):
+            with self.subTest(threshold=bad), self.assertRaisesRegex(ModelError, r"fire_smoke: threshold must be a number above 0 "
+                                                                                    r"and at most 1, got "):
+                YoloxDetector({**SPEC_FIRE, "threshold": bad}, Path("."), session=FakeSession([]))
+        spec = dict(SPEC_FIRE)
+        del spec["threshold"]
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "models.json").write_text(json.dumps({"models": [spec]}))
+            health = Engine(Path(tmp)).health([])  # the real loader: no crash, the model is reported as not loaded
+        self.assertEqual((health["status"], health["models"][0]["loaded"]), ("no-model", False))
+        self.assertIn("threshold must be a number above 0 and at most 1, got None", health["models"][0]["error"])
+        self.assertEqual(detector(SPEC_FIRE, []).threshold, 0.40)  # a valid value is kept as configured
+
+    def test_the_installed_manifest_maps_class_0_to_smoke_and_1_to_fire_with_their_threshold(self):
+        [fire_smoke] = [m for m in load_manifest(Path(__file__).resolve().parents[1] / "models") if m["name"] == "fire_smoke"]
+        self.assertEqual((fire_smoke["categories"], fire_smoke["labels"]), ({"0": "Smoke", "1": "Fire"}, {"0": "smoke", "1": "fire"}))
+        self.assertEqual(fire_smoke["threshold"], 0.40)
+
 
 class TrackerTests(unittest.TestCase):
     def test_keeps_id_for_overlapping_box_and_creates_new_id_far_away(self):
@@ -180,6 +200,28 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(third["fireDetected"])
         self.assertEqual(third["fireSeverity"], "Medium")  # 100x100 of 416x416 = 5.8% of the frame
         self.assertIn("confirmed: track F1 seen 3/3 frames", third["detections"][0]["explanation"])
+
+    def test_smoke_and_fire_are_confirmed_separately_and_smoke_alone_is_never_a_fire(self):
+        img = np.zeros((416, 416, 3), np.uint8)
+        both = CameraPipeline([detector(SPEC_FIRE, [(100, 100, 80, 80, 0.7, 0), (300, 300, 60, 60, 0.8, 1)])], "cam-1", False)
+        frames = [both.process(img) for _ in range(3)]
+        self.assertEqual([f["detections"] for f in frames[:2]], [[], []])  # nothing before the third frame
+        got = sorted((d["category"], d["label"], d["trackId"], d["hits"]) for d in frames[2]["detections"])
+        self.assertEqual(got, [("Fire", "fire", "F2", 3), ("Smoke", "smoke", "S1", 3)])  # class 0 smoke, class 1 fire, own tracks
+        self.assertTrue(frames[2]["fireDetected"])
+        np.testing.assert_allclose(frames[2]["detections"][[d["category"] for d in frames[2]["detections"]].index("Fire")]["bbox"],
+                                   (270, 270, 60, 60), atol=0.2)  # the fire area comes from the fire box only
+
+        smoke = CameraPipeline([detector(SPEC_FIRE, [(100, 100, 80, 80, 0.7, 0)])], "cam-1", False)
+        last = [smoke.process(img) for _ in range(3)][-1]
+        self.assertEqual([d["category"] for d in last["detections"]], ["Smoke"])
+        self.assertEqual((last["fireDetected"], last["fireSeverity"], last["dangerZones"]), (False, None, []))  # no fire, no fire area
+
+    def test_a_detection_seen_once_or_twice_is_never_reported(self):
+        flicker = detector(SPEC_FIRE, [(200, 200, 100, 100, 0.8, 1)], [], [], [], [], [], [], [(200, 200, 100, 100, 0.8, 1)])
+        pipe = CameraPipeline([flicker], "cam-1", simulated=False)
+        img = np.zeros((416, 416, 3), np.uint8)
+        self.assertFalse(any(pipe.process(img)["fireDetected"] for _ in range(8)))  # seen twice, 7 frames apart: the track expired between
 
     def test_people_carry_the_tracker_hits_and_a_single_image_carries_none(self):
         person = [(100, 200, 40, 120, 0.9, 0)]
@@ -291,6 +333,12 @@ class ServiceTests(unittest.TestCase):
             thread.join(10)
             servers[0].server_close()
 
+    def test_serve_refuses_an_invalid_confirmation_setting_before_anything_starts(self):
+        for bad in (0, -1, 2.5, "3", True, None):
+            with self.subTest(confirm_frames=bad), tempfile.TemporaryDirectory() as tmp, \
+                    self.assertRaisesRegex(SystemExit, rf"settings.confirm_frames must be a whole number of 1 or more, got {re.escape(repr(bad))}"):
+                serve({"listen": f"127.0.0.1:{free_port()}", "settings": {"confirm_frames": bad}}, Path(tmp))
+
     def test_serve_exits_when_the_manifest_cannot_be_read(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {"SENTINEL_DEVICE_KEY": ""}):
             with self.assertRaises(FileNotFoundError):  # instead of answering "loading" forever
@@ -351,6 +399,9 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(w.kind, "file")
             self.assertTrue(w.simulated)
         self.assertEqual(mask("rtsp://admin:secret@10.0.0.5/live"), "rtsp://***@10.0.0.5/live")
+        for url in ("rtsp://admin:p@ss@10.0.0.5:554/live", "rtsp://admin:p@ss@10.0.0.5"):  # a raw "@" in the password
+            self.assertEqual(mask(url), url.replace("admin:p@ss@", "***@"))
+        self.assertEqual(mask("capture failed: rtsp://u:p@ss@cam/s?x=a@b"), "capture failed: rtsp://***@cam/s?x=a@b")  # path kept
 
     def test_deleted_dashboard_camera_stops_on_404_but_config_camera_keeps_running(self):
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

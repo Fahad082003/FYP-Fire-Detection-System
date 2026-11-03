@@ -49,14 +49,25 @@ while time.monotonic() < end:
     time.sleep(0.05)
 sys.exit(int(sys.argv[2]))
 """
-# A stand-in for the AI service. argv: port, seconds of "loading", status after that
+# A stand-in for the AI service. argv: port, seconds of "loading", status after that, optional JSON: "hangAfter" s (then no
+# answer, the process alive: one request at a time, so the others wait too) for "hangFor" s (default: for good), only on the
+# first run if "once" (a file it creates) is given; "slow": s before each answer
 HEALTH_CHILD = """
 import json, os, sys, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 port, loading, final = int(sys.argv[1]), float(sys.argv[2]), sys.argv[3]
+opts = json.loads(sys.argv[4]) if sys.argv[4:] else {}
+once = opts.get("once")
+hangs = "hangAfter" in opts and not (once and os.path.exists(once))
+if once:
+    open(once, "a").close()
 t0 = time.monotonic()
 class Health(BaseHTTPRequestHandler):
     def do_GET(self):
+        age = time.monotonic() - t0
+        if hangs and age >= opts["hangAfter"]:
+            time.sleep(max(0, opts["hangAfter"] + opts.get("hangFor", 3600) - age))
+        time.sleep(opts.get("slow", 0))
         body = json.dumps({"status": final if time.monotonic() - t0 >= loading else "loading"}).encode()
         self.send_response(200)
         self.send_header("Content-Length", str(len(body)))
@@ -68,6 +79,7 @@ print("health child up", os.getpid(), flush=True)
 HTTPServer(("127.0.0.1", port), Health).serve_forever()
 """
 FAST = {"max_restarts": 2, "window": 60, "initial": 0.2, "max_backoff": 0.4}
+FAST_HANG = {"interval": 0.2, "timeout": 0.2, "checks": 3, "seconds": 1.0, "cooldown": 1.0}
 
 
 def child(name, seconds=120, code=0, ignore_break=False, port=None, **extra):
@@ -75,9 +87,10 @@ def child(name, seconds=120, code=0, ignore_break=False, port=None, **extra):
     return {**spec, **({"port": port} if port else {}), **extra}
 
 
-def health_child(name, port, loading=1.0, final="ok", restart=FAST):
-    return {"name": name, "cwd": str(TOOLS), "port": port, "health": f"http://127.0.0.1:{port}/health", "restart": restart,
-            "cmd": [sys.executable, "-c", HEALTH_CHILD, str(port), str(loading), final]}
+def health_child(name, port, loading=1.0, final="ok", restart=FAST, hang=None, **opts):
+    spec = {"name": name, "cwd": str(TOOLS), "port": port, "health": f"http://127.0.0.1:{port}/health", "restart": restart,
+            "cmd": [sys.executable, "-c", HEALTH_CHILD, str(port), str(loading), final] + ([json.dumps(opts)] if opts else [])}
+    return {**spec, **({"hang": hang} if hang else {})}
 
 
 def free_port():
@@ -107,7 +120,11 @@ class SupervisorTests(SimpleTestCase):
         if p.poll() is None:  # a failed test: stop it the normal way, so its children go too
             self.run_dir.mkdir(parents=True, exist_ok=True)
             (self.run_dir / "stop").touch()
-            p.wait(30)
+            try:
+                p.wait(30)
+            except subprocess.TimeoutExpired:  # the stop file came before the supervisor (it clears old ones): its job ends all
+                p.kill()
+                p.wait(10)
         p.stdout.close()
 
     def wait_for(self, condition, seconds=20):
@@ -139,7 +156,8 @@ class SupervisorTests(SimpleTestCase):
             self.fail(f"supervisor exited with {code}: {p.stdout.read()}")
 
     def log(self, name):
-        return (self.log_dir / f"{name}.log").read_text(encoding="utf-8")
+        path = self.log_dir / f"{name}.log"
+        return path.read_text(encoding="utf-8") if path.exists() else ""
 
     def real_pid(self, name, nth=1):
         """The interpreter behind the venv launcher (.venv\\Scripts\\python.exe starts it as its own child)."""
@@ -339,6 +357,88 @@ class SupervisorTests(SimpleTestCase):
         self.assertIsNone(supervisor.process_start(real))  # terminating the launcher also ends the real child, no orphan
         self.assertIn("a did not stop within 1.0 s: terminated", self.log("supervisor"))
 
+    def test_a_hung_ai_is_ended_and_restarted_and_nothing_else_is_touched(self):
+        bystander = self.dir / "bystander.json"
+        port = free_port()
+        p = self.supervise([child("django"), health_child("ai", port, loading=0.3, hang=FAST_HANG, hangAfter=2.5,
+                                                          once=str(self.dir / "hung-once"))], bystander=str(bystander))
+        ready = self.child_state("ai", "ready")["children"]["ai"]
+        django = self.running_state("django")["children"]["django"]
+        unresponsive = self.child_state("ai", "unresponsive")["children"]["ai"]
+        self.assertTrue(unresponsive["health"].startswith("no answer"), unresponsive["health"])
+        self.assertIsNotNone(unresponsive["unresponsiveSince"])
+        self.assertEqual((unresponsive["pid"], unresponsive["restarts"]), (ready["pid"], 0))  # not restarted on the first misses
+
+        recovered = self.wait_for(lambda: (c := supervisor.read_state(self.state_path).get("children", {}).get("ai", {}))
+                                  .get("restarts") == 1 and c.get("state") == "ready" and c)  # {} for a moment while it is replaced
+        self.assertNotEqual(recovered["pid"], ready["pid"])
+        self.assertIsNone(supervisor.process_start(ready["pid"]))  # the hung process is gone: never two AI services
+        self.assertTrue(recovered["lastFailure"].startswith("hung (3 health checks in a row got no answer"), recovered["lastFailure"])
+        self.assertIsNotNone(recovered["lastRestartAt"])
+        self.assertIsNone(recovered["unresponsiveSince"])
+        self.assertGreater(recovered["lastReadyAt"], ready["lastReadyAt"])
+        log = self.log("supervisor")
+        self.assertRegex(log, r"ai is not ready \(/health: no answer \(\w+\)\)[\s\S]*ai is hung: \d+ health checks in a row got no "
+                              r"answer, none for \d+ s[\s\S]*ended for not answering[\s\S]*ai will restart in 0\.2 s"
+                              r"[\s\S]*restarting ai \(restart 1\)[\s\S]*ai is ready")
+        self.assertEqual(log.count("is hung"), 1)
+        now = supervisor.read_state(self.state_path)["children"]["django"]
+        self.assertEqual((now["pid"], now["state"]), (django["pid"], "running"))  # Django is never restarted for the AI
+        self.assertTrue(supervisor.same_process(now))
+        other = json.loads(bystander.read_text())
+        self.assertTrue(supervisor.same_process(other))  # an unrelated process in the same console: untouched
+        self.stop(p)
+        self.assertTrue(supervisor.same_process(other))
+        os.kill(other["pid"], signal.SIGTERM)  # the test's own bystander, identity checked above
+
+    def test_an_ai_that_hangs_after_every_restart_ends_failed_within_the_budget(self):
+        p = self.supervise([health_child("ai", free_port(), loading=0, hang=FAST_HANG, hangAfter=0.5)])
+        entry = self.child_state("ai", "failed")["children"]["ai"]
+        self.assertEqual(entry["restarts"], 2)  # FAST: 2 restarts, shared with crashes
+        self.assertTrue(entry["lastFailure"].startswith("hung ("))
+        log = self.log("supervisor")
+        self.assertEqual(log.count("is hung"), 3)
+        self.assertIn("ai: not restarted again, it already restarted 2 times within 60 s", log)
+        time.sleep(2)
+        self.assertEqual(supervisor.read_state(self.state_path)["children"]["ai"]["restarts"], 2)  # no loop after giving up
+        self.assertIsNone(supervisor.process_start(entry["pid"]))
+        self.stop(p)
+
+    def test_short_silence_slow_answers_loading_and_degraded_are_never_a_hang(self):
+        hang = {**FAST_HANG, "timeout": 0.3, "interval": 0.3}
+        children = [health_child("blip", free_port(), loading=0, hang={**hang, "seconds": 3}, hangAfter=2.5, hangFor=0.8),  # ~1 s silent
+                    health_child("slow", free_port(), loading=0, hang=hang, slow=0.15),
+                    health_child("loading", free_port(), loading=600, hang=hang),
+                    health_child("degraded", free_port(), loading=0, final="degraded", hang=hang)]
+        p = self.supervise(children)
+        self.wait_for(lambda: "blip is not ready (/health: no answer" in self.log("supervisor"))
+        self.child_state("blip", "ready")
+        time.sleep(3)
+        state = supervisor.read_state(self.state_path)["children"]
+        self.assertEqual({n: (c["restarts"], c["health"]) for n, c in state.items()},
+                         {"blip": (0, "ok"), "slow": (0, "ok"), "loading": (0, "loading"), "degraded": (0, "degraded")})
+        self.assertNotIn("is hung", self.log("supervisor"))
+        self.stop(p)
+
+    def test_stop_while_the_ai_is_unresponsive_ends_it(self):
+        p = self.supervise([child("django"), health_child("ai", free_port(), loading=0, hang={**FAST_HANG, "seconds": 600},
+                                                          hangAfter=2.5)])
+        state = self.child_state("ai", "unresponsive")
+        pids = [state["children"][n] for n in ("django", "ai")]
+        self.stop(p)
+        self.assertFalse(any(map(supervisor.same_process, pids)))
+
+    def test_a_supervisor_killed_during_recovery_takes_the_hung_ai_with_it(self):
+        p = self.supervise([child("django"), health_child("ai", free_port(), loading=0, hang=FAST_HANG, hangAfter=2.5,
+                                                          restart={**FAST, "initial": 30, "max_backoff": 30})])
+        hung = self.child_state("ai", "unresponsive")["children"]["ai"]
+        state = self.child_state("ai", "backoff")  # ended, waiting to restart
+        self.assertIsNone(supervisor.process_start(hung["pid"]))
+        django = state["children"]["django"]
+        p.kill()  # the supervisor crashes mid-recovery (this test's own process)
+        p.wait(10)
+        self.wait_for(lambda: not supervisor.same_process(django), 10)  # the job ended everything with it
+
     def test_a_failed_start_stops_the_children_already_started(self):
         p = self.supervise([child("a"), {"name": "b", "cwd": str(TOOLS), "cmd": [str(self.dir / "missing.exe")]}])
         self.assertEqual(p.wait(30), 1)
@@ -373,6 +473,83 @@ class RestartPolicyTests(SimpleTestCase):
             s.on_exit("ai", 1)
             self.assertEqual(s.state["children"]["ai"]["backoffSeconds"], 2)
 
+    def sleeper_supervisor(self, tmp, policy=None):
+        """An in-process Supervisor whose "ai" is a sleeping process this test started (so ending it is safe)."""
+        s = supervisor.Supervisor([{"name": "ai", "cmd": [], "cwd": tmp, "health": "http://127.0.0.1:9/health",
+                                    "restart": policy or self.P, "hang": supervisor.hang_policy({})}], tmp, tmp)
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        self.addCleanup(lambda: proc.poll() is None and (proc.kill(), proc.wait()))
+        s.procs["ai"] = proc
+        s.state["children"]["ai"] = {"state": "unresponsive", "health": "no answer (TimeoutError)", "log": "ai.log", "restarts": 0,
+                                     "pid": proc.pid, "start": supervisor.process_start(proc.pid), "lastReadyAt": None}
+        return s, proc
+
+    @unittest.skipUnless(os.name == "nt", "the supervisor is Windows-only")
+    def test_a_hang_is_recovered_only_for_the_process_started_and_shares_the_restart_budget(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s, proc = self.sleeper_supervisor(tmp)
+            s.state["children"]["ai"]["start"] += 1  # the PID now belongs to another process (reused): never ended
+            with self.assertLogs("supervisor") as logs:
+                s.recover("ai", "test")
+            self.assertIsNone(proc.poll())
+            self.assertEqual(s.state["children"]["ai"]["state"], "unresponsive")
+            self.assertIn("no longer the process started here", "\n".join(logs.output))
+
+            s.state["children"]["ai"]["start"] -= 1
+            s.restarts["ai"] = [time.monotonic()] * 4  # four crash restarts already used of five
+            s.failures["ai"] = 4
+            with self.assertLogs("supervisor"):
+                s.recover("ai", "test")
+            self.assertIsNotNone(proc.poll())  # ended
+            entry = s.state["children"]["ai"]
+            self.assertEqual((entry["state"], entry["backoffSeconds"], entry["lastFailure"]), ("backoff", 32, "hung (test)"))
+            s.restarts["ai"].append(time.monotonic())
+            with self.assertLogs("supervisor"):
+                s.on_exit("ai", 1)  # a crash after the hang: the fifth restart was the last
+            self.assertEqual(s.state["children"]["ai"]["state"], "failed")
+
+    @unittest.skipUnless(os.name == "nt", "the supervisor is Windows-only")
+    def test_after_being_ready_a_hang_waits_the_shortest_time_again(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s, proc = self.sleeper_supervisor(tmp)
+            s.failures["ai"] = 3
+            with mock.patch.object(supervisor, "health_status", return_value="ok"):
+                s.check_ready("ai")
+            with self.assertLogs("supervisor"):
+                s.recover("ai", "test")
+            self.assertEqual(s.state["children"]["ai"]["backoffSeconds"], 2)
+
+    def test_a_hang_needs_every_limit_not_one_missed_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s = supervisor.Supervisor([{"name": "ai", "cmd": [], "cwd": tmp, "health": "http://127.0.0.1:9/health", "restart": self.P,
+                                        "hang": supervisor.hang_policy({})}], tmp, tmp)
+            s.state["children"]["ai"] = {"state": "ready", "health": "ok", "log": "ai.log", "lastReadyAt": None}
+            t = [1000.0]
+            with mock.patch.object(s, "recover") as recover, mock.patch.object(supervisor, "time", mock.Mock(monotonic=lambda: t[0])), \
+                    mock.patch.object(supervisor, "health_status", return_value="no answer (TimeoutError)"), self.assertLogs("supervisor"):
+                s.spawned_at["ai"] = s.answered_at["ai"] = 1000.0
+                for step in (5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4):  # 12 misses, but 59 s after the start: inside the cooldown
+                    t[0] += step
+                    s.check_ready("ai")
+                recover.assert_not_called()
+                self.assertEqual(s.state["children"]["ai"]["state"], "unresponsive")
+                t[0] += 1
+                s.check_ready("ai")  # 60 s: past the cooldown, 13 misses, silent 60 s
+                recover.assert_called_once()
+
+                recover.reset_mock()
+                s.spawned_at["ai"] = 0  # long after the start: only the misses and the silence count
+                s.answered_at["ai"], s.failed_checks["ai"] = t[0], 0
+                for _ in range(2):
+                    t[0] += 20
+                    s.check_ready("ai")
+                recover.assert_not_called()  # 40 s silent but only 2 misses
+                s.failed_checks["ai"], s.answered_at["ai"] = 0, t[0]
+                for _ in range(6):
+                    t[0] += 5
+                    s.check_ready("ai")
+                recover.assert_called_once()  # 3 misses come at 15 s; the hang only at 30 s silent (6th miss)
+
     def test_defaults_and_overrides_from_the_environment(self):
         self.assertEqual(supervisor.restart_policy({}), self.P)
         self.assertEqual(supervisor.restart_policy({"Supervisor__MaxRestarts": "3", "Supervisor__RestartWindowSeconds": "120",
@@ -388,6 +565,21 @@ class RestartPolicyTests(SimpleTestCase):
                              ({"Supervisor__InitialBackoffSeconds": "90"}, "must not be more than Supervisor__MaxBackoffSeconds")):
             with self.subTest(env=env), self.assertRaisesRegex(SystemExit, re.escape(message)):
                 supervisor.restart_policy(env)
+
+    def test_hang_settings_defaults_overrides_and_invalid_values(self):
+        self.assertEqual(supervisor.hang_policy({}), {"interval": 5, "timeout": 3, "checks": 3, "seconds": 30, "cooldown": 60})
+        self.assertEqual(supervisor.hang_policy({"Supervisor__HealthIntervalSeconds": "10", "Supervisor__HealthTimeoutSeconds": "4",
+                                                 "Supervisor__HangFailedChecks": "5", "Supervisor__HangSeconds": "90",
+                                                 "Supervisor__RecoveryCooldownSeconds": "120"}),
+                         {"interval": 10, "timeout": 4, "checks": 5, "seconds": 90, "cooldown": 120})
+        for env, message in (({"Supervisor__HangFailedChecks": "0"}, "Supervisor__HangFailedChecks='0' must be more than 0"),
+                             ({"Supervisor__HangFailedChecks": "2.5"}, "must be a whole number"),
+                             ({"Supervisor__HangSeconds": "soon"}, "Supervisor__HangSeconds='soon' is not a number"),
+                             ({"Supervisor__HealthIntervalSeconds": "-5"}, "must be more than 0"),
+                             ({"Supervisor__RecoveryCooldownSeconds": "nan"}, "must be more than 0"),
+                             ({"Supervisor__HealthTimeoutSeconds": "6"}, "must not be more than Supervisor__HealthIntervalSeconds")):
+            with self.subTest(env=env), self.assertRaisesRegex(SystemExit, re.escape(message)):
+                supervisor.hang_policy(env)
 
 
 @unittest.skipUnless(os.name == "nt", "the supervisor is Windows-only")

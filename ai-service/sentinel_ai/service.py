@@ -18,7 +18,7 @@ import numpy as np
 
 from . import VERSION
 from .detector import ModelError, YoloxDetector, load_manifest
-from .pipeline import CameraPipeline
+from .pipeline import DEFAULTS, CameraPipeline
 
 log = logging.getLogger("sentinel_ai")
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
@@ -30,8 +30,9 @@ STREAM_TIMEOUT_MS = 10_000
 
 
 def mask(source: str) -> str:
-    """Hide credentials in stream URLs before they reach logs or /health."""
-    return re.sub(r"//[^/@]+@", "//***@", str(source))
+    """Hide credentials in stream URLs before they reach logs or /health. Up to the last "@" before the path, as FFmpeg reads
+    it: a password with a raw "@" (admin:p@ss) is hidden whole."""
+    return re.sub(r"//[^/]*@", "//***@", str(source))
 
 
 class Engine:
@@ -50,7 +51,7 @@ class Engine:
     def load(self) -> None:
         for spec in load_manifest(self.models_dir):
             entry = {"name": spec["name"], "file": spec["file"], "license": spec.get("license"),
-                     "categories": sorted(set(spec["categories"].values())), "threshold": spec["threshold"]}
+                     "categories": sorted(set(spec["categories"].values())), "threshold": spec.get("threshold")}
             try:
                 self.detectors.append(self.detector_factory(spec, self.models_dir))
                 entry.update(loaded=True, error=None)
@@ -265,6 +266,9 @@ def make_handler(engine: Engine, cameras: list):
 
 
 def serve(config: dict, models_dir: Path):
+    confirm = (config.get("settings") or {}).get("confirm_frames", DEFAULTS["confirm_frames"])
+    if isinstance(confirm, bool) or not isinstance(confirm, int) or confirm < 1:  # 0 would confirm every single-frame detection
+        raise SystemExit(f"settings.confirm_frames must be a whole number of 1 or more, got {confirm!r}")
     engine = Engine(models_dir, config.get("settings"), load=False)
     api = os.environ.get("SENTINEL_API_URL", config.get("api", "http://localhost:5291"))
     key = os.environ.get("SENTINEL_DEVICE_KEY", "")

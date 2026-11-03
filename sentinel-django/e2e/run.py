@@ -17,6 +17,11 @@ import threading
 import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+# Every server started from here (this suite, lifecycle.py) inherits os.environ: a real Twilio/SMTP/push setting there
+# would reach it, since only .env is skipped. Removed on import, so nothing can leave the machine.
+for _name in [n for n in os.environ if n.upper().startswith("NOTIFICATIONS__")]:
+    del os.environ[_name]
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

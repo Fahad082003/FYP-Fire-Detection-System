@@ -49,7 +49,11 @@ class YoloxDetector:
         self.name = spec["name"]
         self.file = spec["file"]
         self.input_h, self.input_w = spec["input"]
-        self.threshold = float(spec["threshold"])
+        self.threshold = spec.get("threshold")
+        if isinstance(self.threshold, bool) or not isinstance(self.threshold, (int, float)) or not 0 < self.threshold <= 1:
+            # a typo must not crash the service or silently pass everything (0) / nothing (>1); NaN fails the comparison too
+            raise ModelError(f"{self.name}: threshold must be a number above 0 and at most 1, got {self.threshold!r}")
+        self.threshold = float(self.threshold)
         self.nms = float(spec["nms"])
         self.categories = {int(k): v for k, v in spec["categories"].items()}
         self.labels = {int(k): v for k, v in spec.get("labels", {}).items()}

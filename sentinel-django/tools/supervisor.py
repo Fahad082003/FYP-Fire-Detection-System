@@ -12,10 +12,12 @@ Safety rules:
     that PID has the recorded creation time (PID reuse), and even then it is reported, never stopped;
   * a busy port refuses the start, so a running server is never replaced;
   * only processes started here are stopped (through their own handles, which also pins the PID).
-The AI service is restarted when it exits (bounded, with backoff) and counts as ready only when its /health says "ok".
+The AI service is restarted when it exits or hangs (bounded, with backoff; both share one budget) and counts as ready only when
+its /health says "ok". Hung = alive but /health gets no answer for several checks in a row AND a set time (see hang_policy).
 Standard library only.
 """
 import ctypes
+import http.client
 import json
 import logging
 import math
@@ -43,6 +45,11 @@ LOG_MAX_BYTES = 10 * 1024 * 1024
 # name -> (environment variable, default); see restart_policy()
 POLICY = {"max_restarts": ("Supervisor__MaxRestarts", 5), "window": ("Supervisor__RestartWindowSeconds", 600),
           "initial": ("Supervisor__InitialBackoffSeconds", 2), "max_backoff": ("Supervisor__MaxBackoffSeconds", 60)}
+# name -> (environment variable, default); see hang_policy()
+HANG = {"interval": ("Supervisor__HealthIntervalSeconds", 5), "timeout": ("Supervisor__HealthTimeoutSeconds", 3),
+        "checks": ("Supervisor__HangFailedChecks", 3), "seconds": ("Supervisor__HangSeconds", 30),
+        "cooldown": ("Supervisor__RecoveryCooldownSeconds", 60)}
+NO_ANSWER = "no answer"  # health_status() text when nothing answered: the only result that can count towards a hang
 
 log = logging.getLogger("supervisor")
 
@@ -127,23 +134,41 @@ def port_free(port: int) -> bool:
             return False
 
 
-def restart_policy(environ=os.environ) -> dict:
-    """The AI restart limits from Supervisor__* variables; an invalid value stops the start with the reason."""
-    policy = {}
-    for key, (name, default) in POLICY.items():
+def _numbers(table: dict, environ, whole: str, zero_ok: bool) -> dict:
+    """table's settings from the environment; an invalid value stops the start with the reason. `whole`: the one key that must
+    be a whole number, and the only one that may be 0 when zero_ok."""
+    values = {}
+    for key, (name, default) in table.items():
         raw = environ.get(name, "").strip()
         try:
             value = float(raw) if raw else float(default)
         except ValueError:
             raise SystemExit(f"{name}={raw!r} is not a number")
-        if not math.isfinite(value) or value < 0 or (key != "max_restarts" and value == 0):
-            raise SystemExit(f"{name}={raw!r} must be {'0 or more' if key == 'max_restarts' else 'more than 0'}")
-        if key == "max_restarts" and value != int(value):
+        may_be_zero = zero_ok and key == whole
+        if not math.isfinite(value) or value < 0 or (not may_be_zero and value == 0):
+            raise SystemExit(f"{name}={raw!r} must be {'0 or more' if may_be_zero else 'more than 0'}")
+        if key == whole and value != int(value):
             raise SystemExit(f"{name}={raw!r} must be a whole number")
-        policy[key] = int(value) if key == "max_restarts" else value
+        values[key] = int(value) if key == whole else value
+    return values
+
+
+def restart_policy(environ=os.environ) -> dict:
+    """The AI restart limits from Supervisor__* variables; an invalid value stops the start with the reason."""
+    policy = _numbers(POLICY, environ, "max_restarts", zero_ok=True)
     if policy["initial"] > policy["max_backoff"]:
         raise SystemExit("Supervisor__InitialBackoffSeconds must not be more than Supervisor__MaxBackoffSeconds")
     return policy
+
+
+def hang_policy(environ=os.environ) -> dict:
+    """When an AI that stops answering /health counts as hung: `checks` failed checks in a row (one every `interval` s, each
+    waiting `timeout` s) AND no answer for `seconds`, and never within `cooldown` s of a (re)start, so one slow answer, a short
+    network delay or a slow model load is not a hang. Loading, degraded or no-model answers are answers: never a hang."""
+    hang = _numbers(HANG, environ, "checks", zero_ok=False)
+    if hang["timeout"] > hang["interval"]:
+        raise SystemExit("Supervisor__HealthTimeoutSeconds must not be more than Supervisor__HealthIntervalSeconds")
+    return hang
 
 
 def restart_delay(restarts: list[float], failures: int, now: float, policy: dict) -> float | None:
@@ -154,14 +179,18 @@ def restart_delay(restarts: list[float], failures: int, now: float, policy: dict
     return min(policy["max_backoff"], policy["initial"] * 2 ** failures)
 
 
-def health_status(url: str) -> str:
+def health_status(url: str, timeout: float = HEALTH_TIMEOUT_SECONDS) -> str:
     """The "status" of a /health answer, or why there is none. Only "ok" means ready."""
     try:
-        with urllib.request.urlopen(url, timeout=HEALTH_TIMEOUT_SECONDS) as r:
-            status = json.loads(r.read()).get("status")
-        return status if isinstance(status, str) else "no status in /health"
-    except (OSError, ValueError, AttributeError) as e:
-        return f"no answer ({type(e).__name__})"
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            raw = r.read()
+    except (OSError, ValueError, http.client.HTTPException) as e:  # refused, timed out, HTTP error, cut-off or garbled reply
+        return f"{NO_ANSWER} ({type(e).__name__})"
+    try:
+        status = json.loads(raw).get("status")
+    except (ValueError, AttributeError):
+        status = None
+    return status if isinstance(status, str) else "no status in /health"
 
 
 def write_state(path: Path, state: dict) -> None:
@@ -205,7 +234,8 @@ def _now_iso() -> str:
 class Supervisor:
     def __init__(self, children: list[dict], run_dir: Path, log_dir: Path):
         """children, started in this order: {"name", "cmd": [...], "cwd", "env": {...}, "port": int, "health": url,
-        "restart": restart_policy()}; all but name, cmd and cwd are optional."""
+        "restart": restart_policy(), "hang": hang_policy()}; all but name, cmd and cwd are optional (no "hang": never ended for
+        not answering)."""
         self.specs = {s["name"]: s for s in children}
         self.run_dir, self.log_dir = Path(run_dir), Path(log_dir)
         self.state_path, self.stop_path = self.run_dir / "supervisor.json", self.run_dir / "stop"
@@ -213,6 +243,11 @@ class Supervisor:
         self.restarts: dict[str, list[float]] = {name: [] for name in self.specs}  # monotonic times
         self.failures: dict[str, int] = {name: 0 for name in self.specs}
         self.next_start: dict[str, float] = {}
+        now = time.monotonic()
+        self.next_check: dict[str, float] = {name: now for name in self.specs}
+        self.failed_checks: dict[str, int] = {name: 0 for name in self.specs}  # /health without an answer, in a row
+        self.answered_at: dict[str, float] = {name: now for name in self.specs}  # last answer, or the (re)start
+        self.spawned_at: dict[str, float] = {name: now for name in self.specs}
         self.state = {"supervisor": {"pid": os.getpid(), "start": process_start(os.getpid())}, "children": {}}
         self.stopping = False
         self._lock = None
@@ -258,9 +293,12 @@ class Supervisor:
         entry = self.state["children"].setdefault(name, {"port": spec.get("port"), "healthUrl": spec.get("health"),
                                                          "log": str(path), "restarts": 0,
                                                          "exitCode": None, "lastExitAt": None, "lastRestartAt": None,
-                                                         "lastReadyAt": None, "backoffSeconds": None, "nextRestartAt": None})
+                                                         "lastReadyAt": None, "backoffSeconds": None, "nextRestartAt": None,
+                                                         "lastFailure": None, "unresponsiveSince": None})
         entry.update(pid=proc.pid, start=process_start(proc.pid), state="starting" if spec.get("health") else "running",
-                     health=None, backoffSeconds=None, nextRestartAt=None)
+                     health=None, backoffSeconds=None, nextRestartAt=None, unresponsiveSince=None)
+        self.spawned_at[name] = self.answered_at[name] = self.next_check[name] = time.monotonic()
+        self.failed_checks[name] = 0
         log.info("started %s (PID %s)", name, proc.pid)
 
     def restart(self, name: str) -> None:
@@ -270,9 +308,10 @@ class Supervisor:
         log.info("restarting %s (restart %s)", name, entry["restarts"])
         self.spawn(name)
 
-    def on_exit(self, name: str, code: int) -> None:
+    def on_exit(self, name: str, code: int, failure: str | None = None) -> None:
+        """failure: what happened, for the dashboard ("hung (...)"); a plain exit by default."""
         spec, entry = self.specs[name], self.state["children"][name]
-        entry.update(exitCode=code, lastExitAt=_now_iso(), health=None)
+        entry.update(exitCode=code, lastExitAt=_now_iso(), health=None, lastFailure=failure or f"exited (code {code})")
         log.warning("%s exited with code %s (see %s)", name, code, entry["log"])
         policy = spec.get("restart")
         if not policy:
@@ -291,15 +330,45 @@ class Supervisor:
         log.info("%s will restart in %s s", name, f"{delay:g}")
 
     def check_ready(self, name: str) -> None:
-        entry, url = self.state["children"][name], self.specs[name]["health"]
-        status = health_status(url)
-        ready = status == "ok"
+        spec, entry, now = self.specs[name], self.state["children"][name], time.monotonic()
+        hang = spec.get("hang")
+        status = health_status(spec["health"], hang["timeout"]) if hang else health_status(spec["health"])
+        ready, answered = status == "ok", not status.startswith(NO_ANSWER)
         if ready:
             entry["lastReadyAt"] = _now_iso()
             self.failures[name] = 0  # a healthy run: the next crash starts again from the shortest wait
         if status != entry["health"]:
             (log.info if ready else log.warning)("%s %s (/health: %s)", name, "is ready" if ready else "is not ready", status)
-        entry.update(health=status, state="ready" if ready else "starting" if entry["state"] == "starting" else "not-ready")
+        if answered:  # loading, degraded and no-model are answers too: slow or limited, not hung
+            self.failed_checks[name], self.answered_at[name] = 0, now
+            state = "ready" if ready else "starting" if entry["state"] == "starting" else "not-ready"
+            entry["unresponsiveSince"] = None
+        else:
+            self.failed_checks[name] += 1
+            state = "starting" if entry["state"] == "starting" else "unresponsive"
+            entry["unresponsiveSince"] = entry.get("unresponsiveSince") or _now_iso()
+        entry.update(health=status, state=state)
+        silent = now - self.answered_at[name]
+        if hang and self.failed_checks[name] >= hang["checks"] and silent >= hang["seconds"] \
+                and now - self.spawned_at[name] >= hang["cooldown"]:
+            self.recover(name, f"{self.failed_checks[name]} health checks in a row got no answer, none for {silent:.0f} s "
+                               f"(last: {status})")
+
+    def recover(self, name: str, evidence: str) -> None:
+        """A hung child: ended through the handle it was started with (only if that is still the process recorded at its
+        start), then handled like a crash, so a hang and a crash use the same restart budget and backoff.
+        shortcut: only the started process is terminated; the venv launcher ends the interpreter it runs (its own job object)
+        and the supervisor's job ends anything else at the latest when the supervisor stops; track the tree if a child ever
+        starts long-lived processes of its own."""
+        proc, entry = self.procs[name], self.state["children"][name]
+        log.error("%s is hung: %s. PID %s, log %s", name, evidence, proc.pid, entry["log"])
+        if proc.poll() is not None or process_start(proc.pid) != entry["start"]:
+            log.warning("%s: PID %s is no longer the process started here: not ended (its exit is handled next)", name, proc.pid)
+            return
+        proc.kill()
+        proc.wait()
+        log.warning("%s (PID %s) ended for not answering", name, proc.pid)
+        self.on_exit(name, proc.returncode, f"hung ({evidence})")
 
     def check_children(self) -> None:
         for name, proc in list(self.procs.items()):
@@ -311,7 +380,9 @@ class Supervisor:
             elif code is not None:
                 if entry["state"] not in ("exited", "failed"):
                     self.on_exit(name, code)
-            elif self.specs[name].get("health"):
+            elif self.specs[name].get("health") and time.monotonic() >= self.next_check[name]:
+                hang = self.specs[name].get("hang")  # while starting, every second: ready is seen at once
+                self.next_check[name] = time.monotonic() + (hang["interval"] if hang and entry["state"] != "starting" else CHECK_SECONDS)
                 self.check_ready(name)
 
     def save(self) -> None:
@@ -392,7 +463,7 @@ def default_children(simulator: bool = False) -> list[dict]:
     """Django, the AI service when its venv exists, and the fire-demo simulator only on request. Keys reach the children through
     their environment, never a command line. Django gets no health URL: polled every second, it would add an access-log line
     each time (control.py checks it once at start)."""
-    policy = restart_policy()  # checked first: a bad value stops here, before anything runs
+    policy, hang = restart_policy(), hang_policy()  # checked first: a bad value stops here, before anything runs
     python = DJANGO / ".venv" / "Scripts" / "python.exe"
     if not python.is_file():
         raise SystemExit("sentinel-django\\.venv is missing: see sentinel-django\\README.md, Setup.")
@@ -407,7 +478,8 @@ def default_children(simulator: bool = False) -> list[dict]:
     else:
         host, port = ai_listen()
         children.append({"name": "ai", "cwd": str(AI), "port": port, "cmd": [str(ai_python), "-m", "sentinel_ai"],
-                         "env": {"SENTINEL_DEVICE_KEY": key}, "health": f"http://{host}:{port}/health", "restart": policy})
+                         "env": {"SENTINEL_DEVICE_KEY": key}, "health": f"http://{host}:{port}/health", "restart": policy,
+                         "hang": hang})
     if simulator:
         sensor_key = env_value("Device__SensorApiKey")
         if not key or not sensor_key:
