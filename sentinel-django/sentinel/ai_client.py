@@ -114,3 +114,37 @@ def analyze(data: bytes | None) -> dict:
     except validation.PayloadError as e:
         problems = "; ".join(f"{k}: {', '.join(v)}" for k, v in e.errors.items())
         raise AiError(502, "Malformed AI result", f"AI service result failed validation: {problems}")
+
+
+def _call(path: str, body: dict | None = None) -> dict:
+    """JSON GET (or POST with body) to the AI service; AiError when it is unset, offline or answers with an error."""
+    o = settings.SENTINEL
+    if not o["AI_BASE_URL"].strip():
+        raise AiError(503, "AI service not configured", "Set AiService__BaseUrl to the sentinel-ai service URL.")
+    headers = {"Content-Type": "application/json", "X-Device-Key": o["DEVICE_API_KEY"] or ""}  # the AI checks it on changes
+    request = urllib.request.Request(_url(path), data=None if body is None else json.dumps(body).encode(), headers=headers,
+                                     method="GET" if body is None else "POST")
+    try:
+        with urllib.request.urlopen(request, timeout=STATUS_TIMEOUT_SECONDS * 2) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        try:
+            reason = json.loads(e.read(500)).get("error", "")
+        except ValueError:
+            reason = ""
+        status = 400 if e.code == 400 else 502
+        raise AiError(status, "AI service refused the setting" if e.code in (400, 403) else "AI service error", f"HTTP {e.code}: {reason}")
+    except (TimeoutError, urllib.error.URLError, OSError):
+        raise AiError(503, "AI service unavailable", f"AI service unreachable at {o['AI_BASE_URL']}; nothing was changed.")
+    except ValueError:
+        raise AiError(502, "Malformed AI result", "AI service answered with invalid JSON.")
+
+
+def config() -> dict:
+    """The confidence thresholds the AI service is really using, its allowed range and the shipped defaults."""
+    return _call("config")
+
+
+def set_threshold(model: str, threshold: float) -> dict:
+    """Asks the AI service to apply and save a new threshold; returns its answer (what it actually applied)."""
+    return _call("config", {"model": model, "threshold": threshold})

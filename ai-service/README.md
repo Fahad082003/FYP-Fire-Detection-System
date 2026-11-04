@@ -39,8 +39,8 @@ $env:SENTINEL_DEVICE_KEY = "<project .env ka Device__ApiKey>"
 Aam taur par yeh sab project folder ka `.\start.ps1` khud karta hai (Server + AI service; device key `.env` se leta hai).
 
 - Django server AI service ka address `.env` ke `AiService__BaseUrl` se leta hai (default `http://localhost:8008`).
-- `SENTINEL_DEVICE_KEY` set ho to service har 60 s server se camera list (`GET /api/cameras`) parhti hai; dashboard ke **Devices** page par add kiya camera ek minute ke andar analyse hone lagta hai. `config.json` ki zaroorat sirf extra cameras ke liye hai.
-- Dashboard ke **AI** page aur upar wale banner mein service ki haalat dikhti hai: hara = sab models load, peela = koi model ghayab, laal = offline.
+- `SENTINEL_DEVICE_KEY` set ho to service har 60 s server se camera list (`GET /api/cameras`) parhti hai; dashboard ke **Settings** page (`/devices`) par add kiya camera ek minute ke andar analyse hone lagta hai. `config.json` ki zaroorat sirf extra cameras ke liye hai.
+- Dashboard ke **AI Settings** page aur sidebar ke dot mein service ki haalat dikhti hai: hara = sab models load, peela = koi model ghayab, laal = offline.
 
 ## HTTP endpoints
 Service sirf 127.0.0.1 par sunti hai, aur sirf Django server ise call karta hai.
@@ -67,6 +67,19 @@ Service sirf 127.0.0.1 par sunti hai, aur sirf Django server ise call karta hai.
   - `503` jab koi model load na ho.
   - `500` jab model aisa output de jo yeh code parh na sake.
 
+**`GET /config`**: har model ka threshold jo inference asal mein istemal kar rahi hai, aur ijazat wali had.
+```json
+{ "min": 0.25, "max": 0.55,
+  "models": [ { "name": "person", "loaded": true, "threshold": 0.45, "defaultThreshold": 0.45 },
+              { "name": "fire_smoke", "loaded": true, "threshold": 0.40, "defaultThreshold": 0.40 } ] }
+```
+
+**`POST /config`** (body `{"model": "fire_smoke", "threshold": 0.38}`, header `X-Device-Key` = `SENTINEL_DEVICE_KEY`)
+- Sirf Django server (device key ke saath) threshold badal sakta hai; ghalat ya missing key → `403`. Dashboard mein yeh **AI Settings** ka slider hai (Apply sirf Admin; server `PUT /api/ai/sensitivity` se yahan bhejta hai).
+- Had **0.25–0.55**; is se bahar ya ghalat body → `400`. Is had ke bahar ki value ke peeche koi naapi hui precision/recall nahi.
+- Value pehle `models/thresholds.local.json` mein save hoti hai (restart ke baad bhi rehti hai), phir active hoti hai; save fail ho to purani value rehti hai (`500`). `models.json` **nahi badalta**. Default: fire_smoke 0.40, person 0.45.
+- Kam value = zyada sensitive: zyada alerts, aur zyada jhoote alarm.
+
 ## Camera sources (`config.json`)
 | `source` | Kya samjha jata hai | `simulated` |
 |---|---|---|
@@ -86,9 +99,15 @@ Har camera ke frames `fps` par process hote hain (default 2), ek waqt mein ek in
 
 ## Tests aur evaluation
 ```powershell
-.\.venv\Scripts\python -m unittest discover -s tests          # MOCK-BASED: sirf contract/logic, accuracy ka koi daawa nahi
+.\.venv\Scripts\python -m unittest discover -s tests          # mock tests (contract/logic) + asli model tests; accuracy ka daawa nahi
 .\.venv\Scripts\python tools\prepare_dataset.py pennfudan <PennFudanPed> ..\..\datasets\pennfudan
 .\.venv\Scripts\python tools\evaluate.py --data <yolo dataset> --classes 0=Human --out reports\person   # ASLI model metrics
+.\.venv\Scripts\python tools\false_alarm_eval.py --out reports\2026-11-04-false-alarm-review           # false-alarm review, asli models
 ```
+Taaza nateeja (2026-11-04): **57/57** tests (asli model tests samet).
+
+- `reports/` ke andar `evaluate.py --out` ki har `report.json` Django ke **Reports & Analytics** page ke "Model accuracy" hisse mein khud aa jati hai (setting `AiService__EvaluationDirectory`).
+- `tools/false_alarm_eval.py`: asli installed models ke saath fire/smoke false alarms ka jaiza ([reports/2026-11-04-false-alarm-review/review.json](reports/2026-11-04-false-alarm-review/review.json)). 4,306 labelled D-Fire test images par har extra rule (kam se kam box size, zyada confidence, aag sirf dhuwen ke saath) jitne jhoote alarm hatata tha us se zyada asli aag kho deta tha, is liye koi rule add nahi hua; pipeline ke rules wahi hain (threshold, 3-frame confirmation, IoU tracking). D-Fire image-level par 0.40: Fire P 0.982 R 0.932 F1 0.956, Smoke P 0.968 R 0.923 F1 0.945. Asli sunset/steam/vape/red-light footage **test nahi hui**.
+- Aag aur dhuwan alag report hote hain: sirf dhuwan wala frame bhi Django mein apna (smoke) incident kholta hai; `samples/fire-test.avi` par asli model test akela dhuwan confirm karta hai.
 Asli models aur Django server ke saath poora live test: `sentinel-django\e2e\lifecycle.py` (dekhein [../sentinel-django/README.md](../sentinel-django/README.md)).
 Acceptance criteria aur fire/smoke fine-tuning pipeline: [training/README.md](training/README.md).

@@ -1,5 +1,6 @@
 """Business operations behind the API and the pages (ports of CameraService, DetectionService, SensorService,
 IncidentService, DashboardService, FloorPlanService and DbSeeder)."""
+import json
 import logging
 import math
 import secrets
@@ -14,7 +15,7 @@ from django.db.models.functions import TruncDate
 from django.http import Http404
 from django.utils import timezone
 
-from . import alerts, dto, events, geometry, sprinklers, validation
+from . import alerts, dto, events, geometry, occupancy, sprinklers, validation
 from .alerts import _num
 from .models import (AppUser, CameraFeed, FeedType, FloorElementType, FloorPlan, FloorPlanElement, IncidentAlert, IncidentLog,
                      IncidentLogType, IncidentSource, SensorNode, SensorReading, SensorType, SmartSprinkler, SEVERITIES, UserRole, rank)
@@ -86,6 +87,7 @@ def delete_camera(camera: CameraFeed) -> None:
         camera.delete()  # the database sets IncidentAlerts.CameraId to NULL; old incidents stay in the history
         cache.set(deleted_key(camera_id), True, DELETED_CAMERA_SECONDS)
         watchdog.forget(camera_id)
+        occupancy.forget(camera_id)
 
 
 def _check_points(field: str, points, max_x: float, max_y: float) -> None:
@@ -131,6 +133,7 @@ def process_detection(payload) -> tuple[dict, int | None]:
             watchdog.simulated_at = timezone.now()
         events.publish("detection", frame)  # overlay first: dashboards draw boxes before any database work
         incident = alerts.evaluate_detection(frame)
+        occupancy.record(frame)
     return frame, incident.id if incident else None
 
 
@@ -253,10 +256,11 @@ def mark_false_alarm(incident: IncidentAlert, actor: str) -> IncidentAlert:
 
 
 def incident_query() -> QuerySet:
-    """Incidents with their camera and the false-alarm and corroborated flags in one query (dto.incident reads them)."""
+    """Incidents with their camera and the false-alarm, corroborated and smoke flags in one query (dto.incident reads them)."""
     return IncidentAlert.objects.select_related("camera").annotate(
         false_alarm=Exists(IncidentLog.objects.filter(incident=OuterRef("pk"), type=IncidentLogType.FALSE_ALARM)),
-        corroborated=Exists(IncidentLog.objects.filter(incident=OuterRef("pk"), type=IncidentLogType.CORROBORATED)))
+        corroborated=Exists(IncidentLog.objects.filter(incident=OuterRef("pk"), type=IncidentLogType.CORROBORATED)),
+        smoke_detected=Exists(IncidentLog.objects.filter(incident=OuterRef("pk"), type=IncidentLogType.SMOKE_MEASUREMENT)))
 
 
 def is_false_alarm(incident: IncidentAlert) -> bool:
@@ -322,6 +326,41 @@ def incident_analytics(first: date, last: date) -> dict:
     }
 
 
+def evaluations() -> list[dict]:
+    """Offline model evaluations against ground-truth labels: every report.json that ai-service/tools/evaluate.py wrote under
+    AI_EVALUATION_DIR (one run each; a new run is recorded by putting its output folder there). Metrics are the report's own
+    numbers at the threshold the model was configured with; nothing is estimated. A run that cannot be read is listed with why."""
+    root = _opt("AI_EVALUATION_DIR")
+    files = sorted({*root.glob("**/report.json"), *root.glob("*.json")}) if root.is_dir() else []
+    runs = []
+    for path in files:
+        source = path.parent.relative_to(root).as_posix() if path.name == "report.json" else path.stem
+        try:
+            r = json.loads(path.read_text(encoding="utf-8"))
+            date_text = r.get("evaluatedAt") or source.split("/")[0][:10]
+            ran = date.fromisoformat(date_text[:10])
+            thresholds = r["configuredThresholds"]
+            classes = []
+            for name in sorted({c for row in r["byThreshold"].values() for c in row}):
+                model = "person" if name == "Human" else next((m for m in thresholds if m != "person"), None)
+                threshold = thresholds.get(model)
+                row = next((v for k, v in r["byThreshold"].items() if threshold is not None and math.isclose(float(k), threshold)), None)
+                m = (row or {}).get(name)
+                image = (m or {}).get("imageLevel")
+                n = sum(image[k] for k in ("tp", "fp", "fn", "tn")) if image else 0
+                classes.append({"name": name, "threshold": threshold, "metrics": m, "image": image,
+                                # no negative images (tn = 0): accuracy would only repeat recall, so none is shown
+                                "imageAccuracy": round((image["tp"] + image["tn"]) / n, 4) if image and image["tn"] and n else None,
+                                "ap50": (r.get("averagePrecision") or {}).get(name, {}).get("AP50")})
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+            runs.append({"source": source, "error": f"Cannot read {path.name}: {e}"})
+            continue
+        runs.append({"source": source, "date": ran, "synthetic": "synthetic" in source.lower(), "dataset": r.get("dataset", ""),
+                     "slice": r.get("slice"), "images": r.get("images"), "iou": r.get("iouThreshold"),
+                     "models": ", ".join(r.get("models", {}).values()), "classes": classes})
+    return sorted(runs, key=lambda run: (run.get("date") or date.min, run["source"]))
+
+
 # ---------------------------------------------------------------- floor plans
 def floor_plans():
     return FloorPlan.objects.prefetch_related("elements").order_by("building", "floor_number", "name")
@@ -332,13 +371,21 @@ def save_floor_plan(plan: FloorPlan | None, data: dict) -> FloorPlan:
     """data: a validated SaveFloorPlan body (camelCase). Elements replace the plan's current elements."""
     width, height = data["widthMeters"], data["heightMeters"]
     errors = {}
+    sensor_ids = set(SensorNode.objects.values_list("id", flat=True)) if any(e["type"] == "Sensor" for e in data["elements"]) else set()
+    placed = set()
     for i, e in enumerate(data["elements"]):
         if e["type"] not in FloorElementType.values:
             errors[f"elements[{i}].type"] = ["Unknown element type."]
+        elif e["type"] == "Sensor" and (e.get("name") or "").strip() not in sensor_ids:
+            errors[f"elements[{i}].name"] = [f"Sensor '{e.get('name')}' does not exist. A sensor marker is named after its sensor id."]
+        elif e["type"] == "Sensor" and e["name"].strip() in placed:
+            errors[f"elements[{i}].name"] = [f"Sensor '{e['name'].strip()}' is placed twice on this plan."]
         elif not all(math.isfinite(e[k]) for k in ("x", "y", "width", "height")) or e["width"] <= 0 or e["height"] <= 0:
             errors[f"elements[{i}]"] = ["Width and height must be positive numbers."]
         elif e["x"] < 0 or e["y"] < 0 or e["x"] + e["width"] > width + 0.001 or e["y"] + e["height"] > height + 0.001:
             errors[f"elements[{i}]"] = [f"'{e['name']}' lies outside the {_num(width)} x {_num(height)} m plan."]
+        if e["type"] == "Sensor":
+            placed.add((e.get("name") or "").strip())
     if errors:
         raise Invalid(errors)
 

@@ -153,6 +153,16 @@ def main() -> int:
                   f"{after['exitName']} exit, {after['distanceMeters']} m")
             risk = api.call("GET", f"/api/floorplans/{plan_id}/risk")[1]
             check("fire risk heatmap active", risk["active"], risk["message"])
+            smoke, deadline = [], time.monotonic() + 30  # the sample shows smoke too: its own measurement, on the same incident
+            while not smoke and time.monotonic() < deadline:
+                smoke = api.call("GET", f"/api/incidents/logs?incidentId={incident['id']}&type=SmokeMeasurement")[1]
+                if not smoke:
+                    time.sleep(2)
+            check("AI smoke measured separately", bool(smoke) and api.call("GET", f"/api/incidents/{incident['id']}")[1]["smokeDetected"],
+                  smoke[-1]["details"] if smoke else "no SmokeMeasurement log within 30 s")
+            rooms = api.call("GET", f"/api/floorplans/{plan_id}/occupancy")[1]["rooms"]
+            check("room occupancy live from the camera", [r["state"] for r in rooms] == ["live"],
+                  ", ".join(f"{r['name']}: {r['state']} {r['count']}" for r in rooms))
 
         print(f"\n{sum(results)}/{len(results)} checks passed.")
         if not args.no_hold:

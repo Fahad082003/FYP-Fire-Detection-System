@@ -1,0 +1,46 @@
+{% extends "sentinel/shell.html" %}
+{% load static %}
+{% block title %}Notifications & System Health · Sentinel{% endblock %}
+{% block heading %}Notifications &amp; System Health{% endblock %}
+{% block page %}
+<main class="page">
+  <section class="panel" aria-labelledby="health-title">
+    <div class="section-head"><h2 id="health-title" class="section-title">System health</h2>
+      <span class="small strong" id="health-overall" role="status">CHECKING…</span>
+      <button type="button" class="btn btn-sm" id="health-details-toggle" aria-expanded="false" aria-controls="health-details">Show details</button></div>
+    <div class="health-strip" id="health-strip"><p class="empty">Checking system health…</p></div>
+    <div class="hidden" id="health-details">
+      <p class="small muted" id="health-checked" style="margin-top:12px"></p>
+      <div class="scroll scroll-360" id="health"><p class="empty">Checking system health…</p></div>
+    </div>
+    <p class="data-na" style="margin-top:12px">Latency and throughput per service: <b>Data Not Available</b> — the health checks report a state and a message, not timings.</p>
+  </section>
+
+  <div class="split">
+    <section class="panel split-main" aria-labelledby="notify-title" id="notification-channels">
+      <h2 id="notify-title" class="section-title">Alert channels</h2>
+      <p class="small dim" style="margin-bottom:10px">From the server settings (environment variables); nothing is sent to check them. <b>Pending</b> = the
+        provider accepted the alert but gives no delivery receipt; <b>Sent</b> = Firebase accepted it; <b>Delivered</b> only when the provider
+        confirms (Telegram).</p>
+      <table class="data"><thead><tr><th>Channel</th><th>Status</th><th>Note</th></tr></thead><tbody>
+        {% for c in channels %}<tr data-channel="{{ c.name }}"><td class="strong">{{ c.name }}</td>
+          <td><span class="chip-st {% if c.status == 'Configured' %}st-safe{% elif c.status == 'Disabled' %}st-degraded{% else %}st-offline{% endif %}">{{ c.status }}</span></td>
+          <td class="small dim">{{ c.reason }}</td></tr>{% endfor %}</tbody></table>
+    </section>
+
+    <section class="panel split-side" aria-labelledby="fcm-title">
+      <h2 id="fcm-title" class="section-title">Push notifications on this browser (Firebase)</h2>
+      <div id="fcm-panel" aria-live="polite"><p class="empty">Loading…</p></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="deliveries-title">
+    <h2 id="deliveries-title" class="section-title">Recent notification activity</h2>
+    {% if deliveries %}<div class="scroll-x"><table class="data" id="deliveries"><thead><tr><th>When (UTC)</th><th>Channel</th><th>Incident</th><th>Result</th></tr></thead><tbody>
+      {% for d in deliveries %}<tr><td class="mono small nowrap">{{ d.at|date:"Y-m-d H:i:s" }}</td><td class="strong">{{ d.channel }}</td>
+        <td class="mono">#{{ d.incident }}</td><td class="small">{{ d.details }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<p class="empty">No alert was sent yet.</p>{% endif %}
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}{{ block.super }}<script type="module" src="{% static 'sentinel/js/fcm.js' %}"></script>{% endblock %}

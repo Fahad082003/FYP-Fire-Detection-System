@@ -54,7 +54,7 @@ test('dashboard: cameras, sensors, sprinklers and a green banner only once the A
   await banner(page).filter({ hasText: 'ALL SYSTEMS NOMINAL' }).waitFor(POLL);
   assert.equal(await page.locator('.tile').count(), 4);
   assert.equal(await page.locator('#ai-dot').getAttribute('class'), 'dot dot-green');
-  assert.match(await page.locator('#kpis').textContent(), /Open Incidents\s*0/);
+  assert.equal(await page.locator('#kpis .kpi', { hasText: 'Open Incidents' }).locator('.kpi-value').textContent(), '0'); // the card's number, not its status chip
   for (const [path, selector, count] of [['/sensors', '.sensor', 6], ['/sprinklers', '.relay', 5]]) {
     await page.goto(`${BASE}${path}`);
     await page.locator(selector).nth(count - 1).waitFor();
@@ -94,7 +94,7 @@ test('status banner follows AI health: offline, loading, model missing, camera o
 });
 
 test('system health panel: component states from the server, AI loading then ready, a failed check is critical and old data is marked', async () => {
-  const page = await dashboard('/ai');
+  const page = await dashboard('/notifications');
   await page.locator('#health-details-toggle').click(); // the table is behind "Show details"
   const row = (name) => page.locator('#health tr', { hasText: name }).first();
   const overall = page.locator('#health-overall');
@@ -445,14 +445,15 @@ test('overview: building status, device counts, fire and smoke apart, camera sta
   await smoke.filter({ hasText: 'Main Lobby' }).filter({ hasText: 'confidence 66%' }).waitFor();
   assert.equal((await api('/api/iot/sprinklers')).filter((s) => s.isActive).length, 0);
 
-  await list.goto(`${BASE}/ai`); // the health cards
+  await list.goto(`${BASE}/notifications`); // the health cards
   await list.locator('#health-strip .hs', { hasText: 'Database' }).filter({ hasText: 'Healthy' }).waitFor(POLL);
   await list.locator('#health-strip .hs', { hasText: 'AI Models' }).filter({ hasText: 'Healthy' }).waitFor(POLL);
-  for (const [name, path] of [['Cameras', '/cameras'], ['Sensors', '/sensors'], ['Sprinklers', '/sprinklers'], ['Incidents', '/incidents'],
-    ['Activity Log', '/activity'], ['Building Map', '/map'], ['AI Service', '/ai'], ['Reports', '/reports'], ['Settings', '/devices'], ['Dashboard', '/']]) {
-    await list.locator('.sidebar .nav-link', { hasText: name }).click(); // every menu item opens its page and is the highlighted one
+  for (const [name, path] of [['Live Cameras', '/cameras'], ['Floor Plan', '/map'], ['Occupancy & Heatmap', '/occupancy'], ['Incidents', '/incidents'],
+    ['Sensors', '/sensors'], ['Sprinklers', '/sprinklers'], ['Activity Log', '/activity'], ['Reports & Analytics', '/reports'], ['AI Settings', '/ai'],
+    ['Notifications', '/notifications'], ['Settings', '/devices'], ['Overview', '/']]) {
+    await list.locator('.sidebar .nav-link', { has: list.getByText(name, { exact: true }) }).click(); // every menu item opens its page
     await list.waitForURL(`${BASE}${path}`);
-    assert.equal(await list.locator('.sidebar .nav-link[aria-current="page"]').textContent().then((t) => t.trim()), name);
+    assert.equal(await list.locator('.sidebar .nav-link[aria-current="page"] .nav-label').textContent(), name); // and is the highlighted one
   }
   assert.deepEqual([...page.problems, ...list.problems], []);
   await resolveAll();
@@ -464,8 +465,8 @@ test('accessibility basics and no broken routes on every page, also at phone wid
   for (const width of [1600, 375]) {
     const page = await newPage();
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ['/', '/cameras', '/sensors', '/sprinklers', '/incidents', '/activity', '/map', '/floor-plans', '/ai', '/devices',
-      '/devices?add', '/reports']) {
+    for (const path of ['/', '/cameras', '/sensors', '/sprinklers', '/incidents', '/activity', '/map', '/occupancy', '/floor-plans', '/ai',
+      '/notifications', '/devices', '/devices?add', '/reports']) {
       const response = await page.goto(`${BASE}${path}`);
       assert.equal(response.status(), 200, path);
       await page.waitForLoadState('networkidle').catch(() => undefined); // the live stream keeps one request open
@@ -568,4 +569,273 @@ test('sensor staleness: a silent sensor turns Stale with its last reading time a
   assert.deepEqual([...page.problems, ...list.problems], []);
   await list.context().close();
   await page.context().close();
+});
+
+test('building map: people per room from the server (live, stale, unknown) as their own layer, sensors at their plan position with live status', async () => {
+  const room = (name, x) => ({ type: 'Room', name, x, y: 0, width: 10, height: 10 });
+  const plan = await api('/api/floorplans', { method: 'POST', body: JSON.stringify({ name: 'Rooms e2e', building: 'E2E', floorNumber: 0,
+    widthMeters: 30, heightMeters: 10, elements: [room('Lobby', 0), room('Office', 10), room('Store', 20),
+      { type: 'Sensor', name: 'temp-a1', x: 4, y: 4, width: 0.6, height: 0.6 }] }) });
+  await api('/api/cameras/cam-lobby/calibration', { method: 'PUT', body: JSON.stringify({ floorPlanId: plan.id,
+    imagePoints: [[0, 0], [640, 0], [640, 480], [0, 480]], planPoints: [[0.5, 0.5], [9.5, 0.5], [9.5, 9.5], [0.5, 9.5]] }) });
+  const read = (value) => fetch(`${BASE}/api/iot/sensors/temp-a1/readings`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Device-Key': process.env.SENSOR_KEY }, body: JSON.stringify({ value }) });
+  try {
+    const page = await dashboard('/occupancy');
+    await page.selectOption('#evac-plan', String(plan.id));
+    const rows = page.locator('#evacuation [data-room-counts]');
+    await rows.locator('tr', { hasText: 'Lobby' }).filter({ hasText: 'Unknown' }).waitFor(); // no frame yet: unknown, not 0
+    assert.match(await rows.locator('tr', { hasText: 'Store' }).textContent(), /\?\s*Unknown\s*No calibrated camera sees this room/);
+
+    const people = (...hits) => postFrame({ cameraId: 'cam-lobby', detections: hits.map((h, i) =>
+      ({ category: 'Human', confidence: 0.9, trackId: `r${i}`, hits: h, bbox: [100 + i * 200, 250, 40, 150] })) });
+    await people(1, 1); // seen once: not yet tracked people
+    await rows.locator('tr', { hasText: 'Lobby' }).filter({ hasText: /0\s*Live/ }).waitFor();
+    await people(3, 3);
+    await rows.locator('tr', { hasText: 'Lobby' }).filter({ hasText: /2\s*Live/ }).waitFor(POLL);
+    const layer = page.locator('#evacuation svg [data-room][data-state="live"]');
+    assert.match(await layer.textContent(), /2 people/);
+    assert.equal(await page.locator('#evacuation svg [data-room][data-state="unknown"]').count(), 2); // Office, Store: "?", no fill
+    await page.uncheck('#layer-people'); // a separate layer: hiding it leaves the plan and the fire-risk layer alone
+    assert.equal(await page.locator('#evacuation svg [data-room]').count(), 0);
+    await page.check('#layer-people');
+    await rows.locator('tr', { hasText: 'Lobby' }).filter({ hasText: /2\s*Stale/ }).waitFor(POLL); // no frame for 10 s: last count, stale
+    assert.match(await page.locator('#occ-kpis').textContent(), /Rooms with live data\s*0 \/ 3/); // the totals follow: stale is not live
+
+    await page.goto(`${BASE}/map`); // sensors are shown on the Floor Plan, where a click opens their details
+    await page.selectOption('#evac-plan', String(plan.id));
+    const sensor = page.locator('#evacuation svg [data-sensor="temp-a1"]');
+    await sensor.locator('title', { hasText: 'temp-a1 · Offline · never reported' }).waitFor({ state: 'attached' }); // once this page has the live data
+    await read(50); // Warning (limit 57 °C)
+    await sensor.locator('title', { hasText: 'Warning · 50 °C' }).waitFor({ state: 'attached' }); // an SVG title is never "visible"
+    await sensor.locator('title', { hasText: 'Stale · last reading' }).waitFor({ ...POLL, state: 'attached' }); // silent for 5 s (e2e setting)
+    await sensor.click();
+    await page.locator('#map-detail', { hasText: 'Sensor temp-a1' }).waitFor();
+    assert.deepEqual(page.problems, []);
+    await page.context().close();
+  } finally {
+    await api('/api/cameras/cam-lobby/calibration', { method: 'DELETE' });
+    await api(`/api/floorplans/${plan.id}`, { method: 'DELETE' });
+    await resolveAll();
+  }
+});
+
+test('floor plan editor: "+ Sensor" places a sensor marker, the panel picks the sensor, and the position is saved with the plan', async () => {
+  const page = await newPage();
+  await page.goto(`${BASE}/floor-plans`);
+  await page.getByRole('button', { name: '+ New' }).click();
+  await page.getByText('Floor plan created').waitFor();
+  const svg = page.locator('#editor-map svg');
+  const box = await svg.boundingBox();
+  const scale = Math.min(box.width, box.height * 32 / 21.8) / 31.8; // 30 x 20 m plan with 3 % padding
+  await page.locator('#tools').getByRole('button', { name: '+ Sensor' }).click();
+  await page.mouse.click(box.x + box.width / 2 + (6 - 15) * scale, box.y + box.height / 2 + (5 - 10) * scale); // at (6, 5) m
+  await page.locator('#element-panel select[data-text="name"]').selectOption('smoke-b1');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await page.locator('.toast', { hasText: 'Floor plan saved' }).waitFor();
+  const plan = (await api('/api/floorplans')).find((p) => p.name === 'New floor plan' && p.elements.some((e) => e.type === 'Sensor'));
+  const [s] = plan.elements;
+  assert.equal(s.name, 'smoke-b1');
+  assert.ok(Math.abs(s.x + s.width / 2 - 6) < 0.3 && Math.abs(s.y + s.height / 2 - 5) < 0.3, `placed at ${s.x}, ${s.y}`);
+  await api(`/api/floorplans/${plan.id}`, { method: 'DELETE' });
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('smoke: a smoke-only camera alert is its own incident, marked SMOKE (no fire size) in the list and its detail', async () => {
+  const page = await dashboard('/incidents');
+  await postFrame({ cameraId: 'cam-server', detections: [{ category: 'Smoke', confidence: 0.81, bbox: [100, 50, 300, 150] }] });
+  const row = page.locator('#incident-rows tr', { hasText: 'Smoke detected on Server Hall' });
+  await row.locator('.tag-smoke').waitFor();
+  assert.match(await row.textContent(), /Medium/);
+  await row.locator('[data-pick-incident]').click();
+  await page.locator('#incident-detail', { hasText: 'no fire' }).filter({ hasText: 'seen by the AI' }).waitFor();
+  await page.locator('#history-table', { hasText: 'SmokeMeasurement' }).waitFor();
+  assert.match(await page.locator('#history-table').textContent(), /top confidence 0\.81/);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+  await resolveAll();
+});
+
+test('reports: model accuracy from the recorded offline evaluations, per class, with synthetic runs kept apart', async () => {
+  const page = await newPage();
+  await page.goto(`${BASE}/reports`);
+  const table = page.locator('#model-accuracy [data-evaluations]').first();
+  const fire = table.locator('tr[data-run="2026-10-19-fire_smoke-yolox_tiny-dfire-test"][data-class="Fire"]');
+  assert.match(await fire.textContent(), /4306[\s\S]*0\.731[\s\S]*0\.649[\s\S]*0\.685[\s\S]*1039 \/ 19 \/ 76 \/ 3172/);
+  assert.equal(await table.locator('tr[data-run="2026-10-19-person-yolox_tiny-pennfudan"][data-class="Human"]').count(), 1);
+  assert.match(await page.locator('#model-accuracy details summary').textContent(), /Synthetic stress runs \(16\)/);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('AI sensitivity: the slider stays within 0.25-0.55, shows its value, applies what the AI service confirms, and keeps it after a reload', async () => {
+  await setAiMode('ok');
+  const page = await newPage();
+  await page.goto(`${BASE}/ai`);
+  const form = page.locator('form[data-sensitivity="fire_smoke"]');
+  const slider = form.locator('input[type="range"][name="threshold"]');
+  const shown = form.locator('[data-sensitivity-value]'), status = form.locator('[data-sensitivity-status]');
+  assert.match(await status.textContent(), /Active in the AI service: 0\.4\s+\(default 0\.4\)/);
+  assert.deepEqual([await slider.getAttribute('min'), await slider.getAttribute('max'), await slider.inputValue(), await shown.textContent()],
+    ['0.25', '0.55', '0.4', '0.40']);
+  const drag = (v) => slider.evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, v); // as a hand moves it
+  const sent = [];
+  page.on('request', (r) => { if (r.url().endsWith('/api/ai/sensitivity') && r.method() === 'PUT') sent.push(r.postDataJSON().threshold); });
+  try {
+    await drag('0.1'); // below the range: the slider stops at its minimum
+    assert.deepEqual([await slider.inputValue(), await shown.textContent()], ['0.25', '0.25']);
+    await drag('0.9'); // above it: the maximum
+    assert.deepEqual([await slider.inputValue(), await shown.textContent()], ['0.55', '0.55']);
+    await drag('0.33'); // a value in between, shown as it moves
+    assert.equal(await shown.textContent(), '0.33');
+    await form.getByRole('button', { name: 'Apply' }).click();
+    await status.filter({ hasText: 'Active in the AI service: 0.33 (confirmed; default 0.4).' }).waitFor();
+    assert.equal(await form.locator('[data-sensitivity-current]').textContent(), '(current 0.33)');
+    assert.deepEqual(sent, [0.33]); // only the applied value was ever sent, never 0.1 or 0.9
+    await page.reload(); // the AI service keeps it: the page shows it again
+    assert.deepEqual([await slider.inputValue(), await shown.textContent()], ['0.33', '0.33']);
+    assert.match(await status.textContent(), /Active in the AI service: 0\.33/);
+    assert.equal((await api('/api/ai/sensitivity')).models.find((m) => m.name === 'fire_smoke').threshold, 0.33);
+    const logs = await api('/api/incidents/logs?type=SettingChanged');
+    assert.match(logs[0].details, /set the fire_smoke confidence threshold to 0\.33 \(was 0\.4\); applied by the AI service/);
+    assert.deepEqual(page.problems, []);
+  } finally {
+    await api('/api/ai/sensitivity', { method: 'PUT', body: JSON.stringify({ model: 'fire_smoke', threshold: 0.4 }) });
+    await page.context().close();
+  }
+});
+
+test('crowd density: an overcrowded exit shows the safe alternative and opens one Crowd alert, which closes when it clears', async () => {
+  const plan = await api('/api/floorplans', { method: 'POST', body: JSON.stringify({ name: 'Crowd e2e', building: 'E2E', floorNumber: 0,
+    widthMeters: 20, heightMeters: 10, elements: [{ type: 'Corridor', name: 'Hall', x: 0, y: 0, width: 20, height: 10 },
+      { type: 'Exit', name: 'East', x: 19, y: 4, width: 1, height: 2 }, { type: 'Exit', name: 'West', x: 0, y: 4, width: 1, height: 2 }] }) });
+  await api(`/api/floorplans/${plan.id}/capacities`, { method: 'PUT', body: JSON.stringify({ 'Exit:East': 3 }) });
+  await api('/api/cameras/cam-lobby/calibration', { method: 'PUT', body: JSON.stringify({ floorPlanId: plan.id,
+    imagePoints: [[0, 0], [640, 0], [640, 480], [0, 480]], planPoints: [[0.5, 0.5], [19.5, 0.5], [19.5, 9.5], [0.5, 9.5]] }) });
+  const people = (n) => postFrame({ cameraId: 'cam-lobby', detections: Array.from({ length: n }, (_, i) =>
+    ({ category: 'Human', confidence: 0.9, trackId: `c${i}`, hits: 5, bbox: [470 + 3 * i, 250, 20, 150] })) });
+  try {
+    const page = await dashboard('/occupancy');
+    await page.selectOption('#evac-plan', String(plan.id));
+    await people(4);
+    const east = page.locator('#evacuation [data-exit-crowd] tr[data-exit-row="East"]');
+    await east.filter({ hasText: 'Overcrowded' }).filter({ hasText: "Send people to exit 'West'" }).waitFor(POLL);
+    assert.match(await east.textContent(), /Available\s*4\s*3 · Overcrowded/);
+    const open = (await api('/api/incidents?resolved=false')).filter((i) => i.source === 'Crowd');
+    assert.deepEqual(open.map((i) => i.zone), ["Crowd e2e - Exit 'East'"]);
+    await new Promise((ok) => setTimeout(ok, 2100)); // past the 2 s crowd check throttle
+    await people(1);
+    await east.filter({ hasText: /1\s*3 · OK/ }).waitFor(POLL);
+    assert.equal((await api(`/api/incidents/${open[0].id}`)).isResolved, true);
+    assert.deepEqual(page.problems, []);
+    await page.context().close();
+  } finally {
+    await api('/api/cameras/cam-lobby/calibration', { method: 'DELETE' });
+    await api(`/api/floorplans/${plan.id}`, { method: 'DELETE' });
+    await resolveAll();
+  }
+});
+
+test('notifications: every alert channel with its configuration status, and nothing claims success without a provider', async () => {
+  const page = await newPage();
+  await page.goto(`${BASE}/notifications`);
+  const table = page.locator('#notification-channels');
+  for (const name of ['SMS (Twilio, internet)', 'SMS fallback (GSM modem)', 'WhatsApp (Twilio)', 'Telegram', 'Firebase Cloud Messaging']) {
+    assert.match(await table.locator(`tr[data-channel="${name}"]`).textContent(), /Not configured/);
+  }
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+// ---------------------------------------------------------------- Firebase push in the browser (the Firebase SDK is faked)
+const FIREBASE = 'https://www.gstatic.com/firebasejs/10.12.2/';
+const FAKE_SDK = {
+  'firebase-app.js': 'export function initializeApp(config) { window.__fcm.config = config; return { config }; }',
+  'firebase-messaging.js': `export async function isSupported() { return true; }
+    export function getMessaging(app) { return { app }; }
+    export async function getToken(m, options) {
+      window.__fcm.options = { vapidKey: options.vapidKey, worker: Boolean(options.serviceWorkerRegistration) };
+      if (window.__fcm.tokenError) throw new Error(window.__fcm.tokenError);
+      return window.__fcm.token;
+    }
+    export function onMessage(m, callback) { window.__fcm.onMessage = callback; }
+    export async function deleteToken() { window.__fcm.deleted = true; return true; }`,
+};
+
+/** Settings page with the fake Firebase SDK; `setup` runs in the page before any script (e.g. to fake permission answers). */
+async function pushPage({ permission = 'granted', setup = '' } = {}) {
+  const page = await newPage();
+  const context = page.context();
+  if (permission === 'granted') await context.grantPermissions(['notifications'], { origin: BASE });
+  await context.addInitScript(`window.__fcm = { token: 'ZTJlLWJyb3dzZXItdG9rZW4tMTIzNDU2Nzg5MA', asked: 0 };
+    if ('Notification' in window) { const ask = Notification.requestPermission.bind(Notification);
+      Notification.requestPermission = (...a) => { window.__fcm.asked++; return ask(...a); }; }
+    ${setup}`);
+  await page.route(`${FIREBASE}**`, (route) => route.fulfill({ status: 200, contentType: 'application/javascript',
+    headers: { 'Access-Control-Allow-Origin': '*' }, body: FAKE_SDK[route.request().url().slice(FIREBASE.length)] }));
+  await page.goto(`${BASE}/notifications`);
+  await page.locator('#fcm-panel [data-fcm-facts]').waitFor();
+  return page;
+}
+const fcmDevices = async () => (await api('/api/push/fcm-token')).devices.filter((d) => d.active);
+
+test('Firebase push: permission only on the click, the browser token is registered, foreground alerts show, Disable unregisters', async () => {
+  const page = await pushPage();
+  const panel = page.locator('#fcm-panel');
+  assert.match(await panel.locator('[data-fcm-status]').textContent(), /Not configured/); // no service-account file on this server
+  assert.match(await panel.textContent(), /This browser\s*Not registered/);
+  assert.equal(await page.evaluate(() => window.__fcm.asked), 0); // nothing asked before the click
+  await panel.getByRole('button', { name: 'Enable notifications on this browser' }).click();
+  await panel.locator('[data-fcm-device]', { hasText: 'Registered' }).waitFor();
+  const fcm = await page.evaluate(() => window.__fcm);
+  assert.equal(fcm.asked, 1);
+  assert.deepEqual(fcm.config, { apiKey: 'e2e-public-api-key', projectId: 'sentinel-e2e', messagingSenderId: '0', appId: '1:0:web:e2e' });
+  assert.deepEqual(fcm.options, { vapidKey: 'e2e-vapid-key', worker: true }); // the token is tied to /sw.js
+  assert.deepEqual((await fcmDevices()).map((d) => d.tokenEnd), ['U2Nzg5MA']); // only the token's end is ever shown
+  await page.evaluate(() => window.__fcm.onMessage({ notification: { title: 'FIRE · Critical', body: 'Ground Floor - Lobby' }, data: { incidentId: '7' } }));
+  await page.locator('.toast', { hasText: 'FIRE · Critical' }).filter({ hasText: 'open Incidents for #7' }).waitFor();
+  await panel.getByRole('button', { name: 'Disable on this browser' }).click();
+  await panel.locator('[data-fcm-device]', { hasText: 'Not registered' }).waitFor();
+  assert.deepEqual(await fcmDevices(), []);
+  assert.equal(await page.evaluate(() => window.__fcm.deleted), true);
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+});
+
+test('Firebase push: a denied permission, an unsupported browser and a token error are explained and register nothing', async () => {
+  const denied = await pushPage({ permission: 'default', setup: "Notification.requestPermission = async () => { window.__fcm.asked++; return 'denied'; };" });
+  await denied.locator('#fcm-panel').getByRole('button', { name: 'Enable notifications on this browser' }).click();
+  await denied.locator('#fcm-panel [data-fcm-error]', { hasText: 'Notifications are blocked' }).waitFor();
+  await denied.context().close();
+
+  const old = await pushPage({ setup: 'delete window.PushManager;' });
+  assert.match(await old.locator('#fcm-panel [data-fcm-permission]').textContent(), /Not supported by this browser/);
+  assert.equal(await old.locator('#fcm-panel [data-fcm-enable]').isDisabled(), true);
+  await old.context().close();
+
+  const broken = await pushPage({ setup: "window.__fcm.tokenError = 'messaging/token-subscribe-failed';" });
+  await broken.locator('#fcm-panel').getByRole('button', { name: 'Enable notifications on this browser' }).click();
+  await broken.locator('#fcm-panel [data-fcm-error]', { hasText: 'Could not enable notifications: messaging/token-subscribe-failed' }).waitFor();
+  await broken.context().close();
+  assert.deepEqual(await fcmDevices(), []);
+});
+
+test('Firebase push: a click on the notification opens that incident', async () => {
+  const page = await newPage();
+  await page.goto(`${BASE}/sw.js`);
+  const shown = await page.evaluate(async () => { // the service worker's own mapping from an FCM push to the notification
+    const code = document.body.innerText;
+    const fromPush = new Function('self', `${code}; return fromPush;`)({ addEventListener() {} });
+    return fromPush({ notification: { title: 'SMOKE · Medium', body: 'First Floor - Server Hall' },
+      data: { incidentId: '42', severity: 'Medium', url: 'http://127.0.0.1:5399/incidents?incident=42' } });
+  });
+  assert.equal(shown[0], 'SMOKE · Medium');
+  assert.deepEqual([shown[1].tag, shown[1].data.url, shown[1].requireInteraction], ['incident-42', 'http://127.0.0.1:5399/incidents?incident=42', false]);
+  const incident = await api('/api/incidents/dispatch', { method: 'POST', body: JSON.stringify({ zone: 'E2E Push Zone', severity: 'Medium' }) });
+  await page.goto(`${BASE}/incidents?incident=${incident.id}`); // where that click lands
+  await page.locator('#incident-detail', { hasText: `#${incident.id}` }).filter({ hasText: 'E2E Push Zone' }).waitFor();
+  assert.deepEqual(page.problems, []);
+  await page.context().close();
+  await resolveAll();
 });

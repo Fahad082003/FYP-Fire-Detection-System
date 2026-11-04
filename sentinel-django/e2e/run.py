@@ -13,6 +13,7 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.request
@@ -36,13 +37,19 @@ SERVER_ENV = {
     "AiService__BaseUrl": f"http://127.0.0.1:{AI_PORT}",
     "Notifications__Email__Recipients": "",  # nothing is sent anywhere
     "Alerts__SensorStaleSeconds": "5",  # the sensor-staleness test must not wait a minute
+    "FloorPlans__CapacityFile": str(Path(tempfile.gettempdir()) / "sentinel-e2e-capacities.json"),  # never the real App_Data file
+    "Notifications__SnapshotDirectory": str(Path(tempfile.gettempdir()) / "sentinel-e2e-snapshots"),  # same for snapshots
+    # Firebase Web SDK settings (public values) so the browser test can register a token. The SDK itself is a fake served by
+    # the test (page.route) and no service-account file is set, so this server can never send a real push.
+    "Notifications__Fcm__ProjectId": "sentinel-e2e", "Notifications__Fcm__WebApiKey": "e2e-public-api-key",
+    "Notifications__Fcm__WebAppId": "1:0:web:e2e", "Notifications__Fcm__MessagingSenderId": "0", "Notifications__Fcm__VapidKey": "e2e-vapid-key",
 }
 
 HEALTH = {
     "ok": {"status": "ok", "models": [{"name": "person", "file": "yolox_tiny.onnx", "license": "Apache-2.0", "categories": ["Human"], "threshold": 0.45,
-                                       "loaded": True, "error": None},
+                                       "defaultThreshold": 0.45, "loaded": True, "error": None},
                                       {"name": "fire_smoke", "file": "fire_smoke_yolox.onnx", "license": "own", "categories": ["Fire", "Smoke"],
-                                       "threshold": 0.4, "loaded": True, "error": None}],
+                                       "threshold": 0.4, "defaultThreshold": 0.4, "loaded": True, "error": None}],
            "capabilities": ["Fire", "Human", "Smoke"], "inference": {"count": 3, "avgMs": 410.5, "lastMs": 400.1}, "cameras": []},
 }
 HEALTH["model-missing"] = {**HEALTH["ok"], "status": "degraded",
@@ -63,9 +70,16 @@ class StubAi(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def config(self):
+        models = HEALTH["ok"]["models"]
+        return {"min": 0.25, "max": 0.55, "models": [{"name": m["name"], "loaded": True, "threshold": m["threshold"],
+                                                       "defaultThreshold": {"person": 0.45, "fire_smoke": 0.4}[m["name"]]} for m in models]}
+
     def do_GET(self):
         if stub["mode"] == "offline":
             return self._send(503, {"error": "stub offline"})
+        if self.path == "/config":
+            return self._send(200, self.config())
         self._send(200, HEALTH[stub["mode"]])
 
     def do_POST(self):
@@ -73,6 +87,18 @@ class StubAi(BaseHTTPRequestHandler):
         if self.path == "/__mode":  # test control
             stub["mode"] = json.loads(body)["mode"]
             return self._send(200, stub)
+        if self.path == "/config":  # the sensitivity controller, with the real service's key check and range
+            if stub["mode"] == "offline":
+                return self._send(503, {"error": "stub offline"})
+            if self.headers.get("X-Device-Key") != SERVER_ENV["Device__ApiKey"]:
+                return self._send(403, {"error": "config changes need the Sentinel device key"})
+            change = json.loads(body)
+            if not isinstance(change.get("threshold"), (int, float)) or not 0.25 <= change["threshold"] <= 0.55:
+                return self._send(400, {"error": "threshold must be a number from 0.25 to 0.55"})
+            for m in HEALTH["ok"]["models"]:
+                if m["name"] == change["model"]:
+                    m["threshold"] = change["threshold"]
+            return self._send(200, {"model": change["model"], "threshold": change["threshold"], **self.config()})
         self._send(503, {"error": "fire model not loaded"})  # /infer: the browser test checks this error reaches the page
 
     def log_message(self, *args):
@@ -89,6 +115,7 @@ def sql(statement: str) -> None:
 def drop_db() -> None:
     assert DB.startswith("test_")
     sql(f"IF DB_ID('{DB}') IS NOT NULL BEGIN ALTER DATABASE [{DB}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{DB}]; END")
+    Path(SERVER_ENV["FloorPlans__CapacityFile"]).unlink(missing_ok=True)  # the crowd limits of that database's plans
 
 
 def create_db() -> None:

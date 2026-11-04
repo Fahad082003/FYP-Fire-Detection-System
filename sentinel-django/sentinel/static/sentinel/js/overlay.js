@@ -3,7 +3,8 @@
 import { FRAME_STALE_MS as STALE_MS } from './shell.js';
 
 /** Box colours: fire = red, humans = green, humans inside a danger zone = pulsing amber. */
-export const OVERLAY_COLORS = { fire: '#ef4444', human: '#22c55e', humanAtRisk: '#f59e0b', smoke: '#94a3b8', danger: '#f43f5e', vehicle: '#a78bfa', other: '#e2e8f0' };
+// Fire = solid red box, smoke = dashed orange box (the design system's overlay rule: hue, line style and label differ).
+export const OVERLAY_COLORS = { fire: '#f04438', human: '#12b76a', humanAtRisk: '#eac54f', smoke: '#f79009', danger: '#f43f5e', vehicle: '#a78bfa', other: '#e6ebf2' };
 const ZONE_RGB = { Warning: '245,158,11', Danger: '239,68,68', Critical: '220,38,38', Safe: '34,197,94' };
 const LABEL_FONT = '600 11px "JetBrains Mono", Consolas, monospace';
 const EXPIRE_MS = 6000; // boxes fade out between STALE_MS and this
@@ -175,9 +176,12 @@ export class OverlayRenderer {
 
     if (isFire || atRisk) { ctx.fillStyle = rgba(color, 0.1 + pulse * 0.15); ctx.fillRect(x, y, w, h); }
     else if (det.category === 'Smoke') { ctx.fillStyle = rgba(color, 0.1); ctx.fillRect(x, y, w, h); }
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = rgba(color, emphasis ? 0.75 : 0.45);
+    const smoke = det.category === 'Smoke';
+    ctx.lineWidth = isFire || smoke ? 2 : 1;
+    ctx.strokeStyle = isFire || smoke ? color : rgba(color, emphasis ? 0.75 : 0.45);
+    if (smoke) ctx.setLineDash([6, 4]);
     ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+    ctx.setLineDash([]);
 
     const len = Math.max(6, Math.min(18, Math.min(w, h) * 0.25)); // corner brackets, thicker and pulsing for fire / people in danger
     ctx.lineWidth = emphasis ? 2 + pulse * 1.5 : 2;
@@ -198,7 +202,7 @@ export class OverlayRenderer {
     }
     const name = (det.label || det.category).toUpperCase();
     const label = `${atRisk ? 'IN DANGER · ' : ''}${name} ${Math.round((det.confidence ?? 1) * 100)}%${det.trackId ? ` #${det.trackId}` : ''}`;
-    this.drawTag(label, x, y, color, '#04070d', y - 18 < r.y ? 'inside' : 'above');
+    this.drawTag(label, x, y, color, isFire ? '#ffffff' : '#1a1204', y - 18 < r.y ? 'inside' : 'above');
   }
 
   drawTag(text, x, y, bg, fg, placement) {

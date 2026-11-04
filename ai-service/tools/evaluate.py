@@ -14,6 +14,7 @@ import json
 import statistics
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import cv2
@@ -192,6 +193,7 @@ def main():
     pred_log.close()
     ap = {c: {str(t): average_precision(ap_scored[c][t], n_gt[c]) for t in AP_IOUS} for c in wanted}
     report = {
+        "evaluatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),  # the Sentinel Reports page dates runs by this
         "dataset": str(a.data), "slice": a.images_list.name if a.images_list else None, "images": len(latency), "iouThreshold": a.iou, "models": {d.name: d.file for d in detectors},
         "configuredThresholds": base,
         "modelLoadMs": load_ms,

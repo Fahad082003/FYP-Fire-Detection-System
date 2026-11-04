@@ -1,0 +1,20 @@
+<div style="overflow-x:auto"><table class="data" data-evaluations>
+  <thead><tr><th>Evaluated</th><th>Run (source)</th><th>Model</th><th>Dataset</th><th class="num">Images</th><th>Class</th><th class="num">Threshold</th>
+    <th class="num">Precision</th><th class="num">Recall</th><th class="num">F1</th><th class="num">AP50</th>
+    <th>Image confusion (TP / FP / FN / TN)</th><th class="num">Image accuracy</th></tr></thead>
+  <tbody>{% for run in runs %}{% if run.error %}
+    <tr><td>—</td><td class="mono">{{ run.source }}</td><td colspan="11" class="text-red">{{ run.error }}</td></tr>
+  {% else %}{% for c in run.classes %}
+    <tr data-run="{{ run.source }}" data-class="{{ c.name }}"><td class="mono nowrap">{{ run.date|date:"Y-m-d" }}</td><td class="mono small">{{ run.source }}</td>
+      <td class="small">{{ run.models }}</td><td class="small" title="{{ run.dataset }}">{{ run.dataset|truncatechars:48 }}{% if run.slice %} · {{ run.slice }}{% endif %}</td>
+      <td class="num">{{ run.images }}</td><td class="strong">{{ c.name }}</td><td class="num">{{ c.threshold|default_if_none:"—" }}</td>
+      {% if c.metrics %}<td class="num">{{ c.metrics.precision|floatformat:3|default:"—" }}</td><td class="num">{{ c.metrics.recall|floatformat:3|default:"—" }}</td>
+        <td class="num">{{ c.metrics.f1|floatformat:3|default:"—" }}</td>
+      {% else %}<td class="num muted" colspan="3">not evaluated at this threshold</td>{% endif %}
+      <td class="num">{{ c.ap50|floatformat:3|default:"—" }}</td>
+      <td class="mono small">{% if c.image %}{{ c.image.tp }} / {{ c.image.fp }} / {{ c.image.fn }} / {{ c.image.tn }}{% else %}—{% endif %}</td>
+      <td class="num" {% if c.image and not c.imageAccuracy %}title="No negative images in this dataset: accuracy cannot be measured"{% endif %}>{{ c.imageAccuracy|floatformat:3|default:"—" }}</td></tr>
+  {% endfor %}{% endif %}{% empty %}
+    <tr><td colspan="13" class="empty">No evaluation runs recorded.</td></tr>
+  {% endfor %}</tbody>
+</table></div>

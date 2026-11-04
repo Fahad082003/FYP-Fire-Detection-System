@@ -5,7 +5,7 @@
 Starts, on a throwaway database (test_SentinelDb_e2e, dropped at the end): the Django server on :5399, the AI service from
 ai-service/.venv on :8018 (unmodified, real models), and a test camera that serves samples/fire-test.avi as MJPEG on :8095.
 Then it kills and restarts them to check the camera lifecycle, prints every step with measured times, and finally runs
-ai-service/tools/live_test.py unchanged against Django. Nothing touches SentinelDb, a real camera, sprinklers or notifications.
+ai-service/tools/live_test.py against Django. Nothing touches SentinelDb, a real camera, sprinklers or notifications.
 """
 import json
 import os
@@ -219,7 +219,7 @@ def main() -> int:
 
         env_file = workdir / "live_test.env"  # the admin login live_test.py reads; never the real .env
         env_file.write_text(f"Seed__AdminEmail={ENV['Seed__AdminEmail']}\nSeed__AdminPassword={ENV['Seed__AdminPassword']}\n")
-        log("12. running ai-service/tools/live_test.py unchanged against Django (floor plan, calibration, fire, danger zone, route, risk)")
+        log("12. running ai-service/tools/live_test.py against Django (floor plan, calibration, fire, smoke, danger zone, route, risk, room occupancy)")
         code = subprocess.call([str(AI_PYTHON), "tools/live_test.py", "--api", API, "--ai", f"http://127.0.0.1:{AI_PORT}", "--env", str(env_file),
                                 "--port", "8096", "--no-hold"], cwd=AI_DIR)
         check("12. live_test.py (written for the .NET API) passes against Django", code == 0, f"exit code {code}")

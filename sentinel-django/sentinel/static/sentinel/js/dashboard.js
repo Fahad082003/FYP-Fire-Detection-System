@@ -242,6 +242,8 @@ export function peopleCount(stats, cameras) {
   return { humans, danger };
 }
 
+const KPI_CHIP = { ok: ['safe', 'OK'], warn: ['degraded', 'Degraded'], danger: ['fire', 'Alert'], info: ['info', 'Active'], neutral: ['offline', 'None'] };
+
 function renderKpis() {
   if (!$('kpis')) return;
   const open = live.openIncidents();
@@ -263,7 +265,8 @@ function renderKpis() {
     ['Open Incidents', open.length, critical ? `${critical} critical` : open.length ? 'monitoring' : 'none open',
       top >= SEVERITY_RANK.High ? 'danger' : top >= 0 ? 'warn' : 'ok'],
   ];
-  $('kpis').innerHTML = kpis.map(([label, value, hint, t]) => `<article class="kpi kpi-${t}"><span class="kpi-label">${label}</span>
+  $('kpis').innerHTML = kpis.map(([label, value, hint, t]) => `<article class="kpi kpi-${t}"><div class="kpi-top"><span class="kpi-label">${label}</span>
+    <span class="chip-st st-${KPI_CHIP[t][0]}">${KPI_CHIP[t][1]}</span></div>
     <span class="kpi-value">${esc(String(value))}</span><span class="kpi-hint">${esc(hint)}</span></article>`).join('');
   renderStatus();
 }
@@ -515,8 +518,9 @@ live.on('tick', () => $('relays')?.querySelectorAll('[data-relay]').forEach((li)
 }));
 
 // ================================================================ alert logs
-const SOURCE_LABEL = { Vision: 'AI Vision', Sensor: 'Sensor', Manual: 'Manual', CameraLost: 'Camera lost', SensorLost: 'Sensor lost' };
-let incidentFilter = 'open', selectedIncident = null;
+const SOURCE_LABEL = { Vision: 'AI Vision', Sensor: 'Sensor', Manual: 'Manual', CameraLost: 'Camera lost', SensorLost: 'Sensor lost', Crowd: 'Crowd' };
+const linkedIncident = Number(new URLSearchParams(location.search).get('incident')) || null; // a push notification's link
+let incidentFilter = 'open', selectedIncident = linkedIncident;
 const resolving = new Set();
 const locationOf = (i) => (i.cameraName ? `${i.zone} (${i.cameraName})` : i.sensorId ? `${i.zone} (sensor ${i.sensorId})` : i.zone);
 
@@ -537,7 +541,7 @@ function renderIncidents() {
         <div class="tiny muted" title="${esc(dateTimeOf(i.timestamp))}">${esc(locationOf(i))} · #${i.id} · since ${timeOf(i.timestamp)}</div></td>
       <td class="nowrap small">${SOURCE_LABEL[i.source] ?? esc(i.source)}${i.corroborated
         ? ' <span class="tag tag-fire" title="A smoke sensor in the same zone read its warning level within the fusion window">+ SMOKE SENSOR</span>' : ''}</td>
-      <td class="small">${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'Yes') : '—'}</td>
+      <td class="small">${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'Yes') : '—'}${i.smokeDetected ? ' <span class="tag tag-smoke">SMOKE</span>' : ''}</td>
       <td class="small nowrap">${i.humanCount} people${i.dangerCount > 0 ? ` · <span class="text-amber">${i.dangerCount} in danger</span>` : ''}</td>
       <td class="small strong ${i.falseAlarm ? 'muted' : i.isResolved ? 'text-green' : 'text-amber'}">${i.falseAlarm ? 'False alarm' : i.isResolved ? 'Resolved' : 'Open'}</td>
       <td class="nowrap">${i.isResolved ? '' : resolveButtons(i)}</td></tr>`;
@@ -560,6 +564,7 @@ function renderIncidentDetail() {
       <div><dt>Where</dt><dd>${esc(i.zone)}</dd></div>
       <div><dt>Seen by</dt><dd>${esc(by)}${i.corroborated ? ' · confirmed by a smoke sensor' : ''}</dd></div>
       <div><dt>Fire size</dt><dd>${i.fireDetected ? esc(fireSeverityText(i.fireSeverity) ?? 'yes') : 'no fire'}</dd></div>
+      <div><dt>Smoke</dt><dd>${i.smokeDetected ? 'seen by the AI (see the history for when and how sure)' : 'no smoke seen'}</dd></div>
       <div><dt>People</dt><dd>${i.humanCount} seen · ${i.dangerCount} in danger</dd></div>
       <div><dt>Opened</dt><dd>${esc(dateTimeOf(i.timestamp))}</dd></div>
       ${i.resolvedAt ? `<div><dt>Resolved</dt><dd>${esc(dateTimeOf(i.resolvedAt))}</dd></div>` : ''}
@@ -631,7 +636,7 @@ for (const name of ['stats', 'incidents', 'sensors', 'cameras', 'snapshot', 'tic
 
 // ================================================================ incident history
 const CHART_W = 600, CHART_H = 140;
-const history = { incidentId: null, type: '', logs: [], sensor: null, trend: null, loading: false, error: null, request: 0 };
+const history = { incidentId: $('incident-rows') ? linkedIncident : null, type: '', logs: [], sensor: null, trend: null, loading: false, error: null, request: 0 };
 const TREND_COLOR = { Increasing: 'text-red', Decreasing: 'text-green', Stable: 'text-amber' };
 
 /** SVG polyline for a time series scaled into a CHART_W x CHART_H box; null when there is nothing to draw. */
@@ -737,10 +742,12 @@ if ($('history-table')) loadHistory();
 
 // ================================================================ evacuation route
 const PEOPLE_EXPIRE_MS = 4500; // as the camera tile: a camera that sent nothing for this long no longer places people
-const RISK_RGBA = ['', 'rgba(250,204,21,0.35)', 'rgba(249,115,22,0.5)', 'rgba(239,68,68,0.6)', 'rgba(185,28,28,0.85)'];
+const RISK_RGBA = ['', 'rgba(234,197,79,0.14)', 'rgba(247,144,9,0.2)', 'rgba(240,68,56,0.28)', 'rgba(240,68,56,0.42)']; // tints: the plan stays readable
 const round1 = (v) => Math.round(v * 10) / 10;
 const evac = { plans: [], planId: null, imageUrl: null, start: null, result: null, routing: false, error: null, risk: null, seen: new Map(),
-  people: [], openZonesKey: '', map: null, compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueBusy: false, rescueAt: 0 };
+  people: [], openZonesKey: '', map: null, compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueBusy: false, rescueAt: 0,
+  occupancy: null, occupancyAt: 0, showPeople: true, showRisk: true, sensorKey: '' };
+const OCCUPANCY_EVERY_MS = 3000; // stale/unknown rooms change with time, not only with frames
 const RESCUE_EVERY_MS = 5000, MARKER_STALE_MS = 2000; // markers older than this are shown as stale; PEOPLE_EXPIRE_MS removes them
 const EXIT_STATUS_CLASS = { Available: 'text-green', Danger: 'text-red', Blocked: 'text-amber', Unreachable: 'muted', Unknown: 'muted' };
 const metres = (v) => (v === null || v === undefined ? '—' : `${v.toFixed(1)} m`); // unknown is never shown as 0
@@ -786,8 +793,9 @@ function renderEvacuation() {
   const box = $('evacuation');
   const plan = currentPlan();
   if (!box || !plan) return;
-  if (!evac.map) {
-    box.innerHTML = '<div class="map-layout"><div class="panel map-main" data-map></div><div class="panel evac-details"><h2 class="section-title">Way out from the clicked point</h2><p class="small muted" data-hint>Click a point on the plan, or an amber dot (a person a calibrated camera sees).</p><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-compare></div><div data-rescue></div><div data-safe></div></div></div>';
+  if (!evac.map) { // the Floor Plan page: the way out; the Occupancy page (data-mode="occupancy"): the people layer and the room/exit counts
+    box.innerHTML = occupancyMode() ? '<div class="map-layout occ-layout"><div class="panel map-main" data-map></div><div class="panel evac-details" data-rooms><p class="empty">Loading occupancy…</p></div></div>'
+      : '<div class="map-layout"><div class="panel map-main" data-map></div><div class="panel evac-details"><h2 class="section-title">Way out from the clicked point</h2><p class="small muted" data-hint>Click a point on the plan, or an amber dot (a person a calibrated camera sees).</p><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-compare></div><div data-rescue></div><div data-safe></div></div></div>';
     evac.map = new PlanMap(box.querySelector('[data-map]'), onPlanPointer);
     box.addEventListener('click', (e) => { // "Show" in the exit comparison: draw that exit's route
       const b = e.target.closest('[data-exit]');
@@ -797,8 +805,11 @@ function renderEvacuation() {
   const shown = evac.highlight !== null ? evac.compare?.results?.[0]?.exits?.[evac.highlight] : null;
   evac.map.set({ width: plan.widthMeters, height: plan.heightMeters, elements: plan.elements, imageUrl: evac.imageUrl,
     route: shown?.found ? shown.path : evac.result?.path ?? null,
-    start: evac.start, people: evac.people, riskLayer: evac.riskLayerCache ?? null, activeDanger: evac.result?.activeDangerZones ?? evac.risk?.activeDangerZones ?? [],
-    cameras: cameraMarks(plan) });
+    start: evac.start, people: evac.people, riskLayer: evac.showRisk ? evac.riskLayerCache ?? null : null,
+    activeDanger: evac.result?.activeDangerZones ?? evac.risk?.activeDangerZones ?? [], cameras: cameraMarks(plan),
+    occupancy: evac.showPeople ? evac.occupancy?.rooms ?? null : null, sensorStatus: sensorStatus() });
+  renderRooms();
+  if (occupancyMode()) return;
 
   const rk = evac.risk;
   box.querySelector('[data-risk]').innerHTML = rk?.active ? `<div class="risk-box" role="status"><p class="strong text-orange">⚠ Fire risk: ${esc(rk.message)}</p>
@@ -900,9 +911,11 @@ async function loadComparison() {
   renderEvacuation();
 }
 
+const occupancyMode = () => $('evacuation')?.dataset.mode === 'occupancy';
+
 async function loadRescue() {
   const id = evac.planId;
-  if (!id || evac.rescueBusy) return;
+  if (!id || evac.rescueBusy || occupancyMode()) return; // the rescue list is the Floor Plan page's
   evac.rescueAt = Date.now();
   const cameras = new Map(live.cameras.map((c) => [c.id, c.name]));
   const markers = [...evac.seen].flatMap(([cameraId, v]) => v.points.map((p) => ({ cameraName: cameras.get(cameraId) ?? cameraId, at: v.at, x: p.x, y: p.y })))
@@ -927,12 +940,13 @@ function setImage(url) {
 
 async function choosePlan(id) {
   Object.assign(evac, { planId: id, start: null, result: null, routing: false, error: null, risk: null, riskLayerCache: null, people: [],
-    compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueAt: 0 });
+    compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueAt: 0, occupancy: null });
   evac.seen.clear();
   setImage(null);
   $('evac-plan').value = String(id);
   renderEvacuation();
   loadRisk();
+  loadOccupancy();
   if (currentPlan()?.hasImage) {
     try {
       const blob = await api(`/api/floorplans/${id}/image`);
@@ -968,6 +982,109 @@ async function calculateRoute() {
     Object.assign(evac, { result: null, routing: false, error: errorMessage(err) });
   }
   renderEvacuation();
+}
+
+/** People per room from the server (GET …/occupancy): the human heatmap layer and the room list. */
+async function loadOccupancy() {
+  const id = evac.planId;
+  if (!id) return;
+  evac.occupancyAt = Date.now();
+  try {
+    const o = await api(`/api/floorplans/${id}/occupancy`);
+    if (evac.planId !== id) return;
+    evac.occupancy = o;
+    if (evac.map) evac.map.set({ occupancy: evac.showPeople ? o.rooms : null });
+  } catch {
+    if (evac.planId === id) evac.occupancy = null; // unknown, never shown as 0
+  }
+  renderRooms();
+}
+
+const ROOM_STATE = { live: ['Live', 'text-green'], stale: ['Stale', 'text-amber'], unknown: ['Unknown', 'muted'] };
+const DENSITY_CLASS = { OK: 'text-green', 'At capacity': 'text-amber', Overcrowded: 'text-red strong', Unknown: 'muted' };
+
+function renderRooms() {
+  renderOccupancyKpis();
+  const box = $('evacuation')?.querySelector('[data-rooms]');
+  if (!box) return;
+  const rooms = evac.occupancy?.rooms ?? [];
+  const shown = (r) => (r.state === 'unknown' ? '?' : r.count === r.maxPossible ? String(r.count) : `${r.count}–${r.maxPossible}`);
+  const limit = (x) => (x.capacity == null ? '<span class="muted">no limit</span>'
+    : `${x.capacity} · <span class="${DENSITY_CLASS[x.density] ?? 'muted'}">${esc(x.density)}</span>`);
+  const exits = evac.occupancy?.exits ?? [];
+  const html = !rooms.length ? '' : `<h3 class="panel-title" style="margin-top:16px">People per room</h3>
+    <div style="overflow-x:auto"><table class="data" data-room-counts><thead><tr><th>Room</th><th class="num">People</th><th>Data</th><th>Limit</th><th>Cameras</th></tr></thead><tbody>
+    ${rooms.map((r) => `<tr data-room-row="${r.elementId}"><td class="strong">${esc(r.name)}</td><td class="num mono">${shown(r)}</td>
+      <td class="${ROOM_STATE[r.state][1]}">${ROOM_STATE[r.state][0]}${r.reason ? ` <span class="tiny muted">${esc(r.reason)}</span>` : ''}</td>
+      <td class="small nowrap">${limit(r)}</td><td class="tiny">${esc(r.cameras.join(', ') || '—')}</td></tr>`).join('')}</tbody></table></div>
+    <p class="tiny muted">${esc(evac.occupancy.note)} Stale = no frame for ${evac.occupancy.staleAfterSeconds} s or the camera is offline: the last count is kept, not 0.</p>
+    ${exits.length ? `<h3 class="panel-title" style="margin-top:16px">Crowd at the exits</h3>
+    <div style="overflow-x:auto"><table class="data" data-exit-crowd><thead><tr><th>Exit</th><th>Exit status</th><th class="num">People heading there</th><th>Limit</th><th>Advice</th></tr></thead><tbody>
+    ${exits.map((x) => `<tr data-exit-row="${esc(x.name)}"><td class="strong">${esc(x.name || 'Exit')}</td><td class="${EXIT_STATUS_CLASS[x.exitStatus] ?? 'muted'}">${esc(x.exitStatus)}</td>
+      <td class="num mono">${x.load ?? '?'}</td><td class="small nowrap">${limit(x)}</td>
+      <td class="small ${x.alternative ? 'text-green' : x.density === 'Overcrowded' ? 'text-red strong' : ''}">${esc(x.message)}</td></tr>`).join('')}</tbody></table></div>
+    ${evac.occupancy.peopleWithoutSafeRoute ? `<p class="strong text-red" role="alert" data-no-safe-route>⚠ ${evac.occupancy.peopleWithoutSafeRoute} person(s) seen
+      with no safe route available: every exit is blocked, in danger or unreachable from where they are.</p>` : ''}
+    <p class="tiny muted">People heading to an exit = those whose nearest safe exit it is (the evacuation route, avoiding fire and smoke zones).
+      ${exits[0].state === 'partial' ? 'Some cameras are stale: only "Overcrowded" is certain.' : exits[0].state === 'unknown' ? 'No live camera: unknown, not 0.' : ''}</p>` : ''}`;
+  if (html !== evac.roomsHtml) box.innerHTML = evac.roomsHtml = html;
+}
+
+/** Occupancy page totals from the same /occupancy answer: a sum of live rooms only, and unknown or stale rooms are said, not 0. */
+function renderOccupancyKpis() {
+  const box = $('occ-kpis');
+  if (!box) return;
+  const o = evac.occupancy, rooms = o?.rooms ?? [], exits = o?.exits ?? [];
+  const live = rooms.filter((r) => r.state === 'live'), other = rooms.length - live.length;
+  const crowded = rooms.filter((r) => r.density === 'Overcrowded' || r.density === 'At capacity');
+  const busyExits = exits.filter((x) => x.density === 'Overcrowded' || x.density === 'At capacity');
+  const limits = live.filter((r) => r.capacity != null);
+  const kpi = (label, value, hint, chip) => `<article class="kpi"><div class="kpi-top"><span class="kpi-label">${label}</span>${chip ?? ''}</div>
+    <span class="kpi-value">${esc(String(value))}</span><span class="kpi-hint">${esc(hint)}</span></article>`;
+  const chip = (tone, text) => `<span class="chip-st st-${tone}">${esc(text)}</span>`;
+  const html = !o ? `<article class="kpi"><span class="kpi-label">Occupancy</span><span class="kpi-value">?</span><span class="kpi-hint">${evac.planId ? 'Loading…' : 'No floor plan'}</span></article>`
+    : [kpi('People seen now', live.length ? live.reduce((n, r) => n + r.count, 0) : '?', other ? `${other} room(s) stale or unknown: not counted` : 'every room has live data',
+        live.length ? chip('safe', 'Tracked') : chip('offline', 'Unknown')),
+      kpi('Rooms with live data', `${live.length} / ${rooms.length}`, limits.length ? `${limits.length} with a limit set` : 'no room limits set'),
+      kpi('Crowded rooms', crowded.length, 'at or above their limit', crowded.length ? chip('degraded', 'Attention') : chip('safe', 'Normal')),
+      kpi('Exits near capacity', busyExits.length, o.peopleWithoutSafeRoute ? `${o.peopleWithoutSafeRoute} with no safe exit` : 'at or above their limit',
+        busyExits.length || o.peopleWithoutSafeRoute ? chip(o.peopleWithoutSafeRoute ? 'fire' : 'degraded', 'Attention') : chip('safe', 'Normal'))].join('');
+  if (html !== evac.occKpis) box.innerHTML = evac.occKpis = html;
+}
+
+/** Live status of every sensor, from the sensor data and open incidents (its position on the plan is a plan element). */
+function sensorStatus() {
+  const open = live.openIncidents();
+  return Object.fromEntries(live.sensors.map((s) => {
+    const alert = ['Alarm', 'Critical'].includes(s.state) || open.some((i) => i.sensorId === s.id && i.source === 'Sensor');
+    const lost = open.some((i) => i.sensorId === s.id && i.source === 'SensorLost');
+    const value = `${s.currentValue} ${s.unit}`;
+    return [s.id, alert ? { tone: 'danger', text: `Active alert · ${value}` }
+      : !s.lastReadingAt ? { tone: 'off', text: 'Offline · never reported' }
+      : lost || s.state === 'Stale' ? { tone: 'off', text: `Stale · last reading ${timeOf(s.lastReadingAt)}` }
+      : s.state === 'Warning' ? { tone: 'warn', text: `Warning · ${value}` } : { tone: 'ok', text: `Online · ${value}` }];
+  }));
+}
+
+function refreshSensors() {
+  if (!evac.map) return;
+  const status = sensorStatus();
+  const key = JSON.stringify(status);
+  if (key !== evac.sensorKey) { evac.sensorKey = key; evac.map.set({ sensorStatus: status }); }
+}
+for (const name of ['sensors', 'incidents', 'snapshot']) live.on(name, refreshSensors);
+live.on('occupancy', (o) => { if (o.floorPlanId === evac.planId && Date.now() - evac.occupancyAt >= 1000) loadOccupancy(); });
+setInterval(() => { if (evac.planId && $('evacuation')) loadOccupancy(); }, OCCUPANCY_EVERY_MS);
+for (const [id, key] of [['layer-people', 'showPeople'], ['layer-risk', 'showRisk']]) {
+  if ($(id)) evac[key] = $(id).checked; // a page may start with a layer off (Occupancy: fire risk off, the people layer first)
+  $(id)?.addEventListener('change', (e) => { evac[key] = e.target.checked; renderEvacuation(); });
+}
+
+function showSensor(id) {
+  const s = live.sensors.find((x) => x.id === id);
+  evac.cameraShown = null;
+  $('map-detail').innerHTML = evac.cameraHtml = s ? `<b>Sensor ${esc(s.id)}</b> · ${esc(s.type)} · ${esc(s.locationZone)} · ${esc(sensorStatus()[id].text)}
+    <a class="btn btn-ghost btn-sm" href="/sensors">Open sensors</a>` : `<b>Sensor ${esc(id)}</b> · not found among the sensors`;
 }
 
 /** Cameras calibrated to this plan: the floor area they see (calibration points) and how they are doing. */
@@ -1007,8 +1124,9 @@ $('map-detail')?.addEventListener('click', (e) => {
 });
 
 function onPlanPointer(p) {
-  if (p.kind !== 'down') return;
+  if (p.kind !== 'down' || occupancyMode()) return; // the Occupancy page only shows counts: no routes, no details panel
   if (p.camera) { showCamera(p.camera); return; } // a camera mark: its details, not a route
+  if (p.sensor) { showSensor(p.sensor); return; }
   const person = evac.people.find((q) => Math.hypot(q.x - p.x, q.y - p.y) < 1); // clicked a live person dot
   evac.start = person ? [round1(person.x), round1(person.y)] : [round1(p.x), round1(p.y)];
   calculateRoute();
@@ -1064,6 +1182,41 @@ if ($('evacuation')) (async () => {
   $('evac-plan').classList.remove('hidden');
   choosePlan(evac.plans[0].id);
 })();
+
+// ================================================================ AI sensitivity (AI page, Admin only)
+document.addEventListener('input', (e) => { // the slider's value, as it moves
+  const form = e.target.closest('form[data-sensitivity]');
+  if (form) form.querySelector('[data-sensitivity-value]').textContent = Number(e.target.value).toFixed(2);
+});
+document.addEventListener('submit', async (e) => {
+  const form = e.target.closest('form[data-sensitivity]');
+  if (!form) return;
+  e.preventDefault();
+  const status = form.querySelector('[data-sensitivity-status]');
+  const button = form.querySelector('button');
+  const slider = form.elements.threshold, value = Number(slider.value);
+  if (!(value >= Number(slider.min) && value <= Number(slider.max))) { // the range clamps it; never send anything outside
+    status.textContent = `Not changed: choose a value from ${slider.min} to ${slider.max}.`;
+    status.className = 'tiny text-red';
+    return;
+  }
+  button.disabled = true;
+  status.textContent = 'Asking the AI service…';
+  try { // active = what the AI service answers it applied, never the value typed here
+    const r = await api('/api/ai/sensitivity', { method: 'PUT', body: { model: form.dataset.sensitivity, threshold: value } });
+    const m = r.models.find((x) => x.name === r.model);
+    slider.value = r.threshold;
+    form.querySelector('[data-sensitivity-value]').textContent = Number(r.threshold).toFixed(2);
+    form.querySelector('[data-sensitivity-current]').textContent = `(current ${Number(r.threshold).toFixed(2)})`;
+    status.textContent = `Active in the AI service: ${r.threshold} (confirmed; default ${m?.defaultThreshold ?? '—'}).`;
+    status.className = 'tiny text-green';
+  } catch (err) {
+    status.textContent = `Not changed: ${errorMessage(err)}`;
+    status.className = 'tiny text-red';
+  } finally {
+    button.disabled = false;
+  }
+});
 
 // ================================================================ live event log
 const ACTIVITY_DOT = { info: 'dot-info', success: 'dot-success', warning: 'dot-warning', critical: 'dot-critical', notify: 'dot-notify' };

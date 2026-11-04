@@ -104,552 +104,528 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
   <button class="icon" id="theme" aria-label="Dark ya light mode">◐</button>
 </header>
 <div class="layout">
-  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kya Hai?</a></li><li><a href="#ch2" data-ch="2">2. Shuru Karna</a></li><li><a href="#ch3" data-ch="3">3. Dashboard: Har Hissa Kahan Hai</a></li><li class="part">B · Setup: cameras, naqsha, calibration</li><li><a href="#ch4" data-ch="4">4. Apne Cameras Daalna (Devices, Admin)</a></li><li><a href="#ch5" data-ch="5">5. Naqsha (Floor Plan) Banana</a></li><li><a href="#ch6" data-ch="6">6. Camera Ko Naqshe Se Jorna (Calibration)</a></li><li class="part">C · Roz ka istemaal</li><li><a href="#ch7" data-ch="7">7. Evacuation Raasta Dekhna</a></li><li><a href="#ch8" data-ch="8">8. Aag Ka Risk (Agle Kaun Se Kamre)</a></li><li><a href="#ch9" data-ch="9">9. Live Cameras Aur AI</a></li><li><a href="#ch10" data-ch="10">10. AI Page: Photo Par AI Chalana</a></li><li><a href="#ch11" data-ch="11">11. Alerts, Alarm Aur Incidents</a></li><li><a href="#ch12" data-ch="12">12. Emergency Dispatch (Haath Se Alert)</a></li><li><a href="#ch13" data-ch="13">13. Sensors Aur Sprinklers</a></li><li><a href="#ch14" data-ch="14">14. Incident History Aur Logs</a></li><li><a href="#ch15" data-ch="15">15. Browser Notifications</a></li><li><a href="#ch16" data-ch="16">16. Camera Lost</a></li><li class="part">D · Demo, database, yaad rakhne wali baatein aur tools</li><li><a href="#ch17" data-ch="17">17. Demo Chalana (Simulator Aur Live Camera)</a></li><li><a href="#ch18" data-ch="18">18. Database Doosre PC Par Le Jana</a></li><li><a href="#ch19" data-ch="19">19. Yaad Rakhne Wali Baatein</a></li><li><a href="#ch20" data-ch="20">20. Tools: Kab Kaunsa Chalayein</a></li></ul></nav>
+  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kya Hai?</a></li><li><a href="#ch2" data-ch="2">2. Shuru Karna Aur Login</a></li><li><a href="#ch3" data-ch="3">3. Naya Look: Sidebar Aur Header Bar</a></li><li><a href="#ch4" data-ch="4">4. Overview: Building Ka Haal</a></li><li class="part">B · Setup: cameras, naqsha, calibration</li><li><a href="#ch5" data-ch="5">5. Apne Cameras Daalna (Settings, Admin)</a></li><li><a href="#ch6" data-ch="6">6. Naqsha Banana (Floor Plan → Edit plan)</a></li><li><a href="#ch7" data-ch="7">7. Camera Ko Naqshe Se Jorna (Calibration)</a></li><li class="part">C · Roz ka istemaal</li><li><a href="#ch8" data-ch="8">8. Floor Plan: Evacuation Raasta Aur Aag Ka Risk</a></li><li><a href="#ch9" data-ch="9">9. Occupancy &amp; Heatmap (Kamron Mein Log)</a></li><li><a href="#ch10" data-ch="10">10. Crowd Limits Aur Crowd Incidents</a></li><li><a href="#ch11" data-ch="11">11. Live Cameras Aur AI</a></li><li><a href="#ch12" data-ch="12">12. Incidents: Aag Aur Dhuwan Alag</a></li><li><a href="#ch13" data-ch="13">13. Emergency Dispatch (Haath Se Alert)</a></li><li><a href="#ch14" data-ch="14">14. Sensors (Naqshe Par Bhi)</a></li><li><a href="#ch15" data-ch="15">15. Sprinklers</a></li><li><a href="#ch16" data-ch="16">16. Activity Log</a></li><li><a href="#ch17" data-ch="17">17. Reports &amp; Analytics Aur Model Accuracy</a></li><li><a href="#ch18" data-ch="18">18. AI Settings: Sensitivity Slider Aur Photo Test</a></li><li><a href="#ch19" data-ch="19">19. False Alarm Filtering (Kya Kar Sakti Hai, Kya Nahi)</a></li><li><a href="#ch20" data-ch="20">20. Notifications &amp; System Health</a></li><li><a href="#ch21" data-ch="21">21. Camera Lost</a></li><li class="part">D · Demo, database, yaad rakhne wali baatein aur tools</li><li><a href="#ch22" data-ch="22">22. Demo Chalana (Simulator Aur Live Camera)</a></li><li><a href="#ch23" data-ch="23">23. Database Doosre PC Par Le Jana</a></li><li><a href="#ch24" data-ch="24">24. Yaad Rakhne Wali Baatein</a></li><li><a href="#ch25" data-ch="25">25. Tools: Kab Kaunsa Chalayein</a></li></ul></nav>
   <main>
     <div class="hero">
       <h1>FIREVISION AI</h1>
-      <p>Har feature kahan hai, kya click karna hai, kya bharna hai aur kya dikhega: cameras daalna, naqsha banana, calibration, evacuation raasta, risk heatmap, alerts, sprinklers, dispatch aur baqi sab.</p>
-      <div class="stats"><div><b>start.ps1</b>Ek click mein sab chalu</div><div><b>Devices</b>Apne cameras khud daalein</div><div><b>Floor Plans</b>Naqsha draw + zones</div><div><b>20 chapters</b>Har feature qadam ba qadam</div></div>
+      <p>Har feature kahan hai, kya click karna hai, kya bharna hai aur kya dikhega: cameras daalna, naqsha banana, calibration, evacuation raasta, kamron mein log (heatmap), crowd limits, aag aur dhuwan ke incidents, sensors, sprinklers, reports, AI sensitivity, notifications aur baqi sab. Tareekh: <strong>2026-11-04</strong> (naya dark UI).</p>
+      <div class="stats"><div><b>start.ps1</b>Ek click mein sab chalu</div><div><b>Settings</b>Apne cameras khud daalein</div><div><b>Floor Plan</b>Naqsha, raasta, sensors</div><div><b>Occupancy</b>Kamron mein log + crowd</div><div><b>25 chapters</b>Har feature qadam ba qadam</div></div>
       <div id="progress" class="progress hidden"><span></span><i><b></b></i><button class="icon" id="reset">Ticks saaf karein</button></div>
     </div>
     <p class="part-label">A · Shuru</p><section class="chapter" data-ch="1"><h1 id="ch1">1. Ye Guide Kya Hai?</h1>
 <p>Ye guide batati hai ke <strong>FireVision AI ka har feature kaise use karna hai</strong>: kahan click karna hai, kya bharna hai, aur kya dikhega.</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Kaun si guide</th>
-<th>Kis liye</th>
-</tr>
-</thead>
+<thead><tr><th>Kaun si guide</th><th>Kis liye</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>Ye (Features guide)</strong></td>
-<td>Har feature <strong>use</strong> kaise karein</td>
-</tr>
-<tr>
-<td>User guide</td>
-<td>Install, aur har feature ka <strong>test</strong> + checklist</td>
-</tr>
-<tr>
-<td>Project guide v5</td>
-<td>Andar se kaise kaam karta hai (code, AI, accuracy)</td>
-</tr>
+<tr><td><strong>Ye (Features guide)</strong></td><td>Har feature <strong>use</strong> kaise karein</td></tr>
+<tr><td>User guide (<code>FIREVISION_AI_USER_GUIDE_ROMAN_URDU.html</code>)</td><td>Naye PC par install, Safe Test Mode, aur har feature ka <strong>test</strong> + checklist</td></tr>
+<tr><td>Project guide v5</td><td>Andar se kaise kaam karta hai (code, AI, accuracy)</td></tr>
 </tbody>
 </table></div>
 <p><strong>Do qisam ke log:</strong></p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Role</th>
-<th>Kya kar sakta hai</th>
-</tr>
-</thead>
+<thead><tr><th>Role</th><th>Kya kar sakta hai</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>Admin</strong></td>
-<td>Sab kuch + <strong>Devices</strong> (cameras add/edit/delete)</td>
-</tr>
-<tr>
-<td><strong>Operator</strong></td>
-<td>Dashboard, Floor Plans, AI page, incidents resolve, dispatch. Devices nahi</td>
-</tr>
+<tr><td><strong>Admin</strong></td><td>Sab kuch + <strong>Settings</strong> (cameras add/edit/delete) + <strong>AI Settings</strong> mein sensitivity <strong>Apply</strong></td></tr>
+<tr><td><strong>Operator</strong></td><td>Overview, Live Cameras, Floor Plan, Occupancy, Incidents (resolve), Sensors, Sprinklers, Activity Log, Reports, Notifications, dispatch. Settings nahi, sensitivity badal nahi sakta (sirf dekh sakta hai)</td></tr>
 </tbody>
 </table></div>
-<hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Shuru Karna</h1>
+<blockquote>
+<p>ℹ️ Is guide ki saari tasveerein naye UI ki hain aur <strong>simulated test data</strong> (nakli cameras, sensors aur aag) ke saath li gayin. Un mein "SIMULATED DATA" / "SIM DATA" likha hota hai. Ye kisi asli building ka data nahi.</p>
+<p>⚠️ Ye ek FYP prototype hai. Ise <strong>asli fire alarm ki jagah</strong> na lagayein. Ye production-ready ya certified nahi.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Shuru Karna Aur Login</h1>
 <h3 id="ch2-ek-click-se-chalana">Ek click se chalana</h3>
 <pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
 .\start.ps1
 </code></pre>
-<p>Do windows khulti hain: <strong>Server</strong> (Django: dashboard aur API dono) aur <strong>AI service</strong>. Aag ka demo bhi chahiye to <code>.\start.ps1 -Simulator</code>.</p>
+<p>Ek supervisor window khulti hai jo <strong>Django server</strong> (dashboard aur API) aur <strong>AI service</strong> dono chalati hai aur intezar karti hai ke dono tayyar hon. Aag ka demo bhi chahiye to <code>.\start.ps1 -Simulator</code>. Band karna: <code>.\stop.ps1</code>.</p>
 <blockquote>
-<p>ℹ️ 2026-10-26 se project Django par chalta hai (<code>sentinel-django/</code>). Zyada tar tasveerein (2026-10-28 se) naye <strong>Django dashboard</strong> ki hain, jo test database, asli AI models aur test video ke saath li gayin. Yeh kuch abhi purane Angular dashboard ki hain: <code>evacuation-before.png</code>, <code>evacuation-camera-people.png</code>, <code>camera-safe-danger-zones.png</code> (aur <code>swagger.png</code>, jo ab maujood hi nahi).</p>
+<p>Naya PC hai? Pehle <strong>User guide</strong> ke mutabiq <code>.\setup.ps1</code> aur <code>.env</code> tayyar karein (chapter 23 bhi dekhein).</p>
 </blockquote>
 <h3 id="ch2-login">Login</h3>
 <ol>
 <li>Browser: <strong>http://localhost:5291</strong></li>
-<li>Email aur password daalein → <strong>Sign in</strong>.</li>
+<li>Email aur password daalein (pehli dafa: <code>.env</code> ka <code>Seed__AdminEmail</code> / <code>Seed__AdminPassword</code>) → <strong>Sign in</strong>.</li>
 </ol>
-<p><img alt="Login" src="images/login.png" /></p>
+<p><img alt="Login page" src="images/ui-login.png" /></p>
+<p class="small"><em>Tasveer: naya login page (test setup).</em></p>
 <p>Login 8 ghante chalta hai. Phir dobara login karna hota hai.</p>
-<hr /></section><section class="chapter" data-ch="3"><h1 id="ch3">3. Dashboard: Har Hissa Kahan Hai</h1>
-<p><img alt="Dashboard" src="images/dashboard-fire.png" /></p>
+<hr /></section><section class="chapter" data-ch="3"><h1 id="ch3">3. Naya Look: Sidebar Aur Header Bar</h1>
+<p>Naya UI <strong>dark</strong> hai. Har halat <strong>rang + icon + lafz</strong> se dikhti hai, sirf rang se nahi:</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Hissa</th>
-<th>Kahan</th>
-<th>Kya karta hai</th>
-</tr>
-</thead>
+<thead><tr><th>Rang</th><th>Matlab</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>Top bar</strong></td>
-<td>Upar</td>
-<td>System ka haal: Hara <strong>"ALL SYSTEMS NOMINAL"</strong> = sab theek <strong>aur</strong> AI chal rahi hai. Peela <strong>"MONITORING DEGRADED · AI OFFLINE"</strong> (ya AI MODEL MISSING / CAMERA OFFLINE / AI DATA STALE / LIVE LINK DOWN; har 10 second, aur AI ke frames 8 second ruk jayein to foran). Incident khula ho to wajah saath likhi jati hai, jaise "ELEVATED RISK · 1 OPEN · AI OFFLINE" = koi incident nahi, lekin <strong>nigrani adhoori hai</strong>: is ka matlab "aag nahi" nahi, balke "dekha hi nahi ja raha". Peela "ELEVATED RISK" / laal "CRITICAL ALERT" = khule incidents. Phir Live/Offline, ghari (AM/PM), 🔊 alarm, Enable Alerts, Emergency Dispatch, Logout</td>
-</tr>
-<tr>
-<td><strong>Menu</strong></td>
-<td>Upar baen</td>
-<td>Dashboard · Floor Plans · AI · Devices (sirf Admin)</td>
-</tr>
-<tr>
-<td><strong>KPI patti</strong></td>
-<td>Upar daen</td>
-<td>Khule incidents, insaan, sab se zyada garmi aur dhuwan. Ek kamre (zone) ke kai camera ek hi log dekhein to <strong>ek dafa</strong> gine jate hain (sab se bari ginti), 2 log = 2, 6 nahi</td>
-</tr>
-<tr>
-<td><strong>Live Feeds</strong></td>
-<td>Beech</td>
-<td>Har camera: naam (zone), AI ke boxes, chips</td>
-</tr>
-<tr>
-<td><strong>Sensor Telemetry</strong></td>
-<td>Daen</td>
-<td>Har sensor ka gauge aur chhota graph</td>
-</tr>
-<tr>
-<td><strong>Smart Sprinklers</strong></td>
-<td>Daen</td>
-<td>ON/OFF, Auto/Manual, Master</td>
-</tr>
-<tr>
-<td><strong>Alert Logs</strong></td>
-<td>Neeche</td>
-<td>Incidents ki list + <strong>Resolve</strong></td>
-</tr>
-<tr>
-<td><strong>Live Event Log</strong></td>
-<td>Neeche daen</td>
-<td>Har waqia: SMS gaya, sprinkler chala, camera lost…</td>
-</tr>
-<tr>
-<td><strong>Incident History</strong></td>
-<td>Neeche</td>
-<td>Aag ka graph aur poori history</td>
-</tr>
-<tr>
-<td><strong>Evacuation Route</strong></td>
-<td>Neeche</td>
-<td>Naqsha, raasta, risk heatmap</td>
-</tr>
+<tr><td>Laal</td><td>Fire (aag)</td></tr>
+<tr><td>Narangi</td><td>Smoke (dhuwan)</td></tr>
+<tr><td>Hara</td><td>Safe / Normal</td></tr>
+<tr><td>Peela</td><td>Attention / Degraded (dhyan dein, nigrani adhoori)</td></tr>
+<tr><td>Grey</td><td>Offline / data nahi</td></tr>
 </tbody>
 </table></div>
-<hr /></section><p class="part-label">B · Setup: cameras, naqsha, calibration</p><section class="chapter" data-ch="4"><h1 id="ch4">4. Apne Cameras Daalna (Devices, Admin)</h1>
-<p><strong>Kab:</strong> naya customer, ya naya camera laga.</p>
+<h3 id="ch3-sidebar">Sidebar (baen taraf)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Page</th><th>Kya hai</th></tr></thead>
+<tbody>
+<tr><td rowspan="9"><strong>MONITORING</strong></td><td><strong>Overview</strong></td><td>Building ka haal ek nazar mein (pehle "Dashboard")</td></tr>
+<tr><td><strong>Live Cameras</strong></td><td>Saare camera aur AI ke boxes (pehle "Cameras")</td></tr>
+<tr><td><strong>Floor Plan</strong></td><td>Naqsha, raasta, aag ka risk, sensors (pehle "Building Map"). Andar <strong>Edit plan</strong> = naqsha editor</td></tr>
+<tr><td><strong>Occupancy &amp; Heatmap</strong></td><td>NAYA: har kamre mein kitne log, exits par rush</td></tr>
+<tr><td><strong>Incidents</strong></td><td>Aag, dhuwan, sensor, crowd incidents. Laal badge = khule incidents ki ginti</td></tr>
+<tr><td><strong>Sensors</strong></td><td>Har sensor ki reading aur history</td></tr>
+<tr><td><strong>Sprinklers</strong></td><td>Zones aur relays</td></tr>
+<tr><td><strong>Activity Log</strong></td><td>Har waqia live</td></tr>
+<tr><td><strong>Reports &amp; Analytics</strong></td><td>Ginti, graphs, model accuracy (pehle "Reports")</td></tr>
+<tr><td rowspan="3"><strong>CONFIGURATION</strong></td><td><strong>AI Settings</strong></td><td>AI ka haal, sensitivity slider, photo test (pehle "AI Service"). Hara/laal nuqta = AI service chal rahi hai ya nahi</td></tr>
+<tr><td><strong>Notifications</strong></td><td>NAYA: "Notifications &amp; System Health": system ka haal, alert channels, Firebase</td></tr>
+<tr><td><strong>Settings</strong></td><td>Sirf Admin: cameras (pehle "Devices")</td></tr>
+</tbody>
+</table></div>
+<h3 id="ch3-header">Header bar (har page ke upar)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Cheez</th><th>Kya karti hai</th></tr></thead>
+<tbody>
+<tr><td><strong>Page ka naam</strong></td><td>Aap kis page par hain</td></tr>
+<tr><td><strong>Live / Connecting</strong></td><td>Live updates ka link chal raha hai ya dobara jur raha hai</td></tr>
+<tr><td><strong>Ghari</strong></td><td>Abhi ka waqt</td></tr>
+<tr><td><strong>Status chip</strong></td><td>Misaal: hara sab theek, peela "ELEVATED RISK · 2 OPEN" (2 khule incidents), laal "CRITICAL ALERT". Peela "degraded" (jaise AI offline) ka matlab "aag nahi" <strong>nahi</strong>, balke "nigrani adhoori hai"</td></tr>
+<tr><td><strong>Emergency dispatch</strong> (laal)</td><td>Haath se alert bhejna (chapter 13)</td></tr>
+<tr><td><strong>Enable Alerts</strong></td><td>Is browser mein alerts ki ijazat (chapter 20)</td></tr>
+<tr><td><strong>Mute / unmute</strong></td><td>Alarm ki awaaz band/chalu</td></tr>
+<tr><td><strong>Avatar + naam + role</strong></td><td>Kaun login hai (Admin/Operator)</td></tr>
+<tr><td><strong>Logout</strong></td><td>Bahar nikalna</td></tr>
+</tbody>
+</table></div>
+<h3 id="ch3-phone">Phone par</h3>
+<p>Phone par sidebar chhup jata hai. Upar baen <strong>☰</strong> dabayein: menu ek drawer ki tarah khulta hai. Tablet layout abhi target nahi (test nahi kiya).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Phone: Overview</th><th>Phone: menu</th></tr></thead>
+<tbody><tr><td><img alt="Phone par Overview" src="images/ui-phone-overview.png" /></td><td><img alt="Phone par menu drawer" src="images/ui-phone-menu.png" /></td></tr></tbody>
+</table></div>
+<p class="small"><em>Tasveerein: simulated test data.</em></p>
+<hr /></section><section class="chapter" data-ch="4"><h1 id="ch4">4. Overview: Building Ka Haal</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Overview</strong> (login ke baad pehla page).</p>
+<p><img alt="Overview page" src="images/ui-overview.png" /></p>
+<p class="small"><em>Tasveer: Overview, simulated test data.</em></p>
+<div class="table-wrap"><table>
+<thead><tr><th>Hissa</th><th>Kya karta hai</th></tr></thead>
+<tbody>
+<tr><td><strong>Status banner</strong></td><td>"Building is Safe" (hara) / "Warning" / "Emergency" + wajah + buttons (jaise incident kholna)</td></tr>
+<tr><td><strong>4 cards</strong></td><td>Cameras, Sensors, Sprinklers, Open Incidents. Har card par chip: <strong>OK / Degraded / Alert / Active / None</strong></td></tr>
+<tr><td><strong>Needs your attention</strong></td><td>Jin cheezon par abhi dhyan dena hai (khule incidents, offline camera, sensor alarm…)</td></tr>
+<tr><td><strong>Camera tiles</strong></td><td>Cameras ki chhoti tasveerein; poori list Live Cameras par</td></tr>
+</tbody>
+</table></div>
+<hr /></section><p class="part-label">B · Setup: cameras, naqsha, calibration</p><section class="chapter" data-ch="5"><h1 id="ch5">5. Apne Cameras Daalna (Settings, Admin)</h1>
+<p><strong>Kab:</strong> naya customer, ya naya camera laga. <strong>Kahan:</strong> Sidebar → <strong>Settings</strong> (sirf Admin; pehle iska naam "Devices" tha). Is page par ab <strong>sirf cameras</strong> hain; alert channels aur Firebase <strong>Notifications</strong> page par chale gaye.</p>
+<p><img alt="Settings page: cameras" src="images/ui-settings.png" /></p>
+<p class="small"><em>Tasveer: Settings, simulated test cameras.</em></p>
 <ol>
-<li>Menu → <strong>Devices</strong>.</li>
 <li><strong>+ Camera</strong> dabayein aur bharein:</li>
 </ol>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Kya likhein</th>
-</tr>
-</thead>
+<thead><tr><th>Field</th><th>Kya likhein</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>Id</strong></td>
-<td>Chhota pakka naam, jaise <code>cam-gate</code> (letters, digits, - ya _). Baad mein nahi badalta</td>
-</tr>
-<tr>
-<td><strong>Name</strong></td>
-<td>Screen wala naam, jaise "Main Gate"</td>
-</tr>
-<tr>
-<td><strong>Type</strong></td>
-<td>CCTV ya Drone</td>
-</tr>
-<tr>
-<td><strong>Zone</strong></td>
-<td><strong>List se chunein</strong>. Naya zone sirf pehli dafa likhein, hamesha <strong>"Floor - Area"</strong>: jaise "First Floor - Kitchen" (beech mein <code>-</code> zaroori, warna Save nahi hoga)</td>
-</tr>
-<tr>
-<td><strong>Stream link</strong></td>
-<td>Camera ka <code>rtsp://user:pass@IP/...</code>, MJPEG <code>http://…/video</code> (test camera, phone app), ya khali (simulated)</td>
-</tr>
-<tr>
-<td><strong>Browser video format</strong></td>
-<td>RTSP ke liye <strong>Simulated</strong>. MJPEG/HLS/MP4 link ho to wohi</td>
-</tr>
+<tr><td><strong>Id</strong></td><td>Chhota pakka naam, jaise <code>cam-gate</code> (letters, digits, - ya _). Baad mein nahi badalta</td></tr>
+<tr><td><strong>Name</strong></td><td>Screen wala naam, jaise "Main Gate"</td></tr>
+<tr><td><strong>Type</strong></td><td>CCTV ya Drone</td></tr>
+<tr><td><strong>Zone</strong></td><td><strong>List se chunein</strong>. Naya zone sirf pehli dafa likhein, hamesha <strong>"Floor - Area"</strong>: jaise "First Floor - Kitchen" (beech mein <code>-</code> zaroori, warna Save nahi hoga)</td></tr>
+<tr><td><strong>Stream link</strong></td><td>Camera ka <code>rtsp://user:pass@IP/...</code>, MJPEG <code>http://…/video</code> (test camera, phone app), ya khali (simulated)</td></tr>
+<tr><td><strong>Browser video format</strong></td><td>RTSP ke liye <strong>Simulated</strong>. MJPEG/HLS/MP4 link ho to wohi</td></tr>
 </tbody>
 </table></div>
-<ol start="3">
-<li><strong>Save</strong>. Camera foran dashboard par aa jata hai.</li>
+<ol start="2">
+<li><strong>Save</strong>. Camera foran Live Cameras aur Overview par aa jata hai.</li>
 </ol>
 <p><strong>Edit:</strong> camera ki line par <strong>Edit</strong> → badlein → <strong>Save</strong>. Link <code>rtsp://***@…</code> dikhe to waise hi chhod dein, purana password mehfooz rehta hai.</p>
 <p><strong>Delete:</strong> <strong>Delete</strong> → confirm. Purane incidents history mein rehte hain.</p>
-<p><strong>AI khud camera uthati hai:</strong> link wala camera save kiya to AI service <strong>1 minute ke andar</strong> us ki video dekhna shuru kar deti hai. Kuch aur likhne ki zaroorat nahi.</p>
+<p><strong>AI khud camera uthati hai:</strong> link wala camera save kiya to AI service <strong>1 minute ke andar</strong> us ki video dekhna shuru kar deti hai.</p>
+<blockquote>
+<p>⚠️ Asli CCTV/RTSP camera ke saath abhi <strong>NOT TESTED</strong>. Test sirf MJPEG test camera aur video file se hua.</p>
+</blockquote>
 <p><strong>Zone ke naam ka tareeqa: "Floor - Area"</strong></p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Misaal</th>
-<th></th>
-</tr>
-</thead>
+<thead><tr><th>Misaal</th><th></th></tr></thead>
 <tbody>
-<tr>
-<td>Ground Floor - Lobby</td>
-<td>Neeche ki manzil, lobby</td>
-</tr>
-<tr>
-<td>Ground Floor - Warehouse</td>
-<td>Neeche ki manzil, godaam</td>
-</tr>
-<tr>
-<td>First Floor - Server Hall</td>
-<td>Pehli manzil, server hall</td>
-</tr>
-<tr>
-<td>Basement - Parking</td>
-<td>Tehkhana, parking</td>
-</tr>
+<tr><td>Ground Floor - Lobby</td><td>Neeche ki manzil, lobby</td></tr>
+<tr><td>Ground Floor - Warehouse</td><td>Neeche ki manzil, godaam</td></tr>
+<tr><td>First Floor - Server Hall</td><td>Pehli manzil, server hall</td></tr>
+<tr><td>Basement - Parking</td><td>Tehkhana, parking</td></tr>
 </tbody>
 </table></div>
-<p>Alert aate hi pata chal jata hai kis manzil par kahan jana hai.</p>
 <blockquote>
 <p>⚠️ <strong>Zone ka khayal:</strong> aag lagne par usi zone ke sprinklers aur naqshe ke danger zones chalte hain. Camera, sensor aur naqsha ek hi zone naam use karein. List se chunne par spelling galat nahi hoti.</p>
 </blockquote>
-<hr /></section><section class="chapter" data-ch="5"><h1 id="ch5">5. Naqsha (Floor Plan) Banana</h1>
-<p><strong>Kahan:</strong> Menu → <strong>Floor Plans</strong>.</p>
-<h3 id="ch5-a-naya-naqsha">A. Naya naqsha</h3>
+<hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Naqsha Banana (Floor Plan → Edit plan)</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Floor Plan</strong> → <strong>Edit plan</strong> (editor).</p>
+<h3 id="ch6-a-naya-naqsha">A. Naya naqsha</h3>
 <ol>
 <li><strong>+ New</strong> → "New floor plan" ban jata hai.</li>
 <li>Daen <strong>Plan settings</strong>: Name ("Ground Floor"), Building ("Warehouse"), Floor (0), <strong>Width aur Height meters mein</strong> (asal size, jaise 30 × 20).</li>
 <li>(Ikhtiyari) <strong>Upload image (PNG/JPG)</strong>: apne naqshe ki photo background mein (5 MB tak). Ye sirf peeche dikhti hai, system is se deewarein khud nahi pehchaanta.</li>
 </ol>
-<h3 id="ch5-b-cheezein-draw-karna">B. Cheezein draw karna</h3>
-<p>Toolbar se tool chunein aur naqshe par <strong>drag</strong> karein:</p>
+<h3 id="ch6-b-cheezein-draw-karna">B. Cheezein draw karna</h3>
+<p>Toolbar se tool chunein aur naqshe par <strong>drag</strong> karein (ek khana = 1 meter):</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Tool</th>
-<th>Kya hai</th>
-<th>Tip</th>
-</tr>
-</thead>
+<thead><tr><th>Tool</th><th>Kya hai</th><th>Tip</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>+ Room</strong></td>
-<td>Kamra / hall</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>+ Corridor</strong></td>
-<td>Gallery</td>
-<td></td>
-</tr>
-<tr>
-<td><strong>+ Wall</strong></td>
-<td>Deewar (0.2 m moti)</td>
-<td>Kamron ke beech</td>
-</tr>
-<tr>
-<td><strong>+ Door</strong></td>
-<td>Darwaza</td>
-<td><strong>Deewar ke upar</strong> rakhein, warna raasta deewar paar nahi karega</td>
-</tr>
-<tr>
-<td><strong>+ Exit</strong></td>
-<td>Bahar nikalne ka darwaza</td>
-<td>Kam az kam ek zaroori</td>
-</tr>
-<tr>
-<td><strong>+ Safe zone</strong></td>
-<td>Assembly point</td>
-<td>Hara</td>
-</tr>
-<tr>
-<td><strong>+ Danger zone</strong></td>
-<td>Khatarnak jagah (boiler, fuel store)</td>
-<td>Laal</td>
-</tr>
+<tr><td><strong>+ Room</strong></td><td>Kamra / hall</td><td>"Max people" de sakte hain (chapter 10)</td></tr>
+<tr><td><strong>+ Corridor</strong></td><td>Gallery</td><td>"Max people" de sakte hain</td></tr>
+<tr><td><strong>+ Wall</strong></td><td>Deewar (0.2 m moti)</td><td>Kamron ke beech</td></tr>
+<tr><td><strong>+ Door</strong></td><td>Darwaza</td><td><strong>Deewar ke upar</strong> rakhein, warna raasta deewar paar nahi karega</td></tr>
+<tr><td><strong>+ Exit</strong></td><td>Bahar nikalne ka darwaza</td><td>Kam az kam ek zaroori. "Max people" de sakte hain</td></tr>
+<tr><td><strong>+ Safe zone</strong></td><td>Assembly point</td><td>Hara. "Max people" de sakte hain</td></tr>
+<tr><td><strong>+ Danger zone</strong></td><td>Khatarnak jagah (boiler, fuel store)</td><td>Laal</td></tr>
+<tr><td><strong>+ Sensor</strong></td><td>Sensor ka nishaan</td><td>Drag nahi, <strong>click</strong> karein jahan sensor laga hai (chapter 14)</td></tr>
 </tbody>
 </table></div>
-<p><img alt="Floor Plan editor" src="images/floorplan-editor.png" /></p>
-<h3 id="ch5-c-cheez-badalna">C. Cheez badalna</h3>
+<p><img alt="Floor plan editor" src="images/ui-floor-plan-editor.png" /></p>
+<p class="small"><em>Tasveer: Edit plan (naqsha editor), simulated test naqsha.</em></p>
+<h3 id="ch6-c-cheez-badalna">C. Cheez badalna</h3>
 <ol>
 <li><strong>Select / Move</strong> → cheez par click.</li>
 <li>Daen <strong>Selected element</strong>: naam, X, Y, Width, Height (meters).</li>
 <li>Darwaza/Exit: <strong>Blocked / closed</strong> tick = band (raasta wahan se nahi guzarega).</li>
-<li>Danger zone: <strong>Active now</strong> (abhi khatra), ya <strong>Linked camera/sensor zone</strong> mein <strong>list se zone chunein</strong> (us zone mein incident khulte hi khud active).</li>
-<li>Hilana = drag (Select / Move tool). <strong>Chhota/bara karna</strong> = selected cheez ke neeche-daen <strong>cyan kona</strong> drag karein (kisi bhi tool par), ya daen <strong>Width / Height</strong> mein meters likhein. Mitana = <code>Delete</code> key.</li>
+<li>Danger zone: <strong>Active now (manual)</strong> (abhi khatra), ya <strong>Linked camera/sensor zone</strong> mein list se zone chunein (us zone mein incident khulte hi khud active).</li>
+<li>Room / Corridor / Safe zone / Exit: <strong>Max people (crowd alert)</strong> mein had likhein (chapter 10). Khali = koi had nahi.</li>
+<li>Hilana = drag (Select / Move tool). <strong>Chhota/bara karna</strong> = selected cheez ke neeche-daen <strong>cyan kona</strong> drag karein, ya daen <strong>Width / Height</strong> mein meters likhein. Mitana = <code>Delete</code> key.</li>
 </ol>
-<h3 id="ch5-d-save">D. Save</h3>
-<p><strong>Save</strong> dabayein. Title par "unsaved" hat jaye. Zoom: mouse wheel ya + / − / Fit. Ek khana = 1 meter.</p>
-<hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Camera Ko Naqshe Se Jorna (Calibration)</h1>
-<p><strong>Faida:</strong> camera mein dikha insaan naqshe par khud <strong>amber nuqta</strong> ban jata hai.</p>
+<h3 id="ch6-d-save">D. Save</h3>
+<p><strong>Save</strong> dabayein. Title par "unsaved" hat jaye. Zoom: mouse wheel ya + / − / Fit.</p>
+<hr /></section><section class="chapter" data-ch="7"><h1 id="ch7">7. Camera Ko Naqshe Se Jorna (Calibration)</h1>
+<p><strong>Faida:</strong> camera mein dikha insaan naqshe par khud <strong>nuqta</strong> ban jata hai. Isi se <strong>Occupancy</strong> (kamron mein log) aur crowd limits chalti hain. Bina calibration wale camera ke log naqshe par nahi aate.</p>
 <ol>
-<li>Floor Plans → naqsha kholein → <strong>Save</strong>.</li>
+<li>Floor Plan → <strong>Edit plan</strong> → naqsha kholein → <strong>Save</strong>.</li>
 <li>Daen <strong>Camera calibration</strong> → camera chunein.</li>
 <li>Camera ki snapshot <strong>Paint</strong> mein kholein. Farsh ke 4 kone chunein (koi 3 ek line mein na hon).</li>
 <li>Har kone ke liye:
-   - <strong>Camera px</strong>: Paint neeche jo x, y dikhata hai.
-   - <strong>Plan m ⌖</strong> dabayein aur naqshe par wohi kona click karein.</li>
+<ul><li><strong>Camera px</strong>: Paint neeche jo x, y dikhata hai.</li>
+<li><strong>Plan m ⌖</strong> dabayein aur naqshe par wohi kona click karein.</li></ul></li>
 <li><strong>Save calibration</strong>.</li>
 </ol>
-<p><img alt="Calibration" src="images/camera-calibration.png" /></p>
-<p>Camera hil jaye to dobara karein. <strong>Remove</strong> se hata sakte hain.</p>
-<hr /></section><p class="part-label">C · Roz ka istemaal</p><section class="chapter" data-ch="7"><h1 id="ch7">7. Evacuation Raasta Dekhna</h1>
-<p><strong>Kahan:</strong> Dashboard → neeche <strong>Evacuation Route (estimate)</strong>.</p>
+<p>Calibration panel upar wali editor tasveer (chapter 6) mein daen taraf hai. Camera hil jaye to dobara karein. <strong>Remove</strong> se hata sakte hain.</p>
+<hr /></section><p class="part-label">C · Roz ka istemaal</p><section class="chapter" data-ch="8"><h1 id="ch8">8. Floor Plan: Evacuation Raasta Aur Aag Ka Risk</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Floor Plan</strong>.</p>
+<p><img alt="Floor Plan: raasta aur fire risk" src="images/ui-floor-plan.png" /></p>
+<p class="small"><em>Tasveer: Floor Plan par raasta aur fire risk layer, simulated aag.</em></p>
+<h3 id="ch8-raasta">Raasta (way out)</h3>
 <ol>
 <li>Upar list se <strong>naqsha</strong> chunein.</li>
-<li>Naqshe par wahan <strong>click</strong> karein jahan insaan hai, <strong>ya</strong> kisi <strong>amber nuqte</strong> (camera ka insaan) par.</li>
-<li>Hari teer: qareeb tareen <strong>mehfooz exit</strong> tak, saath mein "Distance 14.8 m · ~12 s".</li>
+<li>Naqshe par wahan <strong>click</strong> karein jahan insaan hai, <strong>ya</strong> kisi insaan ke nuqte par.</li>
+<li>Hari line qareeb tareen <strong>mehfooz exit</strong> tak. Saath mein: faasla (m), chalne ka waqt (andaza), exits ka muqabla, aur rescue list (khatre mein log).</li>
 </ol>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Halat</th>
-<th>Kya dikhega</th>
-</tr>
-</thead>
+<thead><tr><th>Halat</th><th>Kya dikhega</th></tr></thead>
 <tbody>
-<tr>
-<td>Aag (danger zone active)</td>
-<td>Raasta khud badal kar aag se <strong>1 m door</strong></td>
-</tr>
-<tr>
-<td>1 m door raasta mumkin nahi</td>
-<td>Laal warning: "NO route keeps the required 1 m clearance"</td>
-</tr>
-<tr>
-<td>Koi raasta nahi</td>
-<td>"No safe route…"</td>
-</tr>
+<tr><td>Aag (danger zone active)</td><td>Raasta khud badal kar aag se door (danger zone se nahi guzarta)</td></tr>
+<tr><td>Koi raasta nahi</td><td>"No safe route…" (har exit band, khatre mein ya pohanch se bahar)</td></tr>
 </tbody>
 </table></div>
+<p>Waqt sirf <strong>andaza</strong> hai (faasla ÷ chalne ki raftaar).</p>
+<h3 id="ch8-layers">Layers (checkboxes)</h3>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Pehle</th>
-<th>Aag ke baad</th>
-</tr>
-</thead>
+<thead><tr><th>Layer</th><th>Kya dikhata hai</th></tr></thead>
 <tbody>
-<tr>
-<td><img alt="Pehle" src="images/evacuation-before.png" /></td>
-<td><img alt="Baad" src="images/evacuation-after.png" /></td>
-</tr>
+<tr><td><strong>People per room</strong></td><td>Jamni (purple) rang: kis kamre mein kitne log (chapter 9)</td></tr>
+<tr><td><strong>Fire risk</strong></td><td>Aag ka risk: agle kaun se kamre khatre mein</td></tr>
 </tbody>
 </table></div>
-<p>Waqt sirf <strong>andaza</strong> hai (faasla ÷ 1.2 m/s).</p>
-<hr /></section><section class="chapter" data-ch="8"><h1 id="ch8">8. Aag Ka Risk (Agle Kaun Se Kamre)</h1>
+<h3 id="ch8-risk">Aag ka risk (Fire risk layer)</h3>
 <p><strong>Kab dikhta hai:</strong> jab naqshe ka koi danger zone <strong>active</strong> ho (zone mein incident khula ho).</p>
-<p><strong>Kahan:</strong> Evacuation Route panel, naqshe ke upar <strong>rang</strong>, aur neeche "⚠ Fire risk: Next at risk: …".</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Rang</th>
-<th>Matlab</th>
-</tr>
-</thead>
+<thead><tr><th>Rang</th><th>Matlab</th></tr></thead>
 <tbody>
-<tr>
-<td>Gehra laal</td>
-<td>Aag yahin hai</td>
-</tr>
-<tr>
-<td>Laal</td>
-<td>≤ 5 m (High)</td>
-</tr>
-<tr>
-<td>Narangi</td>
-<td>≤ 10 m (Medium)</td>
-</tr>
-<tr>
-<td>Peela</td>
-<td>≤ 20 m (Low)</td>
-</tr>
-<tr>
-<td>Bina rang</td>
-<td>Door, ya deewar ke peeche (darwaza nahi)</td>
-</tr>
+<tr><td>Gehra laal</td><td>Aag yahin hai</td></tr>
+<tr><td>Laal</td><td>≤ 5 m (High)</td></tr>
+<tr><td>Narangi</td><td>≤ 10 m (Medium)</td></tr>
+<tr><td>Peela</td><td>≤ 20 m (Low)</td></tr>
+<tr><td>Bina rang</td><td>Door, ya deewar ke peeche (darwaza nahi)</td></tr>
 </tbody>
 </table></div>
-<p><img alt="Risk heatmap" src="images/fire-risk-heatmap.png" /></p>
-<p>Incident <strong>Resolve</strong> karein to heatmap khud hat jata hai. Ye rule-based <strong>andaza</strong> hai (darwazon ke raaste faasla).</p>
-<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Live Cameras Aur AI</h1>
-<p><strong>Kahan:</strong> Dashboard → <strong>Live Feeds</strong>.</p>
+<p>Incident <strong>Resolve</strong> karein to risk khud hat jata hai. Ye rule-based <strong>andaza</strong> hai (darwazon ke raaste faasla), aag ka asli simulation nahi.</p>
+<p>Naqshe par <strong>sensor icons</strong> bhi hote hain (chapter 14) aur camera ke nishaan.</p>
+<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Occupancy &amp; Heatmap (Kamron Mein Log)</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Occupancy &amp; Heatmap</strong> (naya page). Pehle ye ginti Floor Plan par thi.</p>
+<p><img alt="Occupancy and Heatmap page" src="images/ui-occupancy.png" /></p>
+<p class="small"><em>Tasveer: Occupancy &amp; Heatmap, simulated log.</em></p>
+<p><strong>Kaise kaam karta hai:</strong> AI camera mein insaan dekhti hai. Jo banda kam az kam <strong>3 frames</strong> tak track ho, use camera calibration (chapter 7) ke zariye naqshe par rakha jata hai aur phir gina jata hai ke wo kis kamre mein hai.</p>
+<h3 id="ch9-cards">Upar 4 cards</h3>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Cheez</th>
-<th>Matlab</th>
-</tr>
-</thead>
+<thead><tr><th>Card</th><th>Matlab</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>Main Lobby (Ground Floor - Lobby)</strong></td>
-<td>Camera ka naam aur zone</td>
-</tr>
-<tr>
-<td>🔴 <strong>LIVE</strong> / <strong>NO AI DATA</strong></td>
-<td>AI se frames aa rahe hain / nahi aa rahe</td>
-</tr>
-<tr>
-<td>Laal dabba</td>
-<td>Aag</td>
-</tr>
-<tr>
-<td>Gray dabba</td>
-<td>Dhuwan</td>
-</tr>
-<tr>
-<td>Hara dabba</td>
-<td>Insaan</td>
-</tr>
-<tr>
-<td>Amber <strong>IN DANGER</strong></td>
-<td>Insaan khatre ke zone mein</td>
-</tr>
-<tr>
-<td>Chips <strong>HUM / DANGER / FIRE / SMOKE / SIM DATA</strong></td>
-<td>Ginti, aag ka darja, test data</td>
-</tr>
+<tr><td><strong>People seen now</strong></td><td>Live data wale kamron mein abhi kitne log. Stale/unknown kamre is mein nahi gine jate</td></tr>
+<tr><td><strong>Rooms with live data</strong></td><td>Kitne kamron ka data taaza hai (misaal 3 / 5)</td></tr>
+<tr><td><strong>Crowded rooms</strong></td><td>Kitne kamre apni had se upar</td></tr>
+<tr><td><strong>Exits near capacity</strong></td><td>Kitne exits par had ke barabar ya zyada log ja rahe hain</td></tr>
+</tbody>
+</table></div>
+<h3 id="ch9-heatmap">Heatmap</h3>
+<p>Naqshe par <strong>jamni (purple)</strong> rang: jitna gehra, utne zyada log. Ye <strong>logon ka</strong> heatmap hai, aag ke risk se alag. Is page par <strong>Fire risk</strong> layer shuru mein band hoti hai (checkbox se chalu kar sakte hain).</p>
+<h3 id="ch9-table">"People per room" table</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Halat</th><th>Matlab</th></tr></thead>
+<tbody>
+<tr><td><strong>Live</strong></td><td>Camera abhi frames bhej raha hai, ginti taaza hai</td></tr>
+<tr><td><strong>Stale</strong></td><td>Camera ka aakhri frame <strong>10 second</strong> se purana. Aakhri ginti dikhti hai, lekin wo purani hai</td></tr>
+<tr><td><strong>Unknown</strong></td><td>Is kamre ko koi (calibrated) camera nahi dekhta</td></tr>
+</tbody>
+</table></div>
+<blockquote>
+<p>⚠️ <strong>Kabhi nakli 0 nahi:</strong> jahan data nahi, wahan "Unknown" likha aata hai, "0 log" nahi. "Unknown" ka matlab "kamra khaali" <strong>nahi</strong>.</p>
+<p><strong>Do camera ek kamre par:</strong> system nahi jaanta ke dono camera wahi log dekh rahe hain ya alag (cross-camera pehchaan nahi). Is liye ginti = <strong>sab se bari</strong> ginti, aur saath mein ek <strong>range</strong> (zyada se zyada = dono ka jor). Misaal: camera A 3 log, camera B 2 log → ginti 3, lekin 5 tak ho sakte hain.</p>
+</blockquote>
+<h3 id="ch9-exits">"Crowd at the exits" table</h3>
+<p>Har exit ki taraf kitne log ja rahe hain, us ki had, halat, aur mashwara (jaise <strong>"Send people to exit 'West'"</strong>, ya <strong>"No safe alternative route"</strong>). Tafseel chapter 10 mein.</p>
+<hr /></section><section class="chapter" data-ch="10"><h1 id="ch10">10. Crowd Limits Aur Crowd Incidents</h1>
+<h3 id="ch10-had">Had (limit) kaise lagayein</h3>
+<ol>
+<li>Floor Plan → <strong>Edit plan</strong> → Select / Move → koi <strong>Room, Corridor, Safe zone</strong> ya <strong>Exit</strong> chunein.</li>
+<li>Daen <strong>Max people (crowd alert)</strong> mein number likhein (misaal 30).</li>
+<li><strong>Save</strong>.</li>
+</ol>
+<h3 id="ch10-incident">Had paar hone par kya hota hai</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Halat</th><th>Kya hota hai</th></tr></thead>
+<tbody>
+<tr><td>Kamre / exit par had se zyada log</td><td><strong>Ek</strong> "Crowd" incident khulta hai (darja <strong>Medium</strong>). Message misaal: "Overcrowded: 4 people heading there, limit 3. Send people to exit 'West'"</td></tr>
+<tr><td>Koi mehfooz doosra exit nahi</td><td>Darja <strong>High</strong>, message "No safe alternative route…". Raaste par "No safe route" bhi aa sakta hai</td></tr>
+<tr><td>Log wapas had ke andar</td><td>Crowd incident <strong>khud band</strong> (resolve) ho jata hai</td></tr>
+<tr><td>Data Stale ya Unknown</td><td>Na naya incident khulta hai, na purana band hota hai (purane data par faisla nahi)</td></tr>
+</tbody>
+</table></div>
+<p><strong>Doosra exit (alternative):</strong> system qareeb ka doosra exit batata hai jo band na ho aur <strong>aag/dhuwan ke danger zone mein na ho</strong>. Aisa koi na mile to wo saaf "No safe alternative route" kehta hai, galat raasta nahi deta.</p>
+<p>Crowd incidents <strong>Incidents</strong> page aur <strong>Reports</strong> ("by source: Crowd") mein dikhte hain.</p>
+<blockquote>
+<p>Ginti sirf utni hi achhi hai jitne camera aur calibration. Camera ke andhe hisson ke log nahi gine jate.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Live Cameras Aur AI</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Live Cameras</strong>.</p>
+<p><img alt="Live Cameras page" src="images/ui-cameras.png" /></p>
+<p class="small"><em>Tasveer: Live Cameras, simulated test cameras.</em></p>
+<div class="table-wrap"><table>
+<thead><tr><th>Cheez</th><th>Matlab</th></tr></thead>
+<tbody>
+<tr><td><strong>LIVE</strong> / <strong>NO AI DATA</strong></td><td>AI se frames aa rahe hain / nahi aa rahe</td></tr>
+<tr><td>Laal <strong>solid</strong> dabba</td><td>Aag</td></tr>
+<tr><td>Narangi <strong>dashed</strong> (toota hua) dabba</td><td>Dhuwan</td></tr>
+<tr><td>Hara dabba</td><td>Insaan</td></tr>
+<tr><td>SIM DATA</td><td>Test (simulated) data</td></tr>
 </tbody>
 </table></div>
 <ul>
-<li><strong>All / CCTV / Drone</strong>: filter.</li>
-<li><strong>Heatmap</strong> tick: jahan aag/dhuwan dikha, wahan ka rang.</li>
-<li>Camera par <strong>click</strong>: bara karke dekhna.</li>
+<li>Filters: <strong>All / Problems / CCTV / Drone</strong> ("Problems" = sirf jin cameras mein masla hai).</li>
+<li>Camera par <strong>click</strong>: us ki tafseel.</li>
 </ul>
-<p><img alt="Video Wall" src="images/video-wall.png" /></p>
-<hr /></section><section class="chapter" data-ch="10"><h1 id="ch10">10. AI Page: Photo Par AI Chalana</h1>
-<p><strong>Kahan:</strong> Menu → <strong>AI</strong>.</p>
-<ol>
-<li>Baen: models ka haal (hara = dono loaded).</li>
-<li>Daen: <strong>Choose image…</strong> → aag ya insaan wali photo (JPG/PNG, 5 MB).</li>
-<li>Photo par dabbe aur neeche table: class, confidence, aur <strong>"Why"</strong> (AI ne kyun kaha).</li>
-</ol>
-<p><img alt="AI page" src="images/ai-tab-fire.png" /></p>
-<p>Ye sirf <strong>preview</strong> hai: koi incident, alert ya sprinkler nahi chalta.</p>
-<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Alerts, Alarm Aur Incidents</h1>
-<p><strong>Incident kab banta hai:</strong> camera par aag/dhuwan, sensor ki had paar, camera lost, ya Emergency Dispatch.</p>
+<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Incidents: Aag Aur Dhuwan Alag</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Incidents</strong> (page ka title "Incident Management"). Sidebar ka laal badge = kitne incidents khule hain.</p>
+<p><img alt="Incidents page" src="images/ui-incidents.png" /></p>
+<p class="small"><em>Tasveer: Incidents, simulated aag aur dhuwan.</em></p>
+<p><strong>Incident kab banta hai:</strong> camera par aag ya dhuwan, sensor ki had paar, crowd had paar, camera lost, ya Emergency Dispatch.</p>
+<h3 id="ch12-fire-smoke">Aag aur dhuwan</h3>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Cheez</th>
-<th>Kya hota hai</th>
-</tr>
-</thead>
+<thead><tr><th>Camera ne kya dekha</th><th>Kya hota hai</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>Alarm</strong></td>
-<td>Koi bhi incident khula ho to <strong>lagatar</strong> bajta hai</td>
-</tr>
-<tr>
-<td><strong>Alarm band</strong></td>
-<td>Incident <strong>Resolve</strong> karein, ya 🔊 button</td>
-</tr>
-<tr>
-<td><strong>Popup</strong></td>
-<td>High/Critical par laal popup</td>
-</tr>
-<tr>
-<td><strong>Alert Logs</strong></td>
-<td>Har incident: waqt, darja, jagah, source, aag, insaan</td>
-</tr>
-<tr>
-<td><strong>Resolve</strong></td>
-<td>Incident band. Alarm tab rukta hai jab koi khula na rahe</td>
-</tr>
-<tr>
-<td><strong>Open / All</strong></td>
-<td>Sirf khule, ya sab</td>
-</tr>
+<tr><td>Sirf dhuwan</td><td>Apna alag incident, list mein <strong>SMOKE</strong> tag</td></tr>
+<tr><td>Sirf aag</td><td>Apna alag incident</td></tr>
+<tr><td>Ek hi camera par aag + dhuwan</td><td><strong>Ek hi</strong> incident (do nahi), "smoke detected" bhi likha</td></tr>
 </tbody>
 </table></div>
-<p><strong>Darje:</strong> Low → Medium → High → Critical. Critical / insaan danger mein = <strong>emergency</strong>: SMS, Email, Push aur Auto sprinklers.</p>
-<p><img alt="Alert logs" src="images/alert-logs.png" /></p>
-<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Emergency Dispatch (Haath Se Alert)</h1>
+<p>Upar <strong>Fire</strong> aur <strong>Smoke</strong> cards alag ginti dikhate hain.</p>
+<h3 id="ch12-list">List aur tafseel</h3>
+<ul>
+<li>Har line: darje ki chip (Low → Medium → High → Critical), SMOKE tag (agar ho), jagah, source.</li>
+<li><strong>Resolve</strong> = incident band. <strong>False alarm</strong> = band, aur ghalat alarm ke tor par likha jata hai.</li>
+<li>Incident par click: aag ka size, dhuwan, log, waqt.</li>
+<li><strong>"What happened"</strong> history, filters ke saath: Opened, Escalated, <strong>FireMeasurement</strong> (aag ka % aur confidence), <strong>SmokeMeasurement</strong> (dhuwan ka area % aur sab se oonchi confidence), PersonInDanger, EvacuationRoute, Notification, Resolved. Test data par <strong>SIMULATED</strong>, raaste par <strong>ESTIMATE</strong>.</li>
+<li>Link <code>/incidents?incident=&lt;id&gt;</code> seedha wohi incident kholta hai (push notification par click yahin le jata hai).</li>
+</ul>
+<h3 id="ch12-alarm">Alarm</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Cheez</th><th>Kya hota hai</th></tr></thead>
+<tbody>
+<tr><td><strong>Alarm</strong></td><td>Koi bhi incident khula ho to <strong>lagatar</strong> bajta hai</td></tr>
+<tr><td><strong>Alarm band</strong></td><td>Incident Resolve karein, ya header ka mute button</td></tr>
+<tr><td><strong>Popup</strong></td><td>High/Critical par laal popup</td></tr>
+</tbody>
+</table></div>
+<p><strong>Emergency</strong> (High/Critical, ya insaan khatre mein): SMS, WhatsApp, Telegram, Email (jo configure hon) aur Auto sprinklers. Har naya confirmed aag/dhuwan incident Firebase push bhi bhejta hai (agar configure ho). Chapter 20.</p>
+<hr /></section><section class="chapter" data-ch="13"><h1 id="ch13">13. Emergency Dispatch (Haath Se Alert)</h1>
 <ol>
-<li>Upar laal <strong>Emergency Dispatch</strong>.</li>
+<li>Header mein laal <strong>Emergency dispatch</strong>.</li>
 <li><strong>Zone</strong>, <strong>Severity</strong>, <strong>Message</strong> (jaise "Warehouse khaali karein").</li>
 <li>Sprinklers bhi chahiye to "Activate all sprinklers in this zone" tick.</li>
-<li><strong>Dispatch Now</strong>: foran SMS/Email/Push aur ek naya incident.</li>
+<li><strong>Dispatch Now</strong>: foran configure kiye gaye channels par alert aur ek naya incident.</li>
 </ol>
-<p><img alt="Emergency Dispatch" src="images/dispatch-dialog.png" /></p>
-<hr /></section><section class="chapter" data-ch="13"><h1 id="ch13">13. Sensors Aur Sprinklers</h1>
-<p><strong>Sensors</strong> (daen panel): har sensor ka gauge, limit aur graph.</p>
+<p><img alt="Emergency dispatch dialog" src="images/ui-dispatch-dialog.png" /></p>
+<p class="small"><em>Tasveer: Emergency dispatch dialog, test setup.</em></p>
+<hr /></section><section class="chapter" data-ch="14"><h1 id="ch14">14. Sensors (Naqshe Par Bhi)</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Sensors</strong>.</p>
+<p><img alt="Sensors page" src="images/ui-sensors.png" /></p>
+<p class="small"><em>Tasveer: Sensors, simulated sensors.</em></p>
+<p>Table: reading, limit, halat, aakhri update, chhota graph. Sensor par click = us ki history.</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Halat</th>
-<th>Matlab</th>
-</tr>
-</thead>
+<thead><tr><th>Halat</th><th>Matlab</th></tr></thead>
 <tbody>
-<tr>
-<td>Normal (hara)</td>
-<td>Theek</td>
-</tr>
-<tr>
-<td>Warning (peela)</td>
-<td>Limit ke 80% tak</td>
-</tr>
-<tr>
-<td>Alarm</td>
-<td>Limit paar: High incident + Auto sprinklers</td>
-</tr>
-<tr>
-<td>Critical</td>
-<td>Bohat zyada: Critical incident + emergency alerts</td>
-</tr>
+<tr><td>Normal (hara)</td><td>Theek</td></tr>
+<tr><td>Warning (peela)</td><td>Limit ke qareeb (80% tak)</td></tr>
+<tr><td>Alarm</td><td>Limit paar: High incident + Auto sprinklers</td></tr>
+<tr><td>Critical</td><td>Bohat zyada: Critical incident + emergency alerts</td></tr>
+<tr><td>Not reporting / Stale</td><td>Sensor se taaza reading nahi aa rahi (is ka matlab "theek" nahi)</td></tr>
 </tbody>
 </table></div>
-<p><strong>Sprinklers:</strong></p>
+<h3 id="ch14-naqsha">Sensor ko naqshe par rakhna</h3>
+<ol>
+<li>Floor Plan → <strong>Edit plan</strong> → <strong>+ Sensor</strong>.</li>
+<li>Naqshe par wahan <strong>click</strong> karein jahan sensor laga hai. Naam khud pehle aise sensor ka aata hai jo abhi naqshe par nahi.</li>
+<li>Daen panel mein naam = <strong>sensor ka Id</strong> (bilkul wahi), warna rang nahi badlega → <strong>Save</strong>.</li>
+</ol>
+<p>Floor Plan par sensor ka icon live halat ka rang leta hai: <strong>hara</strong> Online, <strong>peela</strong> Warning, <strong>grey</strong> Stale/Offline, <strong>laal</strong> Active alert.</p>
+<blockquote>
+<p>⚠️ Asli sensors / gateways ke saath <strong>NOT TESTED</strong>: sirf simulator ke nakli sensors se test hua.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="15"><h1 id="ch15">15. Sprinklers</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Sprinklers</strong>: zones aur relays.</p>
+<p><img alt="Sprinklers page" src="images/ui-sprinklers.png" /></p>
+<p class="small"><em>Tasveer: Sprinklers, simulated relays.</em></p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Button</th>
-<th>Kaam</th>
-</tr>
-</thead>
+<thead><tr><th>Cheez</th><th>Kaam</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>Switch</strong></td>
-<td>Ek sprinkler ON/OFF</td>
-</tr>
-<tr>
-<td><strong>Auto</strong></td>
-<td>System aag par khud chala sakta hai</td>
-</tr>
-<tr>
-<td><strong>Manual</strong></td>
-<td>Sirf aap chalayenge</td>
-</tr>
-<tr>
-<td><strong>Master</strong></td>
-<td>Saare ek saath ON/OFF (confirm ke baad)</td>
-</tr>
+<tr><td><strong>Switch</strong></td><td>Ek relay ON/OFF</td></tr>
+<tr><td><strong>Auto</strong></td><td>System aag par khud chala sakta hai</td></tr>
+<tr><td><strong>Manual</strong></td><td>Sirf aap chalayenge</td></tr>
+<tr><td><strong>Master</strong></td><td>Saare ek saath ON/OFF (confirm ke baad)</td></tr>
 </tbody>
 </table></div>
+<blockquote>
+<p>⚠️ Relay ON karna <strong>asli kaam</strong> hai: agar asli sprinkler/valve jura ho to <strong>paani chal jayega</strong>. Test ke waqt sirf simulator ya bina pani wala setup. Asli relays ke saath <strong>NOT TESTED</strong>.</p>
+</blockquote>
 <p>Sprinkler khud OFF <strong>nahi</strong> hota: aag ke baad aap OFF karein.</p>
-<p><img alt="Sensors" src="images/sensor-panel.png" /></p>
-<hr /></section><section class="chapter" data-ch="14"><h1 id="ch14">14. Incident History Aur Logs</h1>
-<p><strong>Kahan:</strong> Dashboard → <strong>Incident History &amp; Logs</strong>.</p>
+<hr /></section><section class="chapter" data-ch="16"><h1 id="ch16">16. Activity Log</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Activity Log</strong>. Har waqia live aata hai: incident khula, alert gaya, sprinkler chala, camera lost, setting badli… Upar filters se chhantein.</p>
+<p><img alt="Activity Log page" src="images/ui-activity.png" /></p>
+<p class="small"><em>Tasveer: Activity Log, simulated waqiat.</em></p>
+<hr /></section><section class="chapter" data-ch="17"><h1 id="ch17">17. Reports &amp; Analytics Aur Model Accuracy</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Reports &amp; Analytics</strong>.</p>
+<p><img alt="Reports and Analytics page" src="images/ui-reports.png" /></p>
+<p class="small"><em>Tasveer: Reports, simulated incidents.</em></p>
+<ul>
+<li><strong>Date range:</strong> 7 din, 30 din, ya apni tareekhein.</li>
+<li>Totals, har din ka graph, darje ke hisaab se (by severity), source ke hisaab se (by source: camera, sensor, dispatch, <strong>Crowd</strong>…).</li>
+</ul>
+<blockquote>
+<p>⚠️ <strong>Incidents ki ginti accuracy nahi hai.</strong> "30 incidents" se ye pata nahi chalta ke AI kitni sahi hai. Accuracy sirf neeche wale hisse se.</p>
+</blockquote>
+<h3 id="ch17-accuracy">Model accuracy (offline evaluation against labelled images)</h3>
+<p><img alt="Reports: model accuracy" src="images/ui-reports-model-accuracy.png" /></p>
+<p class="small"><em>Tasveer: model accuracy hissa (test setup ki evaluation reports).</em></p>
+<p>Ye hissa batata hai ke AI ko <strong>pehle se label ki hui tasveerein</strong> (jin mein insaan ne bata diya ke aag/dhuwan kahan hai) dikha kar kitne sahi jawab mile. Ye live cameras se nahi, offline test se hai.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Lafz</th><th>Aasan matlab</th></tr></thead>
+<tbody>
+<tr><td><strong>Precision</strong></td><td>AI ne jitni dafa "aag" kaha, un mein se kitni dafa sach mein aag thi. Oonchi = kam false alarm</td></tr>
+<tr><td><strong>Recall</strong></td><td>Jitni asli aag thi, un mein se AI ne kitni pakri. Oonchi = kam aag chhooti</td></tr>
+<tr><td><strong>F1</strong></td><td>Precision aur recall ka mila jula ek number (dono achhe hon tabhi ooncha)</td></tr>
+<tr><td><strong>AP50</strong></td><td>Dabba (box) kitni achhi jagah laga: box asli label se kaafi milta ho (IoU ≥ 0.5) tab sahi gina jata hai</td></tr>
+<tr><td><strong>TP</strong> (true positive)</td><td>Aag thi, AI ne kaha aag. Sahi</td></tr>
+<tr><td><strong>FP</strong> (false positive)</td><td>Aag nahi thi, AI ne kaha aag. False alarm</td></tr>
+<tr><td><strong>FN</strong> (false negative)</td><td>Aag thi, AI ne nahi pakri. Chhoot gayi (sab se khatarnak)</td></tr>
+<tr><td><strong>TN</strong> (true negative)</td><td>Aag nahi thi, AI ne bhi nahi kaha. Sahi</td></tr>
+<tr><td><strong>Image accuracy</strong></td><td>Kitni tasveeron par (TP + TN) jawab sahi tha</td></tr>
+</tbody>
+</table></div>
+<p>Har <strong>evaluation run</strong> ki line: tareekh, source folder, dataset, tasveeron ki ginti, aur har class (fire, smoke, person) ke numbers. <strong>Synthetic stress runs</strong> (wahi tasveerein andhera/dhund jaisa bigaar kar) alag band list mein hain: click karke kholein.</p>
+<p><strong>Naya run kaise aata hai:</strong> <code>ai-service\tools\evaluate.py</code> ko <code>--out</code> ke saath <code>ai-service\reports</code> ke andar kisi folder mein chalayein (setting <code>AiService__EvaluationDirectory</code>). Jo <code>report.json</code> wahan banta hai, Reports page par <strong>khud</strong> aa jata hai. Tareeqa: Project guide v5, chapter 27.</p>
+<blockquote>
+<p>Misaal (D-Fire ki 4,306 test tasveerein, threshold 0.40, image-level): Fire P 0.982, R 0.932, F1 0.956; Smoke P 0.968, R 0.923, F1 0.945. Ye <strong>ek dataset</strong> par hai; asli building ke cameras par numbers kam ya zyada ho sakte hain.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="18"><h1 id="ch18">18. AI Settings: Sensitivity Slider Aur Photo Test</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>AI Settings</strong> (pehle "AI Service"). Sidebar mein hara nuqta = AI service chal rahi hai, laal = band. System health ab yahan nahi, <strong>Notifications</strong> page par hai.</p>
+<p><img alt="AI Settings page with slider" src="images/ui-ai-settings.png" /></p>
+<p class="small"><em>Tasveer: AI Settings aur sensitivity slider, test setup.</em></p>
+<h3 id="ch18-slider">Detection threshold (sensitivity slider)</h3>
 <ol>
-<li>Upar <strong>incident</strong> chunein (ya "All incidents"), aur <strong>event type</strong>.</li>
-<li>Graph: camera incident par aag ka % (frame ka hissa), sensor incident par sensor ki readings.</li>
-<li>Logs: Opened, Escalated, FireMeasurement, PersonInDanger, EvacuationRoute, Resolved. Test data par <strong>SIMULATED</strong>, raaste par <strong>ESTIMATE</strong>.</li>
+<li>Har model card (fire_smoke, person) par <strong>Detection threshold</strong> slider: <strong>0.25 se 0.55</strong> (0.01 ke qadam). Hilate hi value dikhti hai, saath "(current x)" = abhi chal rahi value.</li>
+<li><strong>Apply</strong> dabayein (sirf <strong>Admin</strong>; Operator sirf dekh sakta hai).</li>
+<li>Page par sirf wohi value "active" dikhti hai jo <strong>AI service ne confirm</strong> ki. Confirm na ho to purani hi dikhegi.</li>
 </ol>
-<p><img alt="Incident History" src="images/incident-history.png" /></p>
-<hr /></section><section class="chapter" data-ch="15"><h1 id="ch15">15. Browser Notifications</h1>
+<div class="table-wrap"><table>
+<thead><tr><th>Value</th><th>Asar</th></tr></thead>
+<tbody>
+<tr><td><strong>Kam</strong> (jaise 0.30)</td><td>Zyada <strong>sensitive</strong>: chhoti/dhundli aag bhi pakre, lekin <strong>zyada false alarm</strong></td></tr>
+<tr><td><strong>Zyada</strong> (jaise 0.50)</td><td>Kam false alarm, lekin kuch asli aag <strong>chhoot sakti</strong> hai</td></tr>
+<tr><td>Default</td><td>fire_smoke <strong>0.40</strong>, person <strong>0.45</strong></td></tr>
+</tbody>
+</table></div>
+<p>Value <code>ai-service\models\thresholds.local.json</code> mein save hoti hai, is liye <strong>restart ke baad bhi</strong> rehti hai (<code>models.json</code> nahi badalti). Har badlaao Activity Log / history mein <strong>SettingChanged</strong> ke tor par likha jata hai (kis ne, kab).</p>
+<blockquote>
+<p>⚠️ Bina wajah threshold na badlein. Badalne ke baad Reports wali accuracy purani value ki hai, nayi value ke liye evaluation dobara chalani hogi.</p>
+</blockquote>
+<h3 id="ch18-photo">Test with a picture</h3>
 <ol>
-<li>Upar <strong>Enable Alerts</strong> → browser poochhe to <strong>Allow</strong>.</li>
-<li>Ab High/Critical incident par Windows ke kone mein notification aata hai, dashboard ka tab band ho tab bhi (browser chal raha ho).</li>
+<li><strong>Test with a picture</strong> hisse mein aag/dhuwan ya insaan wali photo chunein (JPG/PNG, 5 MB tak).</li>
+<li>Photo par dabbe aur table: <strong>Found</strong>, <strong>Sure</strong> (confidence), Box, aur <strong>Why</strong> (AI ne kyun kaha).</li>
 </ol>
-<p>Server push ke liye <code>.env</code> mein <code>Notifications__WebPush__…</code> keys chahiye.</p>
-<hr /></section><section class="chapter" data-ch="16"><h1 id="ch16">16. Camera Lost</h1>
+<p>Ye sirf <strong>preview</strong> hai: koi incident, alert ya sprinkler nahi chalta. Isi page par camera sources bhi dikhte hain.</p>
+<hr /></section><section class="chapter" data-ch="19"><h1 id="ch19">19. False Alarm Filtering (Kya Kar Sakti Hai, Kya Nahi)</h1>
+<p>Ghalat alarm kam karne ke liye system ye karta hai:</p>
+<ul>
+<li><strong>Threshold:</strong> AI ki confidence slider wali had (chapter 18) se kam ho to ignore.</li>
+<li><strong>3 frame ki tasdeeq:</strong> ek frame mein aag dikhna kaafi nahi; lagatar kuch frames mein dikhe tab incident.</li>
+<li><strong>Tracking (IoU):</strong> wohi aag frame-dar-frame wohi gini jati hai, har frame naya alarm nahi.</li>
+</ul>
+<p><strong>Aur rules kyun nahi lagaye:</strong> hum ne 4,306 label ki hui D-Fire tasveeron par extra rules aazmaye (box ka kam az kam size, oonchi confidence, "aag sirf dhuwan ke saath"). Har rule ne jitne false alarm hataye, us se <strong>zyada asli aag chhor di</strong>. Is liye koi nahi lagaya. Tafseel: <code>ai-service\reports\2026-11-04-false-alarm-review\review.json</code> (tool <code>ai-service\tools\false_alarm_eval.py</code>).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>✅ Kar sakti hai</th><th>❌ Nahi kar sakti / pata nahi</th></tr></thead>
+<tbody>
+<tr><td>Ek-do frame ki jhalak (flicker) par alarm na dena</td><td>Har laal/narangi cheez ko aag se 100% alag karna</td></tr>
+<tr><td>Wohi aag ko bar bar naya incident na banana</td><td>Ghuroob-e-aaftab (sunset), bhaap (steam), vape ka dhuwan, laal batti: asli footage par <strong>NOT TESTED</strong> (status PARTIAL)</td></tr>
+<tr><td>Slider se sensitivity kam/zyada karna</td><td>Zero false alarm ki guarantee</td></tr>
+</tbody>
+</table></div>
+<p>Ghalat alarm aaye to Incidents par <strong>False alarm</strong> dabayein, taake record rahe.</p>
+<hr /></section><section class="chapter" data-ch="20"><h1 id="ch20">20. Notifications &amp; System Health</h1>
+<p><strong>Kahan:</strong> Sidebar → <strong>Notifications</strong> (naya page). Pehle system health AI page par aur alert channels Devices par the; ab sab yahan hai.</p>
+<p><img alt="Notifications and System Health page" src="images/ui-notifications.png" /></p>
+<p class="small"><em>Tasveer: Notifications &amp; System Health, test setup (koi asli message nahi bheja gaya).</em></p>
+<h3 id="ch20-health">System health cards</h3>
+<p>Cards: Database, Django Backend, AI Service, AI Models, Cameras, Sensors, Live Updates, Simulator. Ye <strong>har 10 second</strong> server se taaza aate hain (live, pehle se likhe hue nahi). <strong>Show details</strong> se tafseel. Har service ki latency abhi "Data Not Available" dikhti hai.</p>
+<h3 id="ch20-channels">Alert channels table</h3>
+<p>Channels: SMS (Twilio), GSM modem SMS (backup: sirf jab Twilio SMS fail ho ya configure na ho), WhatsApp (Twilio), Telegram (bot; MJPEG camera ho to photo ke saath), Firebase push, Email, Web Push. Har channel ki halat: <strong>Configured / Not configured / Disabled</strong> + wajah. Settings <code>.env</code> mein hoti hain (naam <code>.env.example</code> mein; secrets kabhi commit na karein).</p>
+<h3 id="ch20-activity">Recent notification activity: lafzon ka matlab</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Lafz</th><th>Matlab</th></tr></thead>
+<tbody>
+<tr><td><strong>Delivered</strong></td><td>Pohanch gaya, aur saamne wale ne confirm kiya (abhi sirf <strong>Telegram</strong> confirm karta hai)</td></tr>
+<tr><td><strong>Pending</strong></td><td>Twilio ya GSM ne le liya, lekin pohanchne ki tasdeeq nahi</td></tr>
+<tr><td><strong>Sent</strong></td><td>Firebase ne le liya (phone/browser tak pohanchne ki tasdeeq nahi)</td></tr>
+<tr><td><strong>Failed</strong></td><td>Nahi gaya. Poori tarah fail channel <strong>30 second</strong> baad ek dafa dobara koshish karta hai</td></tr>
+<tr><td><strong>Invalid token</strong></td><td>Browser/device ka Firebase token purana ya ghalat</td></tr>
+<tr><td><strong>Disabled</strong></td><td>Settings maujood hain lekin chal nahi sakta (jaise google-auth / pyserial / pywebpush install nahi, ya SMTP host khali)</td></tr>
+<tr><td><strong>Not configured</strong></td><td><code>.env</code> mein is channel ki settings hi nahi</td></tr>
+</tbody>
+</table></div>
+<p>Har koshish incident ki history mein (<strong>Notification</strong>) bhi likhi jati hai. Ek hi incident + darje ke liye dobara wohi message nahi jata. Har naya confirmed aag/dhuwan incident Firebase push bhejta hai; SMS / WhatsApp / Telegram / Email sirf emergency (High/Critical ya insaan khatre mein) aur Emergency dispatch par.</p>
+<h3 id="ch20-firebase">Push notifications on this browser (Firebase)</h3>
+<ol>
+<li>Is panel mein <strong>Enable notifications on this browser</strong> dabayein. Browser ijazat <strong>sirf isi click par</strong> poochta hai → <strong>Allow</strong>.</li>
+<li>Band karna ho to <strong>Disable on this browser</strong>.</li>
+<li>Push par click → seedha wohi incident (<code>/incidents?incident=&lt;id&gt;</code>). MJPEG camera ho to push mein snapshot ka link (24 ghante chalta hai, aur sirf us device se khulta hai jahan se dashboard ka address khul sake).</li>
+</ol>
+<blockquote>
+<p>⚠️ Server par Firebase ke liye <code>google-auth</code> install chahiye (<code>sentinel-django\.venv\Scripts\python -m pip install google-auth</code>) aur <code>.env</code> mein <code>Notifications__Fcm__…</code> settings. Firebase ki service-account JSON file <strong>project folder ke bahar</strong> rakhein.</p>
+<p><strong>NOT TESTED:</strong> asli Firebase, Twilio SMS/WhatsApp, Telegram, Email (SMTP) delivery, aur GSM modem hardware. Mobile app maujood nahi (token API tayyar hai).</p>
+</blockquote>
+<h3 id="ch20-enable-alerts">Header ka "Enable Alerts"</h3>
+<p>Header mein <strong>Enable Alerts</strong> → browser poochhe to <strong>Allow</strong>. Phir High/Critical incident par Windows ke kone mein notification aata hai. Server push na ho to ye sirf tab tak chalta hai jab dashboard khula ho. Server Web Push ke liye <code>.env</code> mein <code>Notifications__WebPush__…</code> keys aur <code>pywebpush</code> chahiye.</p>
+<hr /></section><section class="chapter" data-ch="21"><h1 id="ch21">21. Camera Lost</h1>
 <p>Koi camera (jo frames bhej raha tha) <strong>10 second</strong> chup ho jaye, jaise aag mein bijli chali gayi:</p>
 <ul>
-<li><strong>Alert Logs</strong> mein "Camera lost: no frames from … for 10 s" (source <strong>Camera lost</strong>).</li>
+<li><strong>Incidents</strong> mein "Camera lost: no frames from … for 10 s" (source <strong>Camera lost</strong>).</li>
 <li>Us zone mein aag ka incident khula ho to <strong>High</strong>, warna <strong>Medium</strong>.</li>
-<li>Camera wapas aaye to Live Event Log: "Camera … is sending frames again". Phir incident <strong>Resolve</strong> kar dein.</li>
+<li>Us camera ke kamre Occupancy par <strong>Stale</strong> ho jate hain.</li>
+<li>Camera wapas aaye to Activity Log: "Camera … is sending frames again". Phir incident <strong>Resolve</strong> kar dein.</li>
 </ul>
-<hr /></section><p class="part-label">D · Demo, database, yaad rakhne wali baatein aur tools</p><section class="chapter" data-ch="17"><h1 id="ch17">17. Demo Chalana (Simulator Aur Live Camera)</h1>
+<hr /></section><p class="part-label">D · Demo, database, yaad rakhne wali baatein aur tools</p><section class="chapter" data-ch="22"><h1 id="ch22">22. Demo Chalana (Simulator Aur Live Camera)</h1>
 <p>Asli aag ke baghair demo:</p>
 <pre><code class="language-powershell">.\start.ps1 -Simulator
 </code></pre>
@@ -659,10 +635,10 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </code></pre>
 <p>Cameras par nakli insaan aur Ground Floor - Warehouse mein aag. Alarm, alerts, sprinklers aur risk heatmap sab chalte hain. Har cheez par <strong>SIM DATA</strong> likha hota hai.</p>
 <blockquote>
-<p>⚠️ <code>.env</code> mein asli SMS/Email settings hon to demo <strong>asli</strong> alerts bhej dega. Pehle Safe Test Mode (user guide, chapter 4).</p>
+<p>⚠️ <code>.env</code> mein asli SMS/WhatsApp/Telegram/Email/Firebase settings hon to demo <strong>asli</strong> alerts bhej dega. Pehle Safe Test Mode (user guide, chapter 4).</p>
 </blockquote>
-<h2 id="ch17-sab-se-aasan-automatic-test-ek-command">Sab se aasan: automatic test (ek command)</h2>
-<p>Ye command khud sab karti hai: aag ki video chalati hai, camera aur naqsha banati hai, AI ke incident ka intezar karti hai, raasta badalna check karti hai, aur aakhir mein <strong>PASS/FAIL</strong> ki list deti hai.</p>
+<h2 id="ch22-sab-se-aasan-automatic-test-ek-command">Sab se aasan: automatic test (ek command)</h2>
+<p>Ye command khud sab karti hai: aag ki video chalati hai, camera aur naqsha banati hai, AI ke incident ka intezar karti hai, raasta badalna, dhuwan aur kamre ki ginti check karti hai, aur aakhir mein <strong>PASS/FAIL</strong> ki list deti hai.</p>
 <ol>
 <li><strong>Safe Test Mode</strong> lagayein (user guide, chapter 4). Ye na ho to script khud ruk jati hai.</li>
 <li>Sab chalayein: <code>.\start.ps1</code> (simulator <strong>nahi</strong>).</li>
@@ -672,7 +648,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 .\.venv\Scripts\python tools\live_test.py
 </code></pre>
 <ol start="4">
-<li>Dashboard dekhte rahein. Taqreeban <strong>1–2 minute</strong> mein aisa aayega:</li>
+<li>Taqreeban <strong>1–2 minute</strong> mein kuch aisa aayega (numbers alag ho sakte hain):</li>
 </ol>
 <pre><code>  PASS  camera cam-live saved (Devices): 201
   PASS  floor plan 'Live Test' saved: 201
@@ -682,48 +658,37 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
   PASS  danger zone active: Lobby fire
   PASS  route avoids the fire: East exit, 13.25 m
   PASS  fire risk heatmap active: ...
-8/8 checks passed.
+  PASS  AI smoke measured separately: ...
+  PASS  room occupancy live from the camera: ...
+10/10 checks passed.
 </code></pre>
+<p class="small">(Script ki pehli line mein "Devices" likha hai: ye purana naam hai, page ab <strong>Settings</strong> hai.)</p>
 <ol start="5">
-<li>Dashboard par dekhein: <strong>Live Test</strong> tile par aag ki video aur AI ke dabbe, Alert Logs mein incident, alarm, aur Evacuation Route mein <strong>Live Test</strong> naqsha chun kar raasta.</li>
+<li>Dashboard par dekhein: <strong>Live Cameras</strong> par <strong>Live Test</strong> tile, <strong>Incidents</strong> mein incident, alarm, aur <strong>Floor Plan</strong> par <strong>Live Test</strong> naqsha chun kar raasta.</li>
 <li>Dekh liya to us window mein <strong>Ctrl+C</strong>: camera, naqsha aur test incident khud saaf ho jate hain.</li>
 </ol>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Agar ye aaye</th>
-<th>Matlab</th>
-</tr>
-</thead>
+<thead><tr><th>Agar ye aaye</th><th>Matlab</th></tr></thead>
 <tbody>
-<tr>
-<td><code>STOP: .env has real SMS/Email settings</code></td>
-<td>Pehle Safe Test Mode, phir API dobara chalayein</td>
-</tr>
-<tr>
-<td><code>STOP: the API / AI service is not running</code></td>
-<td><code>.\start.ps1</code> chalayein</td>
-</tr>
-<tr>
-<td><code>FAIL AI opened a fire incident</code></td>
-<td>AI service ki window dekhein; device key (<code>start.ps1</code> deta hai) zaroori hai</td>
-</tr>
+<tr><td><code>STOP: .env has real SMS/Email settings</code></td><td>Pehle Safe Test Mode, phir server dobara chalayein</td></tr>
+<tr><td><code>STOP: the API / AI service is not running</code></td><td><code>.\start.ps1</code> chalayein</td></tr>
+<tr><td><code>FAIL AI opened a fire incident</code></td><td>Supervisor window dekhein; device key (<code>start.ps1</code> deta hai) zaroori hai</td></tr>
 </tbody>
 </table></div>
 <blockquote>
 <p>Apni video: <code>tools\live_test.py --video C:\videos\aag.mp4</code>. Video mein log hon to AI unhein bhi <strong>P1, P2</strong> ke saath track karegi.</p>
 </blockquote>
-<h2 id="ch17-haath-se-poora-live-test-asli-video-banda-track-naqsha-raast">Haath se poora live test: asli video, banda track, naqsha, raasta, aag</h2>
-<p>Is test mein <strong>sab kuch ek saath</strong> dikhta hai: camera tile par asli video, AI ke boxes aur <strong>P1, P2</strong> jaise track number, naqshe par chalta hua amber nuqta, evacuation raasta, aur aag lagne par raasta badalna.</p>
+<h2 id="ch22-haath-se-poora-live-test">Haath se poora live test: asli video, banda track, naqsha, raasta, aag</h2>
+<p>Is test mein <strong>sab kuch ek saath</strong> dikhta hai: camera tile par video, AI ke boxes aur <strong>P1, P2</strong> jaise track number, naqshe par chalta hua nuqta, kamre ki ginti, evacuation raasta, aur aag lagne par raasta badalna.</p>
 <blockquote>
 <p>⚠️ Ye asli camera ki tarah chalta hai (SIM DATA nahi), is liye alerts aur sprinklers <strong>asli</strong> chalte hain. Pehle <strong>Safe Test Mode</strong> zaroor lagayein.</p>
 </blockquote>
-<h3 id="ch17-qadam-1-sab-chalayein">Qadam 1: Sab chalayein</h3>
+<h3 id="ch22-qadam-1">Qadam 1: Sab chalayein</h3>
 <pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
 .\start.ps1
 </code></pre>
 <p>(Simulator <strong>na</strong> chalayein, warna nakli aag mix ho jayegi.)</p>
-<h3 id="ch17-qadam-2-test-camera-chalayein-nayi-powershell-window">Qadam 2: Test camera chalayein (nayi PowerShell window)</h3>
+<h3 id="ch22-qadam-2">Qadam 2: Test camera chalayein (nayi PowerShell window)</h3>
 <pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
 .\.venv\Scripts\python tools\mjpeg_camera.py 0
 </code></pre>
@@ -733,168 +698,87 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <li>Window mein likha aayega: <code>Test camera on http://127.0.0.1:8090/video</code>. Ye window khuli rakhein.</li>
 </ul>
 <p><strong>Mobile se (ikhtiyari):</strong> Android par "IP Webcam" app → Start server → link hoga <code>http://&lt;phone-IP&gt;:8080/video</code>. Phone aur laptop ek hi WiFi par hon.</p>
-<h3 id="ch17-qadam-3-camera-dashboard-mein-daalein">Qadam 3: Camera dashboard mein daalein</h3>
-<p>Admin login → <strong>Devices</strong> → <strong>+ Camera</strong>:</p>
+<h3 id="ch22-qadam-3">Qadam 3: Camera daalein</h3>
+<p>Admin login → <strong>Settings</strong> → <strong>+ Camera</strong>:</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Likhein</th>
-</tr>
-</thead>
+<thead><tr><th>Field</th><th>Likhein</th></tr></thead>
 <tbody>
-<tr>
-<td>Id</td>
-<td><code>cam-live</code></td>
-</tr>
-<tr>
-<td>Name</td>
-<td>Live Test</td>
-</tr>
-<tr>
-<td>Zone</td>
-<td><code>Ground Floor - Lobby</code> (list se)</td>
-</tr>
-<tr>
-<td>Stream link</td>
-<td><code>http://127.0.0.1:8090/video</code> (ya phone wala link)</td>
-</tr>
-<tr>
-<td>Browser video format</td>
-<td><strong>Mjpeg</strong></td>
-</tr>
+<tr><td>Id</td><td><code>cam-live</code></td></tr>
+<tr><td>Name</td><td>Live Test</td></tr>
+<tr><td>Zone</td><td><code>Ground Floor - Lobby</code> (list se)</td></tr>
+<tr><td>Stream link</td><td><code>http://127.0.0.1:8090/video</code> (ya phone wala link)</td></tr>
+<tr><td>Browser video format</td><td><strong>Mjpeg</strong></td></tr>
 </tbody>
 </table></div>
-<p><strong>Save</strong> → Dashboard. Tile par <strong>foran asli video</strong>, aur <strong>1 minute ke andar</strong> AI ke hare dabbe <strong>P1</strong> ke saath.</p>
-<h3 id="ch17-qadam-4-naqsha-banayein">Qadam 4: Naqsha banayein</h3>
-<p>Floor Plans → <strong>+ New</strong> → 20 × 10 m:</p>
+<p><strong>Save</strong> → Live Cameras. Tile par <strong>foran video</strong>, aur <strong>1 minute ke andar</strong> AI ke hare dabbe <strong>P1</strong> ke saath.</p>
+<h3 id="ch22-qadam-4">Qadam 4: Naqsha banayein</h3>
+<p>Floor Plan → <strong>Edit plan</strong> → <strong>+ New</strong> → 20 × 10 m:</p>
 <ol>
 <li><strong>+ Corridor</strong>: poori lambai (0, 3 se 20 × 4).</li>
 <li><strong>+ Exit</strong> baen kinare (West), aur ek daen kinare (East).</li>
 <li><strong>+ Danger zone</strong> West exit ke qareeb → Linked zone list se <code>Ground Floor - Lobby</code> → <strong>Save</strong>.</li>
+<li>(Ikhtiyari) Corridor ki <strong>Max people</strong> = 1, taake crowd incident bhi dekh sakein (chapter 10).</li>
 </ol>
-<h3 id="ch17-qadam-5-calibration">Qadam 5: Calibration</h3>
-<p>Floor Plans → <strong>Camera calibration</strong> → <code>cam-live</code>. Camera ki tasveer mein farsh ke 4 kone chunein aur naqshe par wohi 4 jagah click karein (chapter 6) → <strong>Save calibration</strong>.</p>
-<h3 id="ch17-qadam-6-raasta-dekhein">Qadam 6: Raasta dekhein</h3>
-<p>Dashboard → <strong>Evacuation Route</strong> → naqsha chunein. Camera ke saamne chalein: naqshe par <strong>amber nuqta</strong> chalega. Nuqte par click → <strong>hari teer West exit</strong> tak.</p>
-<h3 id="ch17-qadam-7-aag">Qadam 7: Aag</h3>
-<p>Webcam ke saamne phone par <strong>aag ki video</strong> chalayein (ya Qadam 2 mein aag wali video file dein). Ya <strong>Emergency Dispatch</strong> → Zone <code>Ground Floor - Lobby</code>.</p>
-<h3 id="ch17-kya-dikhna-chahiye">✅ Kya dikhna chahiye</h3>
+<h3 id="ch22-qadam-5">Qadam 5: Calibration</h3>
+<p>Edit plan → <strong>Camera calibration</strong> → <code>cam-live</code>. Camera ki tasveer mein farsh ke 4 kone chunein aur naqshe par wohi 4 jagah click karein (chapter 7) → <strong>Save calibration</strong>.</p>
+<h3 id="ch22-qadam-6">Qadam 6: Raasta aur ginti dekhein</h3>
+<p><strong>Floor Plan</strong> → naqsha chunein. Camera ke saamne chalein: naqshe par <strong>nuqta</strong> chalega. Nuqte par click → <strong>hari line West exit</strong> tak. <strong>Occupancy &amp; Heatmap</strong> par Corridor "Live" aur ginti 1.</p>
+<h3 id="ch22-qadam-7">Qadam 7: Aag</h3>
+<p>Webcam ke saamne phone par <strong>aag ki video</strong> chalayein (ya Qadam 2 mein aag wali video file dein). Ya <strong>Emergency dispatch</strong> → Zone <code>Ground Floor - Lobby</code>.</p>
+<h3 id="ch22-kya-dikhna-chahiye">✅ Kya dikhna chahiye</h3>
 <ul>
-<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> Live Test tile par asli video chal rahi hai</li>
+<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> Live Test tile par video chal rahi hai</li>
 <li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> Banda hare dabbe mein, <strong>P1</strong> track number ke saath; chalne par bhi P1 hi rahe</li>
-<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> Naqshe par amber nuqta banda ke saath hilta hai</li>
-<li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> Nuqte par click → hara raasta + "Distance … m · ~… s"</li>
-<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> Aag par: alarm bajay, Alert Logs mein incident, danger zone laal</li>
-<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Raasta khud <strong>East exit</strong> par chala jaye (aag se 1 m door)</li>
-<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> Naqshe par risk heatmap ke rang</li>
-<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> Incident <strong>Resolve</strong> → alarm band, heatmap hat jaye</li>
+<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> Floor Plan par nuqta banda ke saath hilta hai</li>
+<li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> Nuqte par click → hara raasta + faasla aur waqt</li>
+<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> Aag par: alarm bajay, Incidents mein incident, danger zone laal</li>
+<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Raasta khud <strong>East exit</strong> par chala jaye</li>
+<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> Floor Plan par Fire risk ke rang</li>
+<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> Incident <strong>Resolve</strong> → alarm band, risk hat jaye</li>
+<li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> Occupancy &amp; Heatmap par Corridor <strong>Live</strong>, aur camera band karne ke 10 s baad <strong>Stale</strong></li>
 </ul>
-<p><strong>Band karna:</strong> test camera window mein <code>Ctrl+C</code>, phir Devices se <code>cam-live</code> Delete (warna "Camera lost" alert aayega).</p>
+<p><strong>Band karna:</strong> test camera window mein <code>Ctrl+C</code>, phir Settings se <code>cam-live</code> Delete (warna "Camera lost" alert aayega).</p>
 <blockquote>
-<p>Automatic test hum ne 3 dafa chala kar dekha (test database par): 8/8 pass. Haath wale test mein AI ne camera khud uthaya, banda <strong>P1</strong> 115 frames tak wahi id raha, raasta pehle <strong>West 5.6 m</strong>, aag ke baad <strong>East 12.9 m</strong>, aur aag wali video par AI ne khud incident khola. Laptop webcam (<code>0</code>) wala hissa hum nahi chala sake.</p>
+<p>Pehle wale version mein automatic test 3 dafa chala kar dekha (test database par): 8/8 pass. Haath wale test mein AI ne camera khud uthaya, banda <strong>P1</strong> 115 frames tak wahi id raha, raasta pehle <strong>West 5.6 m</strong>, aag ke baad <strong>East 12.9 m</strong>. Laptop webcam (<code>0</code>) wala hissa hum nahi chala sake.</p>
 </blockquote>
-<hr /></section><section class="chapter" data-ch="18"><h1 id="ch18">18. Database Doosre PC Par Le Jana</h1>
+<hr /></section><section class="chapter" data-ch="23"><h1 id="ch23">23. Database Doosre PC Par Le Jana</h1>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Kab</th>
-<th>Command</th>
-</tr>
-</thead>
+<thead><tr><th>Kab</th><th>Command</th></tr></thead>
 <tbody>
-<tr>
-<td>Kaam khatam</td>
-<td><code>.\database\save.ps1</code> → <code>git add -A</code> → <code>git commit -m "kaam"</code> → <code>git push</code></td>
-</tr>
-<tr>
-<td>Doosre PC par shuru</td>
-<td><code>git pull</code> → <code>.\database\load.ps1</code> → "yes"</td>
-</tr>
+<tr><td>Kaam khatam</td><td><code>.\database\save.ps1</code> → <code>git add -A</code> → <code>git commit -m "kaam"</code> → <code>git push</code></td></tr>
+<tr><td>Doosre PC par shuru</td><td><code>git pull</code> → <code>.\database\load.ps1</code> → "yes"</td></tr>
 </tbody>
 </table></div>
-<p><code>load.ps1</code> database na ho to bana deta hai, ho to <strong>poora badal</strong> deta hai. Ek waqt mein ek hi PC par kaam karein.</p>
-<hr /></section><section class="chapter" data-ch="19"><h1 id="ch19">19. Yaad Rakhne Wali Baatein</h1>
+<p><code>load.ps1</code> database na ho to bana deta hai, ho to local <code>SentinelDb</code> ko <strong>poora badal</strong> deta hai (SQL Server 2022 ya naya chahiye). Ek waqt mein ek hi PC par kaam karein. <code>SentinelDb</code> par kabhi <code>manage.py migrate</code> na chalayein.</p>
+<blockquote>
+<p><strong>Bilkul naya PC?</strong> Poora setup (Python 3.13, SQL Server 2022, ODBC Driver 18, <code>.\setup.ps1</code>, <code>.env</code> bharna, phir <code>load.ps1</code> ya khali database ke liye <code>create_schema</code>, phir <code>.\start.ps1</code>) <strong>User guide</strong> (<code>FIREVISION_AI_USER_GUIDE_ROMAN_URDU.html</code>, chapters 2–3) mein qadam ba qadam hai.</p>
+</blockquote>
+<hr /></section><section class="chapter" data-ch="24"><h1 id="ch24">24. Yaad Rakhne Wali Baatein</h1>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>✅ Karein</th>
-<th>❌ Na karein</th>
-</tr>
-</thead>
+<thead><tr><th>✅ Karein</th><th>❌ Na karein</th></tr></thead>
 <tbody>
-<tr>
-<td>Demo se pehle purane incidents Resolve karein (warna alarm bajta rahega)</td>
-<td>Ise asli fire alarm ki jagah lagana</td>
-</tr>
-<tr>
-<td>Camera, sensor aur naqshe mein <strong>ek hi zone</strong> list se chunein</td>
-<td>Camera ka Id badalna (AI isi se frames bhejti hai)</td>
-</tr>
-<tr>
-<td>Camera hile to calibration dobara</td>
-<td>Camera password <code>config.json</code> ya chat mein likhna</td>
-</tr>
-<tr>
-<td>Test se pehle Safe Test Mode</td>
-<td>Asli sprinkler/alarm bina ijazat jorna</td>
-</tr>
+<tr><td>Demo se pehle purane incidents Resolve karein (warna alarm bajta rahega)</td><td>Ise asli fire alarm ki jagah lagana</td></tr>
+<tr><td>Camera, sensor aur naqshe mein <strong>ek hi zone</strong> list se chunein</td><td>Camera ka Id badalna (AI isi se frames bhejti hai)</td></tr>
+<tr><td>Camera hile to calibration dobara</td><td>Camera password, <code>.env</code> ya Firebase JSON chat ya git mein daalna</td></tr>
+<tr><td>Test se pehle Safe Test Mode</td><td>Asli sprinkler/alarm bina ijazat jorna</td></tr>
+<tr><td>Occupancy par "Unknown"/"Stale" ko "khaali" na samjhein</td><td>Incidents ki ginti ko AI ki accuracy samajhna</td></tr>
+<tr><td>Threshold badal kar uska asar Reports / test se dekhein</td><td>NOT TESTED cheezon (asli CCTV, sensors, relays, SMS/WhatsApp/Telegram/Firebase, GSM) par bharosa karna</td></tr>
 </tbody>
-</table></div></section><section class="chapter" data-ch="20"><h1 id="ch20">20. Tools: Kab Kaunsa Chalayein</h1>
+</table></div></section><section class="chapter" data-ch="25"><h1 id="ch25">25. Tools: Kab Kaunsa Chalayein</h1>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Aap ko kya karna hai</th>
-<th>Tool</th>
-<th>Command</th>
-</tr>
-</thead>
+<thead><tr><th>Aap ko kya karna hai</th><th>Tool</th><th>Command</th></tr></thead>
 <tbody>
-<tr>
-<td>Sab kuch chalana</td>
-<td><code>start.ps1</code></td>
-<td><code>.\start.ps1</code></td>
-</tr>
-<tr>
-<td>Aag ka nakli demo</td>
-<td>Simulator</td>
-<td><code>.\start.ps1 -Simulator</code></td>
-</tr>
-<tr>
-<td>Laptop webcam ko camera banana</td>
-<td><code>mjpeg_camera.py</code></td>
-<td><code>cd ai-service; .\.venv\Scripts\python tools\mjpeg_camera.py 0</code></td>
-</tr>
-<tr>
-<td>Ek command mein poora test</td>
-<td><code>live_test.py</code></td>
-<td><code>cd ai-service; .\.venv\Scripts\python tools\live_test.py</code></td>
-</tr>
-<tr>
-<td>Database doosre PC par</td>
-<td><code>save.ps1</code> / <code>load.ps1</code></td>
-<td>chapter 18</td>
-</tr>
-<tr>
-<td>Purane zone naam badalna</td>
-<td><code>rename-zones.sql</code></td>
-<td><code>sqlcmd -S localhost -E -C -d SentinelDb -i database\rename-zones.sql</code></td>
-</tr>
-<tr>
-<td>AI ki accuracy naapna</td>
-<td><code>evaluate.py</code></td>
-<td>Project guide, chapter 27</td>
-</tr>
-<tr>
-<td>Andhera/dhund mein AI kaisi hai</td>
-<td><code>degrade.py</code> + <code>evaluate.py</code></td>
-<td>Project guide, chapter 27</td>
-</tr>
-<tr>
-<td>Browser mein screens check</td>
-<td>Playwright</td>
-<td><code>cd frontend; npm run e2e</code></td>
-</tr>
+<tr><td>Naye PC par setup</td><td><code>setup.ps1</code></td><td><code>.\setup.ps1</code> (User guide)</td></tr>
+<tr><td>Sab kuch chalana / band karna</td><td><code>start.ps1</code> / <code>stop.ps1</code></td><td><code>.\start.ps1</code> · <code>.\stop.ps1</code></td></tr>
+<tr><td>Aag ka nakli demo</td><td>Simulator</td><td><code>.\start.ps1 -Simulator</code></td></tr>
+<tr><td>Laptop webcam ko camera banana</td><td><code>mjpeg_camera.py</code></td><td><code>cd ai-service; .\.venv\Scripts\python tools\mjpeg_camera.py 0</code></td></tr>
+<tr><td>Ek command mein poora test</td><td><code>live_test.py</code></td><td><code>cd ai-service; .\.venv\Scripts\python tools\live_test.py</code></td></tr>
+<tr><td>Database doosre PC par</td><td><code>save.ps1</code> / <code>load.ps1</code></td><td>chapter 23</td></tr>
+<tr><td>Purane zone naam badalna</td><td><code>rename-zones.sql</code></td><td><code>sqlcmd -S localhost -E -C -d SentinelDb -i database\rename-zones.sql</code></td></tr>
+<tr><td>AI ki accuracy naapna (Reports par aata hai)</td><td><code>evaluate.py</code></td><td>Project guide, chapter 27</td></tr>
+<tr><td>Andhera/dhund mein AI kaisi hai</td><td><code>degrade.py</code> + <code>evaluate.py</code></td><td>Project guide, chapter 27</td></tr>
+<tr><td>False alarm rules jaanchna</td><td><code>false_alarm_eval.py</code></td><td><code>ai-service\tools\false_alarm_eval.py</code> (chapter 19)</td></tr>
+<tr><td>Browser mein screens check (Edge + Node.js chahiye)</td><td>e2e</td><td><code>cd sentinel-django; .\.venv\Scripts\python e2e\run.py</code></td></tr>
 </tbody>
 </table></div>
 <p>Har tool ki poori tafseel: <strong>Project guide v5, chapter 27</strong>.</p></section>

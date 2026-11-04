@@ -20,10 +20,10 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from rest_framework.utils.encoders import JSONEncoder
 
-from . import ai_client, events, services
+from . import ai_client, events, notifications, services
 from .api import AnalyzeThrottle, LoginThrottle
 from .forms import CameraForm, LoginForm, ReportForm
-from .models import CameraFeed, FeedType, SmartSprinkler, StreamFormat
+from .models import CameraFeed, FeedType, IncidentLog, IncidentLogType, SmartSprinkler, StreamFormat
 from .rules import mask_credentials
 from .security import is_operator
 
@@ -106,8 +106,11 @@ def reports(request):
                       false_alarm_percent=None if report["falseAlarmRate"] is None else round(report["falseAlarmRate"] * 100, 1))
     breakdowns = report and [("By severity", "Severity", report["bySeverity"]), ("By source", "Source", report["bySource"])]
     periods = [(label, str(today - timedelta(days=days - 1)), str(today)) for label, days in (("Last 7 days", 7), ("Last 30 days", 30))]
+    runs = services.evaluations()
     return render(request, "sentinel/reports.html", {"page": "reports", "form": form, "report": report, "breakdowns": breakdowns,
-                                                     "periods": periods}, status=200 if report else 400)
+                                                     "periods": periods, "measured": [r for r in runs if not r.get("synthetic")],
+                                                     "synthetic": [r for r in runs if r.get("synthetic")]},
+                  status=200 if report else 400)
 
 
 @login_required
@@ -146,6 +149,15 @@ def devices(request):
         "page": "devices", "cameras": [(c, mask_credentials(c.stream_url)) for c in services.cameras()],
         "form": form if show_form else None, "editing": camera, "zones": zones,
         "feed_types": FeedType.choices, "formats": StreamFormat.choices})
+
+
+@login_required
+def notifications_page(request):
+    """Alert channels, this browser's Firebase push, the latest deliveries and the system health: one page, read-only."""
+    return render(request, "sentinel/notifications.html", {
+        "page": "notifications", "channels": notifications.channel_status(),
+        "deliveries": [{"at": d.timestamp, "incident": d.incident_id, "channel": d.details.split(":", 1)[0], "details": d.details}
+                       for d in IncidentLog.objects.filter(type=IncidentLogType.NOTIFICATION).order_by("-id")[:20]]})
 
 
 def service_worker(request):

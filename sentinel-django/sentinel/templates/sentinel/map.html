@@ -1,17 +1,19 @@
 {% extends "sentinel/shell.html" %}
 {% block title %}Building Map · Sentinel{% endblock %}
+{% block heading %}Floor Plan{% endblock %}
 {% block page %}
 <main class="page">
   <header class="page-head">
-    <h1>Building Map</h1>
     <label class="row page-sub">Floor <select class="input input-sm hidden" id="evac-plan" aria-label="Floor plan"></select></label>
+    <span class="row small dim" role="group" aria-label="Map layers"><label class="row"><input type="checkbox" id="layer-people" checked> People per room</label>
+      <label class="row"><input type="checkbox" id="layer-risk" checked> Fire risk</label></span>
     <nav class="seg push-right" aria-label="Mode">
       <a class="seg-btn" href="{% url 'map' %}" aria-current="page">View</a>
       <a class="seg-btn" href="{% url 'floor_plans' %}">Edit plan</a>
     </nav>
   </header>
-  <div class="map-detail" id="map-detail" aria-live="polite" title="Sensors and sprinklers are not drawn: they have a zone but no position on the plan.">
-    Click a camera for its details, or any point for the way out from there.</div>
+  <div class="map-detail" id="map-detail" aria-live="polite" title="Sprinklers are not drawn: they have a zone but no position on the plan.">
+    Click a camera or a sensor for its details, or any point for the way out from there.</div>
   <div id="evacuation" class="map-page"><p class="empty">Loading floor plans…</p></div>
 </main>
 {% endblock %}

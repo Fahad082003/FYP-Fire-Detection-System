@@ -104,12 +104,13 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
   <button class="icon" id="theme" aria-label="Dark ya light mode">◐</button>
 </header>
 <div class="layout">
-  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kya Hai?</a></li><li><a href="#ch2" data-ch="2">2. Shuru Se Pehle: Checklist</a></li><li><a href="#ch3" data-ch="3">3. Network: API Ko Doosre Devices Ke Liye Kholna</a></li><li class="part">B · Camera, sensor aur relay</li><li><a href="#ch4" data-ch="4">4. CCTV / IP Camera Jorna</a></li><li><a href="#ch5" data-ch="5">5. Smoke Aur Temperature Sensor Jorna</a></li><li><a href="#ch6" data-ch="6">6. Sprinkler Relay Jorna</a></li><li class="part">C · SMS, Email aur Push</li><li><a href="#ch7" data-ch="7">7. SMS Alerts (Twilio)</a></li><li><a href="#ch8" data-ch="8">8. Email Alerts (SMTP, misaal Gmail)</a></li><li><a href="#ch9" data-ch="9">9. Browser Push Notifications</a></li><li class="part">D · Active karna, masle aur hifazat</li><li><a href="#ch10" data-ch="10">10. Sab Ko Active Karna: Tarteeb</a></li><li><a href="#ch11" data-ch="11">11. Masle Aur Hal</a></li><li><a href="#ch12" data-ch="12">12. Hifazat Ki Baatein</a></li></ul></nav>
+  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kya Hai?</a></li><li><a href="#ch2" data-ch="2">2. Shuru Se Pehle: Checklist</a></li><li><a href="#ch3" data-ch="3">3. Network: API Ko Doosre Devices Ke Liye Kholna</a></li><li class="part">B · Camera, sensor aur relay</li><li><a href="#ch4" data-ch="4">4. CCTV / IP Camera Jorna</a></li><li><a href="#ch5" data-ch="5">5. Smoke Aur Temperature Sensor Jorna</a></li><li><a href="#ch6" data-ch="6">6. Sprinkler Relay Jorna</a></li><li class="part">C · Alert channels</li><li><a href="#ch7" data-ch="7">7. SMS Alerts (Twilio)</a></li><li><a href="#ch8" data-ch="8">8. GSM Modem: SMS Ka Fallback (Optional / Legacy)</a></li><li><a href="#ch9" data-ch="9">9. WhatsApp Alerts (Twilio)</a></li><li><a href="#ch10" data-ch="10">10. Telegram Alerts (Optional / Legacy)</a></li><li><a href="#ch11" data-ch="11">11. Email Alerts (SMTP, misaal Gmail)</a></li><li><a href="#ch12" data-ch="12">12. Browser Push (Web Push aur Firebase)</a></li><li><a href="#ch13" data-ch="13">13. Alert Kab Jata Hai Aur Status Kya Hai</a></li><li class="part">D · Active karna, masle aur hifazat</li><li><a href="#ch14" data-ch="14">14. Sab Ko Active Karna: Tarteeb</a></li><li><a href="#ch15" data-ch="15">15. Masle Aur Hal</a></li><li><a href="#ch16" data-ch="16">16. Hifazat Ki Baatein</a></li></ul></nav>
   <main>
     <div class="hero">
       <h1>FIREVISION AI</h1>
-      <p>Asli CCTV camera, smoke/temperature sensor, sprinkler relay, SMS, Email aur browser push ko system se kaise jorein: kya chahiye, kahan se milega, kaun si setting kahan likhni hai, aur kaise check karein ke kaam kar raha hai.</p>
-      <div class="stats"><div><b>RTSP</b>IP camera Devices page se</div><div><b>ESP32</b>Sensor aur relay, device key se</div><div><b>Twilio · SMTP</b>SMS aur Email ki settings</div><div><b>Checklist</b>Tick karein, progress yaad rahe</div></div>
+      <p>Asli CCTV camera, smoke/temperature sensor, sprinkler relay, aur alerts (SMS, WhatsApp, Email, Web Push, Firebase; aur <em>Optional / Legacy</em>, current scope se bahar: GSM modem, Telegram) ko system se kaise jorein: kya chahiye, kahan se milega, kaun si setting kahan likhni hai, aur kaise check karein ke kaam kar raha hai.</p>
+      <p><strong>Update: 2026-11-04.</strong> Asli hardware aur asli message delivery (Twilio, WhatsApp, Telegram, Firebase, SMTP, GSM modem) <strong>test nahi hui</strong>; sirf automated tests (fake providers) se check hua hai.</p>
+      <div class="stats"><div><b>RTSP</b>IP camera Settings page se</div><div><b>ESP32</b>Sensor aur relay, device key se</div><div><b>5 + 2 channels</b>SMS, WhatsApp, Email, Push, Firebase · optional/legacy: GSM, Telegram</div><div><b>Checklist</b>Tick karein, progress yaad rahe</div></div>
       <div id="progress" class="progress hidden"><span></span><i><b></b></i><button class="icon" id="reset">Ticks saaf karein</button></div>
     </div>
     <p class="part-label">A · Shuru</p><section class="chapter" data-ch="1"><h1 id="ch1">1. Ye Guide Kya Hai?</h1>
@@ -130,17 +131,17 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <tr>
 <td><strong>CCTV / IP camera</strong></td>
 <td>Camera ka RTSP link → AI service video parhti hai</td>
-<td>Dashboard → <strong>Devices</strong> page</td>
+<td>Dashboard → <strong>Settings</strong> page (Admin)</td>
 </tr>
 <tr>
 <td><strong>Camera browser mein dikhana</strong></td>
 <td>MJPEG ya HLS link (RTSP browser nahi chala sakta)</td>
-<td>Devices page → "Browser video format"</td>
+<td>Settings page → "Browser video format"</td>
 </tr>
 <tr>
 <td><strong>Smoke / temperature sensor</strong></td>
 <td>ESP32 (ya gateway) → <code>POST /api/iot/telemetry</code></td>
-<td>Sensor database mein (SQL), key <code>.env</code> mein</td>
+<td>Sensor database mein (SQL), key <code>.env</code> mein; naqshe par <strong>Floor Plan → Edit plan → + Sensor</strong></td>
 </tr>
 <tr>
 <td><strong>Sprinkler relay</strong></td>
@@ -149,7 +150,22 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </tr>
 <tr>
 <td><strong>SMS</strong></td>
-<td>Twilio</td>
+<td>Twilio (internet)</td>
+<td><code>.env</code></td>
+</tr>
+<tr>
+<td><strong>SMS fallback</strong> <em>(Optional / Legacy — not part of current scope)</em></td>
+<td>USB GSM modem + SIM (internet ke baghair)</td>
+<td><code>.env</code></td>
+</tr>
+<tr>
+<td><strong>WhatsApp</strong></td>
+<td>Twilio WhatsApp sender</td>
+<td><code>.env</code></td>
+</tr>
+<tr>
+<td><strong>Telegram</strong> <em>(Optional / Legacy — not part of current scope)</em></td>
+<td>Telegram bot</td>
 <td><code>.env</code></td>
 </tr>
 <tr>
@@ -159,11 +175,12 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </tr>
 <tr>
 <td><strong>Browser push</strong></td>
-<td>VAPID keys</td>
-<td><code>.env</code></td>
+<td>VAPID keys (Web Push) aur/ya Firebase Cloud Messaging</td>
+<td><code>.env</code>; browser par <strong>Enable Alerts</strong> ya <strong>Notifications</strong> page</td>
 </tr>
 </tbody>
 </table></div>
+<p><strong>Channels ka haal</strong> dashboard ke <strong>Notifications</strong> page par dikhta hai (har channel: Configured / Not configured / Disabled + wajah). Wahan se kuch bheja nahi jata; ye sirf settings parh kar batata hai.</p>
 <p><strong>Device keys:</strong> header <code>X-Device-Key</code>. AI service <code>.env</code> ka <code>Device__ApiKey</code> bhejti hai; sensors aur relay (ESP32) <code>Device__SensorApiKey</code> bhejte hain. Dono keys alag honi chahiyein. Key ghalat ya na ho to API <strong>401</strong> deti hai; doosre role ki key ho to <strong>403</strong>. Koi device key sprinkler ON/OFF nahi kar sakti: relay sirf haal <strong>parhta</strong> hai.</p>
 <hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Shuru Se Pehle: Checklist</h1>
 <div class="table-wrap"><table>
@@ -275,13 +292,13 @@ $env:SENTINEL_ALLOWED_HOSTS = 'localhost,127.0.0.1,192.168.1.10'
 <p><strong>Link check karein:</strong> VLC → Media → Open Network Stream → link daalein. Video chale to link sahi hai.</p>
 <h3 id="ch4-b-system-mein-daalna">B. System mein daalna</h3>
 <ol>
-<li>Admin login → <strong>Devices</strong> → <strong>+ Camera</strong>.</li>
+<li>Admin login → sidebar CONFIGURATION → <strong>Settings</strong> → <strong>+ Camera</strong>.</li>
 <li>Id (<code>cam-kitchen</code>), Name ("Kitchen Camera"), Zone (<code>Ground Floor - Kitchen</code>).</li>
 <li><strong>Stream link:</strong> RTSP link.</li>
 <li><strong>Browser video format:</strong> <strong>Simulated</strong>. Browser RTSP nahi chala sakta, is liye tile par asli video nahi, sirf AI ke dabbe dikhenge (C dekhein).</li>
 <li><strong>Save.</strong> AI service (jo <code>start.ps1</code> se device key ke saath chalti hai) <strong>1 minute ke andar</strong> camera utha leti hai.</li>
 </ol>
-<p><strong>Check:</strong> dashboard → <strong>AI</strong> page → "Camera sources" mein <code>cam-kitchen · stream · running</code>.</p>
+<p><strong>Check:</strong> dashboard → <strong>AI Settings</strong> page → "Camera sources" mein <code>cam-kitchen · stream · running</code>.</p>
 <blockquote>
 <p>🔒 Password dashboard par <code>rtsp://***@…</code> dikhta hai. Poora link sirf AI service ko jata hai. Database mein ye saaf likha hota hai, is liye database ka backup bhi hifazat se rakhein.</p>
 </blockquote>
@@ -289,13 +306,13 @@ $env:SENTINEL_ALLOWED_HOSTS = 'localhost,127.0.0.1,192.168.1.10'
 <p>Browser <strong>MJPEG</strong> ya <strong>HLS</strong> chala sakta hai. RTSP ko badalne ke liye camera aur server ke beech ek converter chahiye, jaise <strong>go2rtc</strong> ya <strong>MediaMTX</strong> (free, open source; GitHub se download karein).</p>
 <ol>
 <li>Converter mein camera ka RTSP link daalein. Ye ek <strong>MJPEG</strong> (ya HLS) link deta hai, jo us ke web page par copy ho sakta hai.</li>
-<li>Devices par camera <strong>Edit</strong> karein: Stream link = converter ka MJPEG link, format = <strong>Mjpeg</strong>.</li>
+<li>Settings page par camera <strong>Edit</strong> karein: Stream link = converter ka MJPEG link, format = <strong>Mjpeg</strong>.</li>
 <li>Ab tile par video aur AI dono <strong>usi ek link</strong> se chalte hain.</li>
 </ol>
 <blockquote>
 <p>ℹ️ Converter ka sahi link aur port us tool ke apne web page/README par dekhein. Hum ne go2rtc/MediaMTX ko is system ke saath test nahi kiya.</p>
 </blockquote>
-<p><strong>Test hua (19 Oct):</strong> hum ne apna test camera (<code>tools/mjpeg_camera.py</code>, MJPEG) Devices par <strong>Mjpeg</strong> format se daala. Edge mein tile par asli video chali aur AI ke dabbe track number ke saath aaye:</p>
+<p><strong>Test hua (19 Oct):</strong> hum ne apna test camera (<code>tools/mjpeg_camera.py</code>, MJPEG) camera page (ab <strong>Settings</strong>) par <strong>Mjpeg</strong> format se daala. Ye tasveer purane design ki hai. Edge mein tile par asli video chali aur AI ke dabbe track number ke saath aaye:</p>
 <p><img alt="MJPEG camera ki live tile" src="images/live-mjpeg-tile.png" /></p>
 <blockquote>
 <p>💡 Dabbe sirf us tile par bante hain jo <strong>screen par nazar aa rahi ho</strong> (CPU bachane ke liye). Neeche wali tile par scroll karein to wo bhi LIVE ho jati hai.</p>
@@ -327,7 +344,7 @@ $env:SENTINEL_ALLOWED_HOSTS = 'localhost,127.0.0.1,192.168.1.10'
 </tr>
 <tr>
 <td>Har camera ke baad <strong>calibration</strong></td>
-<td>Insaan naqshe par sahi jagah dikhe (Features guide, chapter 6)</td>
+<td>Insaan naqshe par sahi jagah dikhe (<strong>Floor Plan → Edit plan</strong>, 4 points; Features guide)</td>
 </tr>
 <tr>
 <td>Ek kamre ke saare camera ka <strong>ek hi zone</strong></td>
@@ -390,7 +407,7 @@ $env:SENTINEL_ALLOWED_HOSTS = 'localhost,127.0.0.1,192.168.1.10'
 </tbody>
 </table></div>
 <h3 id="ch5-b-sensor-ko-system-mein-register-karna-sql-ek-dafa">B. Sensor ko system mein register karna (SQL, ek dafa)</h3>
-<p>Sensors ka abhi koi page nahi hai, is liye database mein daalein (<strong>API band karke</strong>, ya chalti mein bhi chalega). Phir dashboard <strong>reload</strong> karein:</p>
+<p><strong>Sensors</strong> page sensors ko sirf <strong>dikhata</strong> hai; naya sensor banane ka form abhi nahi hai, is liye database mein daalein (<strong>API band karke</strong>, ya chalti mein bhi chalega). Phir dashboard <strong>reload</strong> karein:</p>
 <pre><code class="language-sql">INSERT INTO SensorNodes (Id, Type, CurrentValue, Threshold, LocationZone, UpdatedAt) VALUES
   (N'smoke-kitchen1', N'Smoke',       0,  300, N'Ground Floor - Kitchen', SYSUTCDATETIME()),
   (N'temp-kitchen1',  N'Temperature', 25, 57,  N'Ground Floor - Kitchen', SYSUTCDATETIME());
@@ -472,10 +489,18 @@ void loop() {
 </code></pre>
 <h3 id="ch5-e-check">E. Check</h3>
 <ol>
-<li>Dashboard → <strong>Sensor Telemetry</strong> mein <code>smoke-kitchen1</code> ka gauge hilne lage.</li>
+<li>Dashboard → <strong>Sensors</strong> page par <code>smoke-kitchen1</code> ki reading aur "last update" badalne lage (Normal / Warning / Alarm / Critical / Not reporting / Stale).</li>
 <li>Sensor ke paas agarbatti (dhuwan) le jayein: Warning → Alarm.</li>
-<li>Alarm par <strong>Alert Logs</strong> mein "Sensor" incident aaye.</li>
+<li>Alarm par <strong>Incidents</strong> page mein "Sensor" incident aaye, aur <strong>Activity Log</strong> mein entry.</li>
 </ol>
+<h3 id="ch5-f-naqshe-par-sensor">F. Sensor ko naqshe (Floor Plan) par lagana</h3>
+<ol>
+<li>Sidebar → <strong>Floor Plan</strong> → <strong>Edit plan</strong>.</li>
+<li>Toolbar mein <strong>+ Sensor</strong> dabayein, phir naqshe par wahan click karein jahan sensor laga hai.</li>
+<li>Side panel mein <strong>Sensor</strong> list se sensor chunein. Marker ka naam = <strong>sensor id</strong> (jaise <code>smoke-kitchen1</code>), bilkul wahi jo SQL mein hai.</li>
+<li>Plan <strong>save</strong> karein. Yahan sirf <strong>jagah</strong> save hoti hai.</li>
+</ol>
+<p><strong>Floor Plan</strong> par sensor ka icon apni <strong>live reading</strong> se rang badalta hai: Online = hara, Warning = peela, Stale/Offline = grey, Active alert = laal.</p>
 <hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Sprinkler Relay Jorna</h1>
 <h3 id="ch6-a-system-relay-ko-kaise-batata-hai">A. System relay ko kaise batata hai</h3>
 <p>System relay ko <strong>khud signal nahi bhejta</strong>. Relay (ESP32) har 1–2 second baad <strong>poochhta</strong> hai:</p>
@@ -545,7 +570,7 @@ void checkSprinkler() {
 </tr>
 </tbody>
 </table></div>
-<hr /></section><p class="part-label">C · SMS, Email aur Push</p><section class="chapter" data-ch="7"><h1 id="ch7">7. SMS Alerts (Twilio)</h1>
+<hr /></section><p class="part-label">C · Alert channels</p><section class="chapter" data-ch="7"><h1 id="ch7">7. SMS Alerts (Twilio)</h1>
 <h3 id="ch7-kahan-se-milega">Kahan se milega</h3>
 <ol>
 <li><strong>twilio.com</strong> par account banayein.</li>
@@ -561,18 +586,126 @@ Notifications__Sms__Recipients=+923001234567,+923331234567
 </code></pre>
 <ul>
 <li>Number hamesha <strong>+92</strong> wali shakal mein (E.164). Kai numbers comma se.</li>
-<li>API dobara chalayein (<code>.env</code> start par parhi jati hai).</li>
+<li>Server dobara chalayein (<code>.\stop.ps1</code> phir <code>.\start.ps1</code>): <code>.env</code> sirf start par parhi jati hai.</li>
 </ul>
 <h3 id="ch7-kab-jata-hai">Kab jata hai</h3>
-<p>Sirf <strong>emergency</strong> par: Critical incident, insaan danger zone mein, ya Emergency Dispatch.</p>
-<p><strong>Check:</strong> dashboard → <strong>Emergency Dispatch</strong> → Dispatch Now → phone par SMS. <strong>Live Event Log</strong> mein "SMS sent" ya error.</p>
-<hr /></section><section class="chapter" data-ch="8"><h1 id="ch8">8. Email Alerts (SMTP, misaal Gmail)</h1>
-<h3 id="ch8-kahan-se-milega-gmail">Kahan se milega (Gmail)</h3>
+<p>Sirf <strong>emergency</strong> par: High/Critical incident, insaan danger zone mein, ya header ka laal <strong>Emergency dispatch</strong> button (chapter 13).</p>
+<p><strong>Check:</strong> header → <strong>Emergency dispatch</strong> → dialog mein tasdeeq → phone par SMS. <strong>Notifications</strong> page → "Recent notification activity" mein <code>sms: Pending ...</code> ya error. Twilio ka "Pending" matlab Twilio ne message <strong>le liya</strong>; phone tak pohnchne ki tasdeeq nahi.</p>
+<hr /></section><section class="chapter" data-ch="8"><h1 id="ch8">8. GSM Modem: SMS Ka Fallback (Optional / Legacy)</h1>
+<blockquote>
+<p>🟡 <strong>Optional / Legacy — Not Part of Current Scope.</strong> Ye channel project ki maujooda zaroori scope mein <strong>nahi</strong> hai aur required setup ka hissa nahi. Code maujood hai aur automated tests mein check hai, lekin isay set karna zaroori nahi; sirf tab karein jab aap ko khaas taur par chahiye. Is ke baghair baqi system poora chalta hai.</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Asli modem par test nahi hua.</strong> Code sirf fake modem wale automated tests se check hua hai.</p>
+</blockquote>
+<p>GSM modem SIM card se seedha SMS bhejta hai, internet nahi chahiye. Ye <strong>sirf tab</strong> chalta hai jab Twilio SMS <strong>fail</strong> ho jaye ya Twilio set hi na ho. Twilio ne SMS le liya to modem se dobara nahi jata.</p>
+<h3 id="ch8-kya-chahiye">A. Kya chahiye</h3>
+<ul>
+<li>USB GSM modem, jaise <strong>SIM800</strong> ya <strong>SIM7600</strong> (USB-serial board ya USB dongle).</li>
+<li><strong>Active SIM</strong> jis mein <strong>SMS ka balance/package</strong> ho, PIN lock band (PIN wali SIM par modem "SIM not ready" deta hai).</li>
+<li>Modem ka driver (company ki website se, agar Windows khud na pehchane).</li>
+</ul>
+<h3 id="ch8-com-port">B. COM port dhoondna</h3>
+<ol>
+<li>Modem USB mein lagayein.</li>
+<li>Windows → <strong>Device Manager</strong> → <strong>Ports (COM &amp; LPT)</strong> kholein.</li>
+<li>Modem wali line ka number note karein, jaise <code>COM5</code>. (Modem nikal kar dobara lagayein: jo line ghayab/wapas ho, wahi modem hai.)</li>
+</ol>
+<h3 id="ch8-install">C. pyserial install (ek dafa)</h3>
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
+sentinel-django\.venv\Scripts\python -m pip install pyserial
+</code></pre>
+<p>Is ke baghair Notifications page par GSM "Disabled: pyserial is not installed" dikhata hai.</p>
+<h3 id="ch8-env"><code>.env</code> mein likhein</h3>
+<pre><code>Notifications__Gsm__Port=COM5
+Notifications__Gsm__BaudRate=115200
+Notifications__Gsm__Recipients=+923001234567,+923331234567
+</code></pre>
+<ul>
+<li><code>Port</code> khali = modem band.</li>
+<li><code>BaudRate</code> aam taur par <code>115200</code>; modem ke manual mein alag ho to wo likhein.</li>
+<li><code>Recipients</code> khali = <code>Notifications__Sms__Recipients</code> wale numbers. Numbers E.164 (<code>+92...</code>) mein.</li>
+<li>Ye naam abhi <code>.env.example</code> mein nahi hain; khud <code>.env</code> mein add karein.</li>
+</ul>
+<h3 id="ch8-at">D. System modem se kya kehta hai (AT commands)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Command</th><th>Matlab</th></tr></thead>
+<tbody>
+<tr><td><code>AT</code></td><td>Modem jawab de raha hai?</td></tr>
+<tr><td><code>AT+CPIN?</code></td><td>SIM tayyar (<code>READY</code>)? Warna "SIM not ready"</td></tr>
+<tr><td><code>AT+CREG?</code></td><td>Network par registered (home ya roaming)? Warna "not registered"</td></tr>
+<tr><td><code>AT+CMGF=1</code></td><td>Text mode</td></tr>
+<tr><td><code>AT+CMGS="+92..."</code></td><td>Har number ko SMS (max 160 harf, Ctrl-Z se bheja jata hai)</td></tr>
+</tbody>
+</table></div>
+<p><code>+CMGS</code> ka jawab = network ne SMS le liya (status <strong>Pending</strong>), phone tak pohnchne ki tasdeeq nahi.</p>
+<p><strong>Check:</strong> Twilio settings khali rakh kar Emergency dispatch karein → Notifications page par <code>gsm: ...</code> line. Pehle modem ko kisi serial tool (jaise PuTTY) se <code>AT</code> bhej kar check kar lein, phir us tool ko <strong>band</strong> karein: ek waqt mein COM port sirf ek program khol sakta hai.</p>
+<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. WhatsApp Alerts (Twilio)</h1>
+<blockquote>
+<p>⚠️ Asli WhatsApp delivery <strong>test nahi hui</strong>. Twilio ka jawab sirf "message le liya" (Pending) batata hai.</p>
+</blockquote>
+<h3 id="ch9-kahan-se">A. Kahan se milega</h3>
+<ol>
+<li>Twilio Console → <strong>Messaging</strong> → WhatsApp senders. Ek <strong>approved WhatsApp sender</strong> (WhatsApp Business number) chahiye; approval Twilio/Meta ke through hota hai aur waqt le sakta hai.</li>
+<li>Testing ke liye Twilio ka <strong>WhatsApp Sandbox</strong> bhi hai: har receiver pehle sandbox number ko us ka join code WhatsApp karta hai. (Sandbox ke qadam Twilio Console mein dekhein.)</li>
+<li>Account SID aur Auth Token wahi Twilio account ke (SMS wale bhi ho sakte hain), lekin <code>.env</code> mein <strong>alag</strong> likhne hain.</li>
+</ol>
+<h3 id="ch9-env">B. <code>.env</code> mein likhein</h3>
+<pre><code>Notifications__WhatsApp__TwilioAccountSid=AC................................
+Notifications__WhatsApp__TwilioAuthToken=................................
+Notifications__WhatsApp__FromNumber=+14155238886
+Notifications__WhatsApp__Recipients=+923001234567,+923331234567
+</code></pre>
+<ul>
+<li>Saare numbers <strong>E.164</strong> (<code>+923001234567</code>). <code>whatsapp:</code> khud lagaya jata hai, aap na likhein.</li>
+<li>WhatsApp ke recipients SMS wale <strong>nahi</strong> lete; yahan alag likhein.</li>
+<li>Ye naam abhi <code>.env.example</code> mein nahi hain; khud add karein.</li>
+</ul>
+<h3 id="ch9-hadd">C. Zaroori hadein</h3>
+<ul>
+<li><strong>24 ghante ki window:</strong> WhatsApp business number se aam (free-text) message sirf tab jata hai jab receiver ne pichle 24 ghante mein us number ko message kiya ho. Is ke bahar sirf <strong>approved templates</strong> chalte hain, aur hamara alert template nahi hai. Is liye receivers waqt waqt par sender ko message karte rahein, warna WhatsApp alert ruk sakta hai.</li>
+<li><strong>Photo nahi jati:</strong> Twilio tasveer sirf public URL se uthata hai aur dashboard public nahi. Sirf text jata hai (log mein "photo not attached").</li>
+</ul>
+<hr /></section><section class="chapter" data-ch="10"><h1 id="ch10">10. Telegram Alerts (Optional / Legacy)</h1>
+<blockquote>
+<p>🟡 <strong>Optional / Legacy — Not Part of Current Scope.</strong> Ye channel project ki maujooda zaroori scope mein <strong>nahi</strong> hai aur required setup ka hissa nahi. Code maujood hai aur automated tests mein check hai, lekin isay set karna zaroori nahi; sirf tab karein jab aap ko khaas taur par chahiye. Is ke baghair baqi system poora chalta hai.</p>
+</blockquote>
+<blockquote>
+<p>⚠️ Asli Telegram delivery <strong>test nahi hui</strong> (sirf fake Telegram server wale tests).</p>
+</blockquote>
+<h3 id="ch10-bot">A. Bot banana</h3>
+<ol>
+<li>Telegram app mein <strong>@BotFather</strong> dhoondein (blue tick wala) → <code>/newbot</code> bhejein.</li>
+<li>Bot ka naam aur username (aakhir mein <code>bot</code>) dein.</li>
+<li>BotFather ek <strong>token</strong> deta hai, jaise <code>123456789:AA...</code>. Ye password jaisa hai: kisi ko na dein.</li>
+</ol>
+<h3 id="ch10-chat-id">B. Chat id lena</h3>
+<ol>
+<li><strong>Akele ke liye:</strong> apne bot ko Telegram mein kholein aur <strong>Start</strong> dabayein (ya koi bhi message bhejein). Bot pehle message ke baghair aap ko message nahi kar sakta.</li>
+<li><strong>Group ke liye:</strong> bot ko group mein <strong>add</strong> karein (bot group ka member hona zaroori hai), phir group mein koi message bhejein.</li>
+<li>Browser mein ye kholein (apna token daal kar): <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code></li>
+<li>Jawab mein <code>"chat":{"id": ...}</code> dhoondein. Aam chat ka id musbat number, group ka id <strong>minus</strong> se shuru hota hai (jaise <code>-1001234567890</code>).</li>
+</ol>
+<blockquote>
+<p>💡 <code>getUpdates</code> khali aaye to bot ko dobara message bhejein aur page refresh karein. Ye link token dikhata hai, is liye screenshot share na karein.</p>
+</blockquote>
+<h3 id="ch10-env">C. <code>.env</code> mein likhein</h3>
+<pre><code>Notifications__Telegram__BotToken=123456789:AA................................
+Notifications__Telegram__ChatIds=123456789,-1001234567890
+</code></pre>
+<ul>
+<li>Kai chats comma se.</li>
+<li>Ye naam abhi <code>.env.example</code> mein nahi hain; khud add karein.</li>
+</ul>
+<h3 id="ch10-photo">D. Photo</h3>
+<p>Agar incident wala camera <strong>MJPEG</strong> format par hai to camera ki tasveer (snapshot) caption ke saath jati hai; warna sirf text. Telegram ka "ok" matlab message chat mein pohnch gaya, is liye yahan status <strong>Delivered</strong> aata hai.</p>
+<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Email Alerts (SMTP, misaal Gmail)</h1>
+<h3 id="ch11-kahan-se-milega-gmail">Kahan se milega (Gmail)</h3>
 <ol>
 <li>Google account mein <strong>2-Step Verification</strong> on karein.</li>
 <li><strong>myaccount.google.com/apppasswords</strong> par ek <strong>App Password</strong> banayein (16 harf). Asli Gmail password <strong>istemaal na karein</strong>.</li>
 </ol>
-<h3 id="ch8-env-mein-likhein"><code>.env</code> mein likhein</h3>
+<h3 id="ch11-env-mein-likhein"><code>.env</code> mein likhein</h3>
 <pre><code>Notifications__Email__SmtpHost=smtp.gmail.com
 Notifications__Email__SmtpPort=587
 Notifications__Email__UseStartTls=true
@@ -582,11 +715,21 @@ Notifications__Email__From=aapka.email@gmail.com
 Notifications__Email__Recipients=guard@example.com,manager@example.com
 </code></pre>
 <ul>
-<li><code>SmtpHost</code> <strong>khali</strong> = "console mode": email bheji nahi jati, sirf API ki window mein likhi jati hai (test ke liye achha).</li>
+<li><code>SmtpHost</code> <strong>khali</strong> = "console mode": email bheji nahi jati, sirf server ki window mein likhi jati hai (test ke liye achha). Notifications page par Email "Disabled" dikhata hai.</li>
 </ul>
-<p><strong>Check:</strong> Emergency Dispatch karein → inbox (aur Spam folder).</p>
-<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Browser Push Notifications</h1>
-<h3 id="ch9-keys-banana-ek-dafa">Keys banana (ek dafa)</h3>
+<p><strong>Check:</strong> Emergency dispatch karein → inbox (aur Spam folder).</p>
+<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Browser Push: Web Push (VAPID) aur Firebase</h1>
+<p>Do alag raaste hain. Ek ya dono chala sakte hain:</p>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>Web Push (VAPID)</th><th>Firebase Cloud Messaging (FCM)</th></tr></thead>
+<tbody>
+<tr><td>Browser par on karna</td><td>Header ka <strong>Enable Alerts</strong> button</td><td><strong>Notifications</strong> page → "Enable notifications on this browser"</td></tr>
+<tr><td>Kab jata hai</td><td>Sirf emergency / dispatch</td><td><strong>Har naya</strong> fire/smoke incident + emergency / dispatch</td></tr>
+<tr><td>Server ko chahiye</td><td><code>pywebpush</code></td><td><code>google-auth</code> + Firebase project</td></tr>
+<tr><td>Aage mobile app</td><td>Nahi</td><td>Haan, wahi token API (D dekhein)</td></tr>
+</tbody>
+</table></div>
+<h3 id="ch12-keys-banana-ek-dafa">A. Web Push (VAPID): keys banana (ek dafa)</h3>
 <pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
 .\.venv\Scripts\python -m pip install pywebpush   # Django server ko push bhejne ke liye (ek dafa)
 npx web-push generate-vapid-keys                    # Node.js chahiye; koi bhi VAPID tool chalega
@@ -599,25 +742,108 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 <blockquote>
 <p>🔒 Private key kisi ko na dein, aur keys <strong>dobara na banayein</strong>: purane subscriptions band ho jate hain.</p>
 </blockquote>
-<p><strong>Check:</strong> API dobara chalayein → dashboard → <strong>Enable Alerts</strong> → Allow → Emergency Dispatch → Windows ke kone mein notification.</p>
-<hr /></section><p class="part-label">D · Active karna, masle aur hifazat</p><section class="chapter" data-ch="10"><h1 id="ch10">10. Sab Ko Active Karna: Tarteeb</h1>
+<p><strong>Check:</strong> server dobara chalayein → header → <strong>Enable Alerts</strong> → Allow → Emergency dispatch → Windows ke kone mein notification.</p>
+<h3 id="ch12-firebase">B. Firebase Cloud Messaging: setup (qadam ba qadam)</h3>
+<blockquote>
+<p>⚠️ Asli Firebase delivery <strong>test nahi hui</strong> (aap ka apna Firebase project chahiye). Automated tests fake Firebase server se hain.</p>
+</blockquote>
+<ol>
+<li><strong>Project banayein:</strong> <strong>console.firebase.google.com</strong> → <strong>Add project</strong> → naam dein (Google Analytics zaroori nahi). Project settings → General mein <strong>Project ID</strong> note karein.</li>
+<li><strong>Cloud Messaging API (V1) on karein:</strong> Project settings → <strong>Cloud Messaging</strong> tab. "Firebase Cloud Messaging API (V1)" <strong>Enabled</strong> hona chahiye; agar disabled ho to wahan ke menu/link se Google Cloud Console mein <strong>Enable</strong> karein.</li>
+<li><strong>Service-account key:</strong> Project settings → <strong>Service accounts</strong> → <strong>Generate new private key</strong> → JSON file download hogi. Is file ko project folder ke <strong>BAHAR</strong> rakhein, jaise <code>C:\keys\firebase-service-account.json</code>. Ye file asli secret hai: Git, zip, chat ya email mein kabhi na daalein.</li>
+<li><strong>Web app config:</strong> Project settings → General → <strong>Your apps</strong> → web icon <code>&lt;/&gt;</code> se web app add karein. Jo <code>firebaseConfig</code> dikhta hai us se <code>apiKey</code>, <code>appId</code>, <code>messagingSenderId</code> copy karein.</li>
+<li><strong>Web Push certificate key:</strong> Cloud Messaging tab → <strong>Web configuration</strong> → <strong>Web Push certificates</strong> → <strong>Generate key pair</strong> → "Key pair" wala lamba public key copy karein.</li>
+<li><strong><code>.env</code> mein likhein</strong> (neeche C).</li>
+<li><strong>google-auth install karein</strong> (project folder se, ek dafa):
+<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
+sentinel-django\.venv\Scripts\python -m pip install google-auth
+</code></pre></li>
+<li><strong>Server dobara chalayein:</strong> <code>.\stop.ps1</code> phir <code>.\start.ps1</code>.</li>
+<li><strong>Browser par on karein:</strong> sidebar → <strong>Notifications</strong> → "Push notifications on this browser (Firebase)" → <strong>Enable notifications on this browser</strong> → browser poochhe to <strong>Allow</strong>. (Ijazat sirf isi click par maangi jati hai.) Band karne ke liye: <strong>Disable on this browser</strong>.</li>
+<li><strong>Check:</strong> Notifications page par Firebase "Configured" aur aap ka browser device list mein. Push par click karne se <code>/incidents?incident=&lt;id&gt;</code> khulta hai.</li>
+</ol>
+<h3 id="ch12-fcm-env">C. Firebase ki <code>.env</code> settings</h3>
+<pre><code>Notifications__Fcm__ProjectId=aap-ka-project-id
+Notifications__Fcm__CredentialsFile=C:\keys\firebase-service-account.json
+Notifications__Fcm__WebApiKey=AIza................................
+Notifications__Fcm__WebAppId=1:123456789012:web:................
+Notifications__Fcm__MessagingSenderId=123456789012
+Notifications__Fcm__VapidKey=B................................
+</code></pre>
+<ul>
+<li>Pehli do server ke liye (bhejna); <code>CredentialsFile</code> file ka <strong>raasta</strong> hai, file ka andar wala text nahi.</li>
+<li>Aakhri chaar browser ke liye (public values, secret nahi, lekin sirf aap ke project ki). In mein se ek bhi khali ho to browser par Enable button kaam nahi karta.</li>
+<li>⚠️ <code>.env.example</code> mein <code>ProjectId=your-firebase-project-id</code> aur <code>CredentialsFile=C:\keys\...</code> namoone ke taur par bhare hain. Firebase istemaal na karna ho to ye dono <strong>khali</strong> kar dein, warna Notifications page Firebase ko ghalat file ki wajah se "Invalid credentials" dikha sakta hai.</li>
+<li>Notifications page par mumkin haal: <strong>Configured</strong>, <strong>Not configured</strong>, <strong>Missing dependency</strong> (google-auth nahi), <strong>Invalid credentials</strong> (file ghalat), <strong>Firebase unavailable</strong> (pichli dafa Firebase tak nahi pohnche).</li>
+</ul>
+<h3 id="ch12-snapshot">D. Snapshot link aur mobile app</h3>
+<ul>
+<li><strong>Tasveer:</strong> MJPEG camera ho to har incident ki ek tasveer <code>App_Data/snapshots/&lt;id&gt;.jpg</code> mein rakhi jati hai, aur push mein 24 ghante ka signed link <code>/api/incidents/&lt;id&gt;/snapshot?s=...</code> jata hai. Ye link <strong>sirf wahan khulta hai jahan se dashboard ka address khul sake</strong> (jaise usi office WiFi par). Bahar ke phone par tasveer nahi dikhegi.</li>
+<li><strong>Mobile app abhi nahi hai.</strong> Server ki API tayyar hai. Aage banne wali Android app ko ye karna hoga:
+<ol>
+<li>Firebase Android SDK lagaye (isi Firebase project mein Android app add karke).</li>
+<li>User ko dashboard ke account se sign in karaye.</li>
+<li>FCM token mil kar <code>POST /api/push/fcm-token</code> body <code>{"token": "&lt;token&gt;"}</code> bheje.</li>
+<li>Firebase token badle (refresh) to <code>{"token": "&lt;naya&gt;", "replaces": "&lt;purana&gt;"}</code> bheje, taake purana band ho jaye.</li>
+<li>Logout par <code>DELETE /api/push/fcm-token</code> body <code>{"token": "&lt;token&gt;"}</code>.</li>
+</ol></li>
+</ul>
+<hr /></section><section class="chapter" data-ch="13"><h1 id="ch13">13. Alert Kab Jata Hai Aur Status Kya Hai</h1>
+<h3 id="ch13-kab">A. Kaun sa incident, kaun se channel</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Kya hua</th><th>Kaun se channel</th></tr></thead>
+<tbody>
+<tr><td>Camera par <strong>naya</strong> tasdeeq shuda fire ya smoke incident (emergency nahi)</td><td>Sirf <strong>Firebase</strong> push</td></tr>
+<tr><td><strong>Emergency:</strong> High/Critical incident, ya insaan danger zone mein</td><td><strong>Sab</strong> set channels: SMS (fail ho to GSM), WhatsApp, Telegram, Firebase, Email, Web Push</td></tr>
+<tr><td>Header ka <strong>Emergency dispatch</strong> (operator khud)</td><td><strong>Sab</strong> set channels</td></tr>
+</tbody>
+</table></div>
+<h3 id="ch13-qaide">B. Qaide</h3>
+<ul>
+<li><strong>Duplicate nahi:</strong> ek incident + ek severity par har channel sirf ek dafa. Incident ki severity barhe (jaise Medium → Critical) to dobara jata hai.</li>
+<li><strong>Ek retry:</strong> jo channel poori tarah fail ho, 30 second baad (<code>Notifications__RetrySeconds</code>) <strong>ek dafa</strong> dobara koshish. Phir bas.</li>
+<li>Sab kuch alag background thread mein hota hai; ek channel kharab ho to baaqi chalte rehte hain.</li>
+</ul>
+<h3 id="ch13-status">C. Status ke matlab</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Status</th><th>Matlab</th></tr></thead>
+<tbody>
+<tr><td><strong>Delivered</strong></td><td>Pohnch gaya. Sirf Telegram ye tasdeeq deta hai.</td></tr>
+<tr><td><strong>Pending</strong></td><td>Twilio (SMS/WhatsApp) ya GSM network ne le liya; phone tak pohnchne ki khabar nahi</td></tr>
+<tr><td><strong>Sent</strong></td><td>Firebase ne le liya; device par dikhne ki khabar nahi</td></tr>
+<tr><td><strong>Failed</strong></td><td>Nahi gaya (ghalat key, network, provider error); ek retry hota hai</td></tr>
+<tr><td><strong>Invalid token</strong></td><td>Firebase ne device ka token radd kiya (app hata di, token purana); wo device band kar diya jata hai</td></tr>
+<tr><td><strong>Disabled</strong></td><td>Settings hain lekin chal nahi sakta (jaise pyserial / google-auth / pywebpush install nahi, ya SMTP host khali)</td></tr>
+<tr><td><strong>Not configured</strong></td><td><code>.env</code> mein settings hi nahi; kuch nahi bheja</td></tr>
+</tbody>
+</table></div>
+<h3 id="ch13-kahan">D. Nateeja kahan dekhein</h3>
+<ul>
+<li><strong>Notifications</strong> page → <strong>Recent notification activity</strong>: har koshish, jaise <code>telegram: Delivered for the High alert · 1 sent, 0 failed</code>.</li>
+<li><strong>Incidents</strong> → incident kholein → "What happened" history mein <strong>Notification</strong> entries.</li>
+</ul>
+<hr /></section><p class="part-label">D · Active karna, masle aur hifazat</p><section class="chapter" data-ch="14"><h1 id="ch14">14. Sab Ko Active Karna: Tarteeb</h1>
 <p>Isi tarteeb se karein. Har qadam ke baad check karke aage jayein.</p>
 <ul>
 <li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> <code>.env</code>: <code>Device__ApiKey</code>, <code>Device__SensorApiKey</code> (alag), <code>Jwt__SigningKey</code> bhare hue</li>
 <li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> Zone ke naam tay ("Manzil - Jagah")</li>
-<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> <code>.\start.ps1</code> se teeno windows chal rahi hain</li>
+<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> <code>.\start.ps1</code>: Django aur AI models ready</li>
 <li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> Camera ka RTSP link VLC mein chala</li>
-<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> Devices par camera daala → AI page par <code>running</code></li>
-<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Floor Plans mein naqsha + calibration</li>
-<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> API network par (<code>0.0.0.0:5291</code>) + firewall → doosre device se <code>/health</code> ok</li>
-<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> Sensors aur sprinkler SQL se daale → dashboard reload par nazar aaye</li>
-<li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> ESP32 reading bhej raha hai → gauge hil raha hai</li>
+<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> Settings par camera daala → AI Settings page par <code>running</code></li>
+<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Floor Plan → Edit plan: naqsha + camera calibration</li>
+<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> Server network par (<code>--host 0.0.0.0 --port 5291</code>) + firewall → doosre device se <code>/health</code> ok</li>
+<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> Sensors aur sprinkler SQL se daale → Sensors / Sprinklers page par nazar aaye</li>
+<li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> ESP32 reading bhej raha hai → Sensors page par reading badal rahi hai</li>
+<li class="task"><input type="checkbox" data-task="14" aria-label="Ho gaya"> Edit plan → <strong>+ Sensor</strong> se sensor naqshe par → Floor Plan par icon ka rang live</li>
 <li class="task"><input type="checkbox" data-task="10" aria-label="Ho gaya"> Relay <code>GET /api/iot/sprinklers</code> par sahi ON/OFF (LED se check)</li>
 <li class="task"><input type="checkbox" data-task="11" aria-label="Ho gaya"> Safe Test Mode mein poora test (<code>tools\live_test.py</code>) pass</li>
-<li class="task"><input type="checkbox" data-task="12" aria-label="Ho gaya"> SMS, Email, Push keys daale → Emergency Dispatch se teeno pohnche</li>
-<li class="task"><input type="checkbox" data-task="13" aria-label="Ho gaya"> Demo ke baad SMS/Email wapas band ya asli numbers par</li>
+<li class="task"><input type="checkbox" data-task="12" aria-label="Ho gaya"> Channels ki settings <code>.env</code> mein (SMS, Email, Web Push) → server restart → Notifications page par "Configured"</li>
+<li class="task"><input type="checkbox" data-task="15" aria-label="Ho gaya"> Naye channels jo chahiyein: WhatsApp, Firebase (google-auth) → Notifications page par "Configured". <em>Telegram aur GSM modem Optional / Legacy hain (current scope mein nahi): yahan zaroori nahi.</em></li>
+<li class="task"><input type="checkbox" data-task="16" aria-label="Ho gaya"> Firebase: Notifications page → "Enable notifications on this browser" → Allow</li>
+<li class="task"><input type="checkbox" data-task="17" aria-label="Ho gaya"> Emergency dispatch → har channel ka nateeja "Recent notification activity" mein (Delivered / Pending / Sent)</li>
+<li class="task"><input type="checkbox" data-task="13" aria-label="Ho gaya"> Demo ke baad channels wapas band ya asli numbers/chats par</li>
 </ul>
-<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Masle Aur Hal</h1>
+<hr /></section><section class="chapter" data-ch="15"><h1 id="ch15">15. Masle Aur Hal</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -639,8 +865,8 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 </tr>
 <tr>
 <td>ESP32 connect hi nahi hota</td>
-<td>API sirf localhost par / firewall</td>
-<td>Chapter 3: <code>--urls http://0.0.0.0:5291</code> aur firewall rule</td>
+<td>Server sirf localhost par / firewall</td>
+<td>Chapter 3: <code>--host 0.0.0.0</code>, <code>SENTINEL_ALLOWED_HOSTS</code> aur firewall rule</td>
 </tr>
 <tr>
 <td><code>Sensor ... not found</code></td>
@@ -648,12 +874,17 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 <td>Chapter 5B; Id ki spelling</td>
 </tr>
 <tr>
-<td>Camera AI page par <code>error: cannot open stream source</code></td>
+<td>Edit plan mein sensor list khali, ya icon grey</td>
+<td>Sensor SQL mein nahi, ya reading nahi aa rahi (Stale/Offline)</td>
+<td>Chapter 5B; ESP32 chal raha hai? Marker ka naam = sensor id</td>
+</tr>
+<tr>
+<td>Camera AI Settings page par <code>error: cannot open stream source</code></td>
 <td>RTSP link/password ghalat, ya camera band</td>
 <td>VLC mein link check</td>
 </tr>
 <tr>
-<td>Camera AI page par nazar hi nahi aata</td>
+<td>Camera AI Settings page par nazar hi nahi aata</td>
 <td>AI service bina device key ke</td>
 <td><code>.\start.ps1</code> se chalayein (wo key deta hai)</td>
 </tr>
@@ -668,14 +899,69 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 <td>Zone ek jaisa, Mode Auto, <code>simulated</code> na bhejein</td>
 </tr>
 <tr>
+<td>Channel "Not configured" hai jabke <code>.env</code> mein likha</td>
+<td>Server restart nahi kiya, ya naam ki spelling (do underscore <code>__</code>)</td>
+<td><code>.\stop.ps1</code> → <code>.\start.ps1</code>; naam is guide se copy karein</td>
+</tr>
+<tr>
 <td>SMS nahi aaya</td>
 <td>Trial account, number verify nahi</td>
 <td>Twilio Console mein number verify</td>
 </tr>
 <tr>
+<td>GSM: "modem unavailable on COM5"</td>
+<td>Ghalat COM port, ya port koi aur program (PuTTY) khole hue</td>
+<td>Device Manager mein port dekhein; doosra program band karein</td>
+</tr>
+<tr>
+<td>GSM: "SIM not ready" / "not registered"</td>
+<td>SIM PIN lock, SIM nahi, ya signal nahi</td>
+<td>SIM phone mein daal kar PIN band karein; antenna/signal check</td>
+</tr>
+<tr>
+<td>GSM / Firebase / Web Push "Disabled"</td>
+<td>pyserial / google-auth / pywebpush install nahi</td>
+<td>Chapter 8C / 12B qadam 7 / 12A ka install command, phir restart</td>
+</tr>
+<tr>
+<td>WhatsApp "Failed" ya Pending lekin aaya nahi</td>
+<td>Sender approved nahi, 24 ghante ki window khatam, ya number E.164 nahi</td>
+<td>Chapter 9; receiver sender ko message kare; <code>+92...</code> shakal</td>
+</tr>
+<tr>
+<td>Telegram: HTTP 401</td>
+<td>Bot token ghalat</td>
+<td>BotFather se token dobara copy</td>
+</tr>
+<tr>
+<td>Telegram: "chat not found"</td>
+<td>Chat id ghalat, bot ko Start nahi kiya, ya bot group mein nahi</td>
+<td>Chapter 10B</td>
+</tr>
+<tr>
+<td>Firebase "Invalid credentials"</td>
+<td>CredentialsFile ka raasta ghalat, ya service-account JSON nahi</td>
+<td>Chapter 12B qadam 3; namoone wali value khali karein</td>
+</tr>
+<tr>
+<td>"Enable notifications on this browser" kaam nahi karta</td>
+<td>Chaar web values (WebApiKey, WebAppId, MessagingSenderId, VapidKey) mein se koi khali, ya browser ne Block kiya</td>
+<td>Chapter 12C; browser site settings mein Notifications = Allow</td>
+</tr>
+<tr>
+<td>Firebase "Invalid token"</td>
+<td>Device ka token purana / app hata di</td>
+<td>Us browser par dobara Enable karein</td>
+</tr>
+<tr>
+<td>Push aaya, lekin tasveer nahi khulti</td>
+<td>Camera MJPEG nahi, ya phone dashboard ke network par nahi</td>
+<td>Chapter 12D</td>
+</tr>
+<tr>
 <td>Email nahi aayi</td>
 <td>App password nahi, ya Spam</td>
-<td>Chapter 8; Spam folder</td>
+<td>Chapter 11; Spam folder</td>
 </tr>
 <tr>
 <td>"Camera lost" alert</td>
@@ -684,7 +970,7 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 </tr>
 </tbody>
 </table></div>
-<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Hifazat Ki Baatein</h1>
+<hr /></section><section class="chapter" data-ch="16"><h1 id="ch16">16. Hifazat Ki Baatein</h1>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -694,8 +980,20 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 </thead>
 <tbody>
 <tr>
-<td><code>.env</code> ko kisi ko na dein, git par na daalein</td>
-<td>Device key ya passwords chat ya screenshot mein</td>
+<td><code>.env</code> private rakhein: kisi ko na dein, Git par na daalein</td>
+<td>Device key, passwords, tokens chat ya screenshot mein</td>
+</tr>
+<tr>
+<td>Firebase service-account JSON project folder ke <strong>bahar</strong> (jaise <code>C:\keys\</code>)</td>
+<td>Key file project mein, Git, zip ya email mein</td>
+</tr>
+<tr>
+<td>Twilio Auth Token, Telegram bot token, SMTP app password sirf <code>.env</code> mein</td>
+<td>Koi bhi key code, docs ya Git commit mein</td>
+</tr>
+<tr>
+<td>Key leak ho jaye to fauran badlein (Twilio token rotate, BotFather <code>/revoke</code>, Firebase key delete karke nayi)</td>
+<td>Leak hui key chalti rehne dena</td>
 </tr>
 <tr>
 <td>Network private rakhein (ghar/office WiFi)</td>
@@ -711,7 +1009,7 @@ Notifications__WebPush__Subject=mailto:aapka.email@gmail.com
 </tr>
 <tr>
 <td>Certified smoke detector aur fire alarm <strong>saath</strong> rakhein</td>
-<td>Sirf FireVision AI par bharosa</td>
+<td>Sirf FireVision AI ya ek hi alert channel par bharosa (asli delivery test nahi hui)</td>
 </tr>
 </tbody>
 </table></div></section>

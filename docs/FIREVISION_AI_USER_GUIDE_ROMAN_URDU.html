@@ -104,1229 +104,694 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
   <button class="icon" id="theme" aria-label="Dark ya light mode">◐</button>
 </header>
 <div class="layout">
-  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Shuru karne se pehle</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kis Ke Liye Hai?</a></li><li><a href="#ch2" data-ch="2">2. Pehli Dafa: Zaroori Software Install Karna</a></li><li><a href="#ch3" data-ch="3">3. Pehli Dafa: Project Ka Setup</a></li><li><a href="#ch4" data-ch="4">4. Safe Test Mode (Test Se Pehle Zaroor)</a></li><li class="part">B · Roz ka istemaal</li><li><a href="#ch5" data-ch="5">5. Roz Ka Kaam: System Chalana</a></li><li><a href="#ch6" data-ch="6">6. Login Karna</a></li><li><a href="#ch7" data-ch="7">7. Dashboard Ka Tour (Har Hissa Kya Hai)</a></li><li class="part">C · Har feature ka test</li><li><a href="#ch8" data-ch="8">8. Test 1: Aag Ka Demo (Simulator)</a></li><li><a href="#ch9" data-ch="9">9. Test 2: AI Ko Photo Dikhana (AI Page)</a></li><li><a href="#ch10" data-ch="10">10. Test 3: Sensor Ko Garam Karna (PowerShell)</a></li><li><a href="#ch11" data-ch="11">11. Test 4: Sprinklers</a></li><li><a href="#ch12" data-ch="12">12. Test 5: Emergency Dispatch Aur Resolve</a></li><li><a href="#ch13" data-ch="13">13. Test 6: Naqsha Banana Aur Evacuation Raasta</a></li><li><a href="#ch14" data-ch="14">14. Test 7: Incident History Aur Logs</a></li><li><a href="#ch15" data-ch="15">15. Test 8: AI Ko Video Se Camera Ki Tarah Chalana</a></li><li><a href="#ch16" data-ch="16">16. Test 9: Browser Notifications</a></li><li class="part">D · Masle, hifazat aur checklist</li><li><a href="#ch17" data-ch="17">17. Automatic Tests (Ek Click Mein Sab Check)</a></li><li><a href="#ch18" data-ch="18">18. Masle Aur Un Ka Hal</a></li><li><a href="#ch19" data-ch="19">19. Kya Kabhi Na Karein</a></li><li><a href="#ch20" data-ch="20">20. Test Checklist (Print Karke Tick Karein)</a></li></ul></nav>
+  <nav class="toc" aria-label="Fehrist"><ul><li class="part">A · Naye PC par pehli dafa</li><li><a href="#ch1" data-ch="1">1. Ye Guide Kis Ke Liye Hai?</a></li><li><a href="#ch2" data-ch="2">2. Naya PC (1/4): Software Install Karna</a></li><li><a href="#ch3" data-ch="3">3. Naya PC (2/4): Project Laana Aur setup.ps1</a></li><li><a href="#ch4" data-ch="4">4. Naya PC (3/4): .env File Bharna</a></li><li><a href="#ch5" data-ch="5">5. Naya PC (4/4): Database, Start, Login, Stop</a></li><li><a href="#ch6" data-ch="6">6. Safe Test Mode (Test Se Pehle Zaroor)</a></li><li class="part">B · Roz ka istemaal</li><li><a href="#ch7" data-ch="7">7. Roz Ka Kaam: Chalana Aur Band Karna</a></li><li><a href="#ch8" data-ch="8">8. Login Karna</a></li><li><a href="#ch9" data-ch="9">9. Naye Dashboard Ka Tour (Har Page)</a></li><li class="part">C · Har feature ka test</li><li><a href="#ch10" data-ch="10">10. Test 1: Aag Ka Demo (Simulator)</a></li><li><a href="#ch11" data-ch="11">11. Test 2: AI Settings (Photo Aur Sensitivity)</a></li><li><a href="#ch12" data-ch="12">12. Test 3: Sensor Ko Garam Karna</a></li><li><a href="#ch13" data-ch="13">13. Test 4: Sprinklers</a></li><li><a href="#ch14" data-ch="14">14. Test 5: Emergency Dispatch Aur Resolve</a></li><li><a href="#ch15" data-ch="15">15. Test 6: Floor Plan, Raasta, Sensor, Calibration</a></li><li><a href="#ch16" data-ch="16">16. Test 7: Occupancy &amp; Heatmap Aur Crowd Limit</a></li><li><a href="#ch17" data-ch="17">17. Test 8: Incidents, History Aur Smoke</a></li><li><a href="#ch18" data-ch="18">18. Test 9: AI Ko Video Se Camera Ki Tarah Chalana</a></li><li><a href="#ch19" data-ch="19">19. Test 10: Notifications &amp; System Health</a></li><li class="part">D · Masle, hifazat aur checklist</li><li><a href="#ch20" data-ch="20">20. Automatic Tests</a></li><li><a href="#ch21" data-ch="21">21. Masle Aur Un Ka Hal</a></li><li><a href="#ch22" data-ch="22">22. Kya Kabhi Na Karein</a></li><li><a href="#ch23" data-ch="23">23. Test Checklist (Print Karke Tick Karein)</a></li></ul></nav>
   <main>
     <div class="hero">
       <h1>FIREVISION AI</h1>
-      <p>Aam istemaal karne wale ke liye qadam ba qadam: install, roz chalana, login, dashboard ka har hissa, aur har feature ka test, ke screen par kya dikhna chahiye. Test ki boxes yahin tick karein: tick is browser mein yaad rehti hai.</p>
-      <div class="stats"><div><b>2 windows</b>Server (API + Dashboard) · AI service</div><div><b>9 tests</b>Aag demo se camera calibration tak</div><div><b>Safe Test Mode</b>Test mein asli SMS/Email band</div><div><b>Checklist</b>Tick karein, progress upar dikhe</div></div>
+      <p>Aam istemaal karne wale ke liye qadam ba qadam: naye PC par install, roz chalana, login, naye dashboard ka har page, aur har feature ka test, ke screen par kya dikhna chahiye. Test ki boxes yahin tick karein: tick is browser mein yaad rehti hai. (Tareekh: 2026-11-04)</p>
+      <div class="stats"><div><b>3 commands</b>setup.ps1 · start.ps1 · stop.ps1</div><div><b>12 pages</b>Overview se Notifications tak</div><div><b>10 tests</b>Aag demo se Firebase tak</div><div><b>Safe Test Mode</b>Test mein asli SMS/Email/WhatsApp band</div></div>
       <div id="progress" class="progress hidden"><span></span><i><b></b></i><button class="icon" id="reset">Ticks saaf karein</button></div>
     </div>
-    <p class="part-label">A · Shuru karne se pehle</p><section class="chapter" data-ch="1"><h1 id="ch1">1. Ye Guide Kis Ke Liye Hai?</h1>
+    <p class="part-label">A · Naye PC par pehli dafa</p><section class="chapter" data-ch="1"><h1 id="ch1">1. Ye Guide Kis Ke Liye Hai?</h1>
 <p>Ye guide <strong>aam istemaal karne wale</strong> ke liye hai, programmer hona zaroori nahi. Is mein qadam ba qadam likha hai:</p>
 <ol>
-<li>FireVision AI ko pehli dafa computer par kaise <strong>install</strong> karein.</li>
-<li>Roz kaise <strong>chalayein</strong> (start) aur band karein.</li>
-<li>Website (dashboard) ka <strong>har hissa</strong> kya karta hai.</li>
-<li>Har feature ko <strong>khud test</strong> kaise karein, aur test ke baad screen par <strong>kya dikhna chahiye</strong>.</li>
-<li>Masla aaye to <strong>kya karein</strong>.</li>
+<li>FireVision AI ko <strong>kisi bhi naye Windows PC</strong> par pehli dafa kaise <strong>install</strong> karein (Chapter 2–5).</li>
+<li>Roz kaise <strong>chalayein</strong> aur band karein (Chapter 7).</li>
+<li>Naye dashboard ka <strong>har page</strong> kya karta hai (Chapter 9).</li>
+<li>Har feature ko <strong>khud test</strong> kaise karein, aur test ke baad screen par <strong>kya dikhna chahiye</strong> (Chapter 10–19).</li>
+<li>Masla aaye to <strong>kya karein</strong> (Chapter 5 aur 21).</li>
 </ol>
 <h3 id="ch1-firevision-ai-ek-line-mein">FireVision AI ek line mein</h3>
-<p>FireVision AI building ka <strong>"smart chowkidar"</strong> hai. Camera mein AI aag, dhuwan aur insaan pehchaanta hai. Sensors garmi aur dhuwan napte hain. Khatra ho to screen par alarm aata hai, SMS/Email/Push jaate hain, sprinklers chal sakte hain, aur naqshe par <strong>mehfooz raasta</strong> dikhta hai.</p>
+<p>FireVision AI building ka <strong>"smart chowkidar"</strong> hai. Camera mein AI aag, dhuwan aur insaan pehchaanta hai. Sensors garmi aur dhuwan napte hain. Khatra ho to screen par alarm aata hai, SMS/WhatsApp/Telegram/Email/Push ja sakte hain, sprinklers chal sakte hain, naqshe par <strong>mehfooz raasta</strong> dikhta hai, aur har kamre mein <strong>kitne log</strong> hain ye bhi.</p>
 <h3 id="ch1-guide-kaise-parhein">Guide kaise parhein</h3>
 <ul>
-<li><code>Is tarah ke dabbe</code> mein jo likha hai, wo <strong>computer mein type</strong> karna hai (ya copy-paste).</li>
+<li><code>Is tarah ke dabbe</code> mein jo likha hai, wo <strong>computer mein type</strong> karna hai (ya copy-paste; kaale dabbon par <strong>Copy</strong> button hai).</li>
 <li>✅ = test pass hone par yehi dikhna chahiye.</li>
 <li>⚠️ = dhyan dein, zaroori baat.</li>
-<li><code>&lt;project&gt;</code> ka matlab hai project ka folder, is computer par: <code>C:\Users\m_fahad\Desktop\Project</code>.</li>
+<li><code>&lt;project&gt;</code> ka matlab hai project ka folder, jahan aap ne project rakha (misaal <code>C:\Users\&lt;aap ka naam&gt;\Desktop\Project</code>). Neeche ki commands isi folder mein chalti hain.</li>
 </ul>
 <blockquote>
-<p>ℹ️ <strong>Note (2026-10-26 se):</strong> project ab <strong>Django</strong> par chalta hai (folder <code>sentinel-django\</code>): ek hi server dashboard, API aur live updates deta hai, address <strong>http://localhost:5291</strong>. Purana ASP.NET Core + Angular wala hissa hata diya gaya hai. Zyada tar tasveerein (2026-10-28 se) naye <strong>Django dashboard</strong> ki hain, jo test database, asli AI models aur test video ke saath li gayin. Yeh kuch abhi purane Angular dashboard ki hain: <code>evacuation-before.png</code>, <code>evacuation-camera-people.png</code>, <code>camera-safe-danger-zones.png</code> (aur <code>swagger.png</code>, jo ab maujood hi nahi).</p>
+<p>ℹ️ <strong>Note (2026-11-04):</strong> dashboard ka <strong>naya design</strong> aa gaya hai (gehra rang, baen taraf menu). Page ke naam badle hain: Dashboard → <strong>Overview</strong>, Cameras → <strong>Live Cameras</strong>, Building Map → <strong>Floor Plan</strong>, AI Service → <strong>AI Settings</strong>, Reports → <strong>Reports &amp; Analytics</strong>. Do naye pages: <strong>Occupancy &amp; Heatmap</strong> aur <strong>Notifications</strong>. Is guide ki saari tasveerein naye dashboard ki hain aur <strong>nakli (simulated) test data</strong> dikhati hain, asli building nahi.</p>
 </blockquote>
 <h3 id="ch1-3-hifazati-usool-pehle-parh-lein">3 hifazati usool (pehle parh lein)</h3>
 <blockquote>
-<p>⚠️ <strong>1.</strong> Ye system <strong>test aur demo</strong> ke liye hai. Ise asli fire alarm ki jagah <strong>na</strong> lagayein. Asli building mein smoke detectors aur fire panel zaroori hain.</p>
-<p>⚠️ <strong>2.</strong> Test se pehle <strong>"Safe Test Mode"</strong> (Chapter 4) zaroor karein, warna test ke dauran <strong>asli SMS aur Email</strong> chale jayenge.</p>
-<p>⚠️ <strong>3.</strong> Kisi <strong>asli sprinkler, alarm ya camera</strong> ko bina ijazat aur bina safe tareeqe ke system se na jorein.</p>
+<p>⚠️ <strong>1.</strong> Ye system <strong>test aur demo</strong> ke liye hai, production ke liye tayyar ya certified <strong>nahi</strong>. Ise asli fire alarm ki jagah <strong>na</strong> lagayein. Asli building mein smoke detectors aur fire panel zaroori hain.</p>
+<p>⚠️ <strong>2.</strong> Test se pehle <strong>"Safe Test Mode"</strong> (Chapter 6) zaroor karein, warna test ke dauran <strong>asli SMS, WhatsApp, Telegram aur Email</strong> chale jayenge.</p>
+<p>⚠️ <strong>3.</strong> Sprinkler/relay ka button <strong>asli kaam</strong> hai. Kisi <strong>asli sprinkler, alarm ya camera</strong> ko bina ijazat aur bina safe tareeqe ke system se na jorein.</p>
 </blockquote>
-<hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Pehli Dafa: Zaroori Software Install Karna</h1>
-<p>Ye kaam <strong>sirf ek dafa</strong> karna hai. Har software ki official website se download karein.</p>
+<hr /></section><section class="chapter" data-ch="2"><h1 id="ch2">2. Naya PC (1/4): Software Install Karna</h1>
+<p>Ye kaam har naye PC par <strong>sirf ek dafa</strong> karna hai. Zaroorat: <strong>Windows 10 ya 11</strong> (64-bit) aur internet. Har software sirf <strong>official website</strong> se download karein.</p>
 <div class="table-wrap"><table>
 <thead>
-<tr>
-<th>#</th>
-<th>Software</th>
-<th>Kahan se</th>
-<th>Kyun</th>
-</tr>
+<tr><th>#</th><th>Software</th><th>Official link</th><th>Install karte waqt</th></tr>
 </thead>
 <tbody>
-<tr>
-<td>1</td>
-<td><strong>Python 3.13</strong></td>
-<td>python.org (install mein "py launcher" tick rehne dein)</td>
-<td>Server (dashboard + API) aur AI service, dono ke liye</td>
-</tr>
-<tr>
-<td>2</td>
-<td><strong>SQL Server</strong> 2019 ya naya (Developer, Express ya LocalDB, free)</td>
-<td>microsoft.com/sql-server</td>
-<td>Database</td>
-</tr>
-<tr>
-<td>3</td>
-<td><strong>ODBC Driver 18 for SQL Server</strong></td>
-<td>learn.microsoft.com (search: "ODBC Driver 18 for SQL Server")</td>
-<td>Python ko SQL Server se jorne ke liye</td>
-</tr>
+<tr><td>1</td><td><strong>Python 3.13</strong> (64-bit)</td><td><a href="https://www.python.org/downloads/windows/">python.org/downloads/windows</a></td><td>"Windows installer (64-bit)" lein. Pehli screen par <strong>"Add python.exe to PATH"</strong> aur <strong>"Use admin privileges when installing py.exe"</strong> / <strong>py launcher</strong> tick karein, phir <strong>Install Now</strong></td></tr>
+<tr><td>2</td><td><strong>SQL Server 2022</strong> Express ya Developer (dono free)</td><td><a href="https://www.microsoft.com/en-us/sql-server/sql-server-downloads">microsoft.com/sql-server/sql-server-downloads</a></td><td><strong>Basic</strong> chunein. Express ka naam aksar <code>SQLEXPRESS</code> hota hai (Chapter 4 mein kaam aayega); Developer ka naam default <code>MSSQLSERVER</code></td></tr>
+<tr><td>3</td><td><strong>ODBC Driver 18 for SQL Server</strong></td><td><a href="https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server">learn.microsoft.com … download-odbc-driver-for-sql-server</a></td><td>"x64" wala installer, sab default</td></tr>
+<tr><td>4</td><td><strong>Git</strong> (ya project ki zip file)</td><td><a href="https://git-scm.com/download/win">git-scm.com/download/win</a></td><td>Sab default. Zip mili ho to Git ki zaroorat nahi</td></tr>
+<tr><td>–</td><td>SQL Server Management Studio (ikhtiyari)</td><td><a href="https://learn.microsoft.com/en-us/ssms/">learn.microsoft.com/ssms</a></td><td>Sirf database dekhne ke liye, zaroori nahi</td></tr>
+<tr><td>–</td><td>Node.js (ikhtiyari)</td><td><a href="https://nodejs.org/">nodejs.org</a></td><td>Sirf browser wale automatic tests ke liye (Chapter 20). Microsoft Edge bhi unhi ke liye</td></tr>
 </tbody>
 </table></div>
-<p>.NET SDK, Node.js, Angular CLI ya dotnet-ef ki <strong>ab zaroorat nahi</strong>. (Sirf browser wale automatic tests ke liye Node/npm chahiye, Chapter 17; ye zaroori nahi.)</p>
-<p><strong>Check karein ke Python install ho gaya:</strong></p>
+<p>.NET SDK, Angular ya dotnet-ef ki <strong>zaroorat nahi</strong>.</p>
+<p><strong>PowerShell kaise kholein:</strong> Start menu → "PowerShell" likhein → <strong>Windows PowerShell</strong> par click. Install ke baad <strong>nayi</strong> PowerShell kholein (purani window ko naya Python nahi milta).</p>
+<p><strong>Check karein:</strong></p>
 <pre><code class="language-powershell">py -3.13 --version      # Python 3.13.x
 </code></pre>
-<p>✅ Version number dikhe, error nahi. ODBC Driver check: Start → "ODBC Data Sources (64-bit)" → <strong>Drivers</strong> tab mein "ODBC Driver 18 for SQL Server" ho.</p>
-<p><strong>PowerShell kaise kholein:</strong> Start menu → "PowerShell" likhein → <strong>Windows PowerShell</strong> par click.</p>
-<hr /></section><section class="chapter" data-ch="3"><h1 id="ch3">3. Pehli Dafa: Project Ka Setup</h1>
-<p>Ye bhi <strong>sirf ek dafa</strong>.</p>
-<h3 id="ch3-qadam-1-env-file-banana-settings-aur-passwords">Qadam 1: <code>.env</code> file banana (settings aur passwords)</h3>
+<p>✅ <code>Python 3.13.x</code> dikhe, error nahi. Baqi (ODBC, SQL Server) ko agla qadam <code>setup.ps1</code> khud check karta hai.</p>
+<hr /></section><section class="chapter" data-ch="3"><h1 id="ch3">3. Naya PC (2/4): Project Laana Aur setup.ps1</h1>
+<h3 id="ch3-qadam-1-project-laana">Qadam 1: Project computer par laana</h3>
+<p><strong>Tareeqa A (Git):</strong> PowerShell mein (misaal Desktop par):</p>
+<pre><code class="language-powershell">cd $HOME\Desktop
+git clone git@github.com:Fahad082003/FYP-Fire-Detection-System.git Project
+cd Project
+</code></pre>
+<p>(<code>git@github.com</code> wala link GitHub par SSH key mangta hai. Repo ka maalik hi aap ko access de sakta hai.)</p>
+<p><strong>Tareeqa B (zip / USB):</strong> poora project folder copy karein (misaal <code>Desktop\Project</code>), phir PowerShell mein <code>cd</code> se us folder mein jayein. Ya folder kholein → khali jagah par <strong>Shift + Right click</strong> → "Open PowerShell window here" / "Open in Terminal".</p>
+<p>✅ <code>dir</code> likhein: <code>setup.ps1</code>, <code>start.ps1</code>, <code>stop.ps1</code>, <code>sentinel-django</code>, <code>ai-service</code>, <code>database</code> nazar aayein.</p>
+<h3 id="ch3-qadam-2-setup-ps1">Qadam 2: <code>setup.ps1</code> chalana</h3>
+<pre><code class="language-powershell">.\setup.ps1
+</code></pre>
+<p>Agar laal error aaye "running scripts is disabled on this system", to ye chalayein:</p>
+<pre><code class="language-powershell">powershell -ExecutionPolicy Bypass -File .\setup.ps1
+</code></pre>
+<p><strong>setup.ps1 kya karta hai</strong> (har cheez ke aage <code>[OK ]</code> ya <code>[FIX]</code> aur hal likhta hai):</p>
 <ol>
-<li>Project folder kholein: <code>C:\Users\m_fahad\Desktop\Project</code>.</li>
-<li><code>.env.example</code> file ki copy banayein aur naam <code>.env</code> rakhein (is computer par <code>.env</code> pehle se bani hui hai).</li>
-<li><code>.env</code> ko Notepad mein kholein aur ye bharein:</li>
+<li>Python 3.13 check.</li>
+<li>Dono <code>.venv</code> (Server aur AI service) banane aur packages install karne se pehle <strong>poochta hai</strong>: <code>y</code> likh kar Enter. Ye kuch minute leta hai.</li>
+<li>ODBC Driver for SQL Server check.</li>
+<li><code>.env</code> na ho to <code>.env.example</code> se banane se pehle <strong>poochta hai</strong> (<code>y</code>). Purani <code>.env</code> ko kabhi nahi badalta.</li>
+<li>SQL Server aur <code>SentinelDb</code> check (sirf parhta hai, kuch nahi badalta).</li>
+<li>AI model files (<code>ai-service\models\*.onnx</code>, repo mein maujood) ka fingerprint (sha256) check.</li>
 </ol>
+<p>Pehli dafa <code>.env</code> aur database ke <code>[FIX]</code> aana <strong>aam baat</strong> hai. Chapter 4 aur 5 karein, phir <code>.\setup.ps1</code> <strong>dobara</strong> chalayein. Jab tak sab <code>[OK ]</code> na ho, dohraate rahein.</p>
+<p>✅ Aakhir mein: <strong><code>Setup complete. Start Sentinel: .\start.ps1</code></strong></p>
+<hr /></section><section class="chapter" data-ch="4"><h1 id="ch4">4. Naya PC (3/4): .env File Bharna</h1>
+<p><code>.env</code> project folder mein ek text file hai jis mein is PC ki settings aur passwords hain. <code>setup.ps1</code> ne ise <code>.env.example</code> se bana diya hai. Ise <strong>Notepad</strong> mein kholein:</p>
+<pre><code class="language-powershell">notepad .env
+</code></pre>
+<p>Ye lines zaroor bharein (<code>=</code> ke baad, bina space):</p>
 <div class="table-wrap"><table>
 <thead>
-<tr>
-<th>Line</th>
-<th>Kya likhna hai</th>
-</tr>
+<tr><th>Line</th><th>Kis kaam ki</th><th>Kya likhna hai</th></tr>
 </thead>
 <tbody>
-<tr>
-<td><code>Jwt__SigningKey=</code></td>
-<td>Lambi random chaabi (neeche command se banayein)</td>
-</tr>
-<tr>
-<td><code>Device__ApiKey=</code></td>
-<td>Ek aur random chaabi (AI service ka password)</td>
-</tr>
-<tr>
-<td><code>Device__SensorApiKey=</code></td>
-<td>Teesri, <strong>alag</strong> random chaabi (sensors aur simulator ka password). Dono device keys ek jaisi hon to Server start nahi hota</td>
-</tr>
-<tr>
-<td><code>Seed__AdminEmail=</code></td>
-<td>Login email, jaise <code>admin@sentinel.local</code></td>
-</tr>
-<tr>
-<td><code>Seed__AdminPassword=</code></td>
-<td>Apna login password. Khali chhoda to Server pehli dafa ek random password <strong>Server window mein print</strong> karega (sirf ek dafa)</td>
-</tr>
+<tr><td><code>Jwt__SigningKey=</code></td><td>Login ka "mohar" (session sign karta hai)</td><td>Lambi random chaabi, <strong>kam az kam 32 huroof</strong> (neeche command)</td></tr>
+<tr><td><code>Device__ApiKey=</code></td><td>AI service ka password (AI → Server)</td><td>Doosri random chaabi</td></tr>
+<tr><td><code>Device__SensorApiKey=</code></td><td>Sensors aur simulator ka password</td><td>Teesri random chaabi. ⚠️ <strong><code>Device__ApiKey</code> se alag honi chahiye</strong>, warna setup/Server mana kar deta hai</td></tr>
+<tr><td><code>Seed__AdminEmail=</code></td><td>Pehle Admin ka login email</td><td>Jaise <code>admin@sentinel.local</code></td></tr>
+<tr><td><code>Seed__AdminPassword=</code></td><td>Pehle Admin ka password (sirf <strong>khali, naye</strong> database par kaam aata hai)</td><td>Apna mazboot password</td></tr>
+<tr><td><code>ConnectionStrings__Sentinel=</code></td><td>Database ka pata</td><td>Developer (default naam): waise hi chhor dein (<code>Server=localhost;…</code>). <strong>Express</strong>: <code>Server=localhost</code> ko <code>Server=localhost\SQLEXPRESS</code> karein</td></tr>
 </tbody>
 </table></div>
 <p><strong>Random chaabi banane ki command (PowerShell):</strong></p>
 <pre><code class="language-powershell">[Convert]::ToBase64String((1..48 | % {Get-Random -Max 256}))
 </code></pre>
-<p>Jo text aaye, copy karke <code>=</code> ke baad paste karein. <code>Device__ApiKey</code> aur <code>Device__SensorApiKey</code> ke liye alag alag dobara chalayein.</p>
+<p>Jo text aaye, copy karke <code>=</code> ke baad paste karein. Har chaabi ke liye command <strong>alag se dobara</strong> chalayein. Save karein (Ctrl + S).</p>
+<p><strong>Baqi lines ikhtiyari hain</strong> (khali chhor sakte hain): SMS (Twilio), WhatsApp, Email, Firebase, Web Push. Inhein sirf tab bharein jab wo channel chahiye (Chapter 19). <strong>Telegram</strong> aur <strong>GSM modem</strong> <em>Optional / Legacy — Not Part of Current Scope</em> hain: setup mein inhein khali hi rehne dein.</p>
 <blockquote>
-<p>⚠️ <code>.env</code> mein passwords hain. Ise <strong>kisi ko na bhejein</strong>, na internet par daalein.</p>
+<p>⚠️ <code>.env</code> mein passwords hain. Ise <strong>kisi ko na bhejein</strong>, email/WhatsApp na karein, git mein na daalein, internet par na daalein. Har PC ki apni <code>.env</code> hoti hai. Firebase ki service-account JSON file bhi project folder ke <strong>bahar</strong> rakhein.</p>
 </blockquote>
-<h3 id="ch3-qadam-2-database-banana">Qadam 2: Server (Django) ke packages</h3>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-py -3.13 -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
+<hr /></section><section class="chapter" data-ch="5"><h1 id="ch5">5. Naya PC (4/4): Database, Start, Login, Stop</h1>
+<h3 id="ch5-qadam-1-database">Qadam 1: Database (do mein se <strong>ek</strong> raasta)</h3>
+<p><strong>Raasta A: shared copy restore karna</strong> (doosre PC wala data, users aur naqshe saath; SQL Server <strong>2022 ya naya</strong> chahiye):</p>
+<pre><code class="language-powershell">.\database\load.ps1
 </code></pre>
-<p>✅ Kuch minute baad bina laal "ERROR" ke khatam ho, aur <code>sentinel-django\.venv\</code> folder ban jaye.</p>
-<h3 id="ch3-qadam-3-website-ke-packages">Qadam 3: Database</h3>
-<ul>
-<li><strong><code>SentinelDb</code> pehle se hai</strong> (is computer par hai): kuch nahi karna, server usi ko waise hi istemaal karta hai.</li>
-<li><strong>Bilkul naya, khali database:</strong> pehle SQL Server mein <code>SentinelDb</code> naam ka <strong>khali</strong> database banayein (misaal SQL Server Management Studio → Databases → New Database), phir:</li>
-</ul>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python manage.py create_schema
+<p>Ye poochta hai: <code>yes</code> likh kar Enter. ✅ "Restored SentinelDb…". ⚠️ Is PC par pehle se <code>SentinelDb</code> ho to wo <strong>poora badal</strong> jata hai. Express par: <code>.\database\load.ps1 -Server "localhost\SQLEXPRESS"</code>. Login wohi email/password jo us data mein tha.</p>
+<p><strong>Raasta B: bilkul naya, khali database:</strong> pehle SQL Server mein <code>SentinelDb</code> naam ka <strong>khali</strong> database banayein (SQL Server Management Studio → Databases → Right click → New Database). Phir:</p>
+<pre><code class="language-powershell">sentinel-django\.venv\Scripts\python sentinel-django\manage.py create_schema
 </code></pre>
-<p>✅ Ye line aaye: <strong><code>Created the Sentinel tables in 'SentinelDb' …</code></strong>. Ye saari tables bana deta hai. Agar tables pehle se hon to ye <strong>mana kar deta hai</strong> (data mehfooz rehta hai).</p>
+<p>✅ "Created the Sentinel tables in 'SentinelDb' …". Ye sirf <strong>khali</strong> database par chalta hai; tables pehle se hon to mana kar deta hai (data mehfooz). Pehla Admin <code>.env</code> wale <code>Seed__AdminEmail</code> / <code>Seed__AdminPassword</code> se banta hai.</p>
 <blockquote>
-<p>⚠️ <code>SentinelDb</code> par <code>manage.py migrate</code> <strong>kabhi na</strong> chalayein. (System khud bhi ise rok deta hai.)</p>
+<p>⚠️ <code>SentinelDb</code> par <code>manage.py migrate</code> <strong>kabhi na</strong> chalayein. (System khud bhi ise rokta hai.)</p>
 </blockquote>
-<p><strong>Doosre PC ka data chahiye</strong> (misaal office wala data ghar par)? To <code>create_schema</code> ke bajaye <code>.\database\load.ps1</code> chalayein (Chapter 5, "Database doosre PC se").</p>
-<h3 id="ch3-qadam-4-ai-service-ka-setup">Qadam 4: AI service ka setup</h3>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
-py -3.13 -m venv .venv
-.\.venv\Scripts\python -m pip install -r requirements.txt
+<p>Ab <code>.\setup.ps1</code> dobara chalayein: ✅ sab <code>[OK ]</code> aur "Setup complete".</p>
+<h3 id="ch5-qadam-2-start">Qadam 2: System chalana</h3>
+<pre><code class="language-powershell">.\start.ps1
 </code></pre>
-<ul>
-<li>Dono AI models repo ke saath aate hain, kuch download nahi karna.</li>
-<li>Agar <code>ai-service\models\</code> mein koi <code>.onnx</code> file na ho, to <code>.\.venv\Scripts\python tools\download_models.py</code> person model official website se laata hai (sha256 check ke saath).</li>
-</ul>
-<p>✅ <code>ai-service\models\</code> folder mein ye 3 files hon: <code>models.json</code>, <code>yolox_tiny.onnx</code>, <code>fire_smoke_yolox.onnx</code>.</p>
-<hr /></section><section class="chapter" data-ch="4"><h1 id="ch4">4. Safe Test Mode (Test Se Pehle Zaroor)</h1>
-<p><strong>Masla:</strong> is computer ki <code>.env</code> mein <strong>asli</strong> Twilio (SMS) aur Email ki settings hain. Test mein aag ya emergency bani to system <strong>asli logon ko asli SMS/Email</strong> bhej dega.</p>
-<p><strong>Hal: test ke dauran SMS aur Email band karna</strong></p>
+<p>Ek <strong>supervisor window</strong> khulti hai (ise band na karein; ye Server aur AI service chalati hai aur gir jayein to dobara chalati hai). PowerShell intezar karti hai jab tak Server aur AI models tayyar na hon. ✅ Aakhir mein: <strong><code>Sentinel is running. Dashboard: http://localhost:5291   Stop: .\stop.ps1</code></strong></p>
+<p>Aag ka demo bhi chahiye (nakli cameras/sensors, aur Warehouse mein nakli aag):</p>
+<pre><code class="language-powershell">.\start.ps1 -Simulator
+</code></pre>
+<h3 id="ch5-qadam-3-login">Qadam 3: Browser mein kholna aur login</h3>
+<ol>
+<li>Chrome ya Edge mein <strong><a href="http://localhost:5291">http://localhost:5291</a></strong> kholein.</li>
+<li><code>.env</code> wala <code>Seed__AdminEmail</code> aur <code>Seed__AdminPassword</code> likh kar <strong>Sign in</strong> (Chapter 8).</li>
+<li>✅ <strong>Overview</strong> page khule, upar header mein <strong>Live</strong>.</li>
+</ol>
+<h3 id="ch5-qadam-4-stop">Qadam 4: Band karna</h3>
+<pre><code class="language-powershell">.\stop.ps1
+</code></pre>
+<p>✅ "Sentinel stopped. Ports … are free." Data database mein mehfooz rehta hai. (Script block ho to: <code>powershell -ExecutionPolicy Bypass -File .\start.ps1</code> / <code>.\stop.ps1</code>.)</p>
+<h3 id="ch5-agar-kuch-fail-ho">Agar kuch fail ho (pehli dafa ke aam masle)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr><th>Screen par</th><th>Wajah</th><th>Hal</th></tr>
+</thead>
+<tbody>
+<tr><td>"running scripts is disabled"</td><td>Windows script nahi chalne deta</td><td><code>powershell -ExecutionPolicy Bypass -File .\setup.ps1</code> (start/stop/load ke liye bhi yehi tareeqa)</td></tr>
+<tr><td>"Python 3.13 was not found" / <code>py</code> "not recognized"</td><td>Python 3.13 nahi, ya PATH/py launcher tick nahi kiya</td><td>Chapter 2 dobara (dono tick), phir <strong>nayi</strong> PowerShell</td></tr>
+<tr><td><code>[FIX] ODBC driver …</code></td><td>ODBC Driver 18 install nahi</td><td>Chapter 2, #3 install karein</td></tr>
+<tr><td><code>[FIX] .env …</code> "Jwt__SigningKey must be at least 32 characters"</td><td>Chaabi chhoti ya khali</td><td>Chapter 4 ki command se nayi chaabi</td></tr>
+<tr><td>"Device__SensorApiKey must differ from Device__ApiKey"</td><td>Dono device keys ek jaisi</td><td>Ek ke liye nayi chaabi banayein</td></tr>
+<tr><td>"Database unavailable" / "Cannot open server" / login timeout</td><td>SQL Server band, ya Express ka naam <code>.env</code> mein nahi</td><td>Win + R → <code>services.msc</code> → <strong>SQL Server (MSSQLSERVER)</strong> ya <strong>(SQLEXPRESS)</strong> → Start. Express: <code>.env</code> mein <code>Server=localhost\SQLEXPRESS</code></td></tr>
+<tr><td>"SentinelDb has no Sentinel tables"</td><td>Database khali</td><td>Chapter 5, Raasta A ya B</td></tr>
+<tr><td><code>load.ps1</code>: version wala error</td><td>Is PC ka SQL Server purana</td><td>SQL Server 2022 ya naya, ya Raasta B</td></tr>
+<tr><td>"sentinel-django\.venv is missing"</td><td>setup.ps1 poora nahi hua</td><td><code>.\setup.ps1</code> chalayein aur venv par <code>y</code></td></tr>
+<tr><td>"port(s) … already in use"</td><td>Pehle se chal raha hai, ya koi aur program port 5291/8008 par</td><td><code>.\stop.ps1</code>; phir bhi ho to computer restart</td></tr>
+<tr><td>"AI service not ready" / "Model … missing / sha256 mismatch"</td><td>Model file nahi ya kharab</td><td><code>setup.ps1</code> ka bataya hal; <code>models.json</code> na badlein</td></tr>
+<tr><td>Login par ghalat password</td><td>Restore wale data mein purana password, ya <code>Seed__AdminPassword</code> baad mein badla</td><td>Doosre PC wala password istemaal karein</td></tr>
+</tbody>
+</table></div>
+<p>Server ke log: <code>logs\django.log</code>, AI ke <code>logs\ai.log</code>, supervisor ke <code>logs\supervisor.log</code>. Baqi masle Chapter 21 mein.</p>
+<hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Safe Test Mode (Test Se Pehle Zaroor)</h1>
+<p><strong>Masla:</strong> agar <code>.env</code> mein <strong>asli</strong> Twilio (SMS/WhatsApp), Telegram, Email, Firebase ya GSM ki settings hain, to test mein aag ya emergency bani to system <strong>asli logon ko asli message</strong> bhej dega.</p>
+<p><strong>Hal: test ke dauran alert channels band karna</strong></p>
 <ol>
 <li><code>.env</code> Notepad mein kholein.</li>
 <li>In lines ke shuru mein <code>#</code> laga dein (<code>#</code> wali line system parhta hi nahi):</li>
 </ol>
 <pre><code>#Notifications__Sms__TwilioAccountSid=...
 #Notifications__Sms__TwilioAuthToken=...
-#Notifications__Sms__FromNumber=...
-#Notifications__Sms__Recipients=...
+#Notifications__WhatsApp__TwilioAccountSid=...
+#Notifications__WhatsApp__TwilioAuthToken=...
+#Notifications__Telegram__BotToken=...
 #Notifications__Email__SmtpHost=...
+#Notifications__Fcm__ProjectId=...
+#Notifications__Gsm__Port=...
 </code></pre>
 <ol start="3">
-<li>Save karein. Server chal raha ho to band karke dobara chalayein (Chapter 5).</li>
+<li>Save karein, phir <code>.\stop.ps1</code> aur <code>.\start.ps1</code>.</li>
 </ol>
 <p><strong>Is ke baad kya hoga:</strong></p>
 <ul>
-<li>SMS: Live Event Log mein "<strong>skipped (not configured)</strong>". Koi SMS nahi jayega.</li>
-<li>Email: asal mein nahi jayega. Us ka poora text <strong>Server wali PowerShell window</strong> mein print hoga ("console mode"). Test ke liye ye behtareen hai.</li>
-<li>Browser Push: sirf usi browser par jahan aap ne khud <strong>Enable Alerts</strong> dabaya ho.</li>
+<li><strong>Notifications</strong> page ke "Alert channels" mein ye channels <strong>Not configured</strong> dikhenge. Koi SMS/WhatsApp/Telegram nahi jayega.</li>
+<li>Email: asal mein nahi jata, us ka text Server ke log (<code>logs\django.log</code>) mein likha jata hai ("console mode").</li>
+<li>Browser alerts: sirf usi browser par jahan aap ne khud <strong>Enable Alerts</strong> dabaya ho.</li>
 </ul>
-<p><strong>Test khatam hone ke baad</strong> <code>#</code> hata dein taake asli alerts dobara chalein.</p>
-<hr /></section><p class="part-label">B · Roz ka istemaal</p><section class="chapter" data-ch="5"><h1 id="ch5">5. Roz Ka Kaam: System Chalana</h1>
-<h3 id="ch5-sab-se-aasan-ek-click">Sab se aasan: ek click</h3>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
-.\start.ps1
+<p><strong>Test khatam hone ke baad</strong> <code>#</code> hata dein, aur stop/start karein, taake asli alerts dobara chalein.</p>
+<hr /></section><p class="part-label">B · Roz ka istemaal</p><section class="chapter" data-ch="7"><h1 id="ch7">7. Roz Ka Kaam: Chalana Aur Band Karna</h1>
+<p>Project folder mein PowerShell kholein:</p>
+<pre><code class="language-powershell">.\start.ps1               # chalana (demo ke liye: .\start.ps1 -Simulator)
+# browser: http://localhost:5291
+.\stop.ps1                # band karna
 </code></pre>
-<p>Do windows khud khul jati hain (Server = API + Dashboard, aur AI service). ~30 second baad browser mein <strong>http://localhost:5291</strong> kholein. Aag ka demo bhi chahiye to <code>.\start.ps1 -Simulator</code> (teesri window simulator ki). Purana <code>-Django</code> option bhi chalta hai, lekin ab zaroori nahi.</p>
-<blockquote>
-<p>Script block ho to: <code>powershell -ExecutionPolicy Bypass -File .\start.ps1</code>. Band karne ke liye har window band kar dein.</p>
-</blockquote>
-<h3 id="ch5-ya-haath-se-har-hissa-alag-window-mein">Ya haath se (har hissa alag window mein)</h3>
-<p>Windows band na karein jab tak system istemaal ho raha ho.</p>
-<h3 id="ch5-window-1-backend-api">Window 1: Server (API + Dashboard)</h3>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python -m uvicorn config.asgi:application --host 127.0.0.1 --port 5291
-</code></pre>
-<p>✅ Ye line aaye: <strong><code>Uvicorn running on http://127.0.0.1:5291</code></strong></p>
-<p>⚠️ <code>manage.py runserver</code> istemaal na karein: wo live updates nahi bhej sakta. Server sirf <strong>ek</strong> hi chalayein.</p>
-<h3 id="ch5-window-3-ai-service">Window 2: AI Service</h3>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
-$env:SENTINEL_DEVICE_KEY = &#39;&lt;yahan Device__ApiKey&gt;&#39;
-.\.venv\Scripts\python -m sentinel_ai
-</code></pre>
-<p>✅ Ye line aaye: <strong><code>models loaded: ['person', 'fire_smoke'], missing: []</code></strong></p>
-<h3 id="ch5-window-4-sirf-demo-ke-waqt-simulator">Window 3 (sirf demo ke waqt): Simulator</h3>
-<p>Simulator <strong>nakli</strong> cameras, sensors aur aag banata hai, taake asli aag ke baghair demo ho sake (Chapter 8).</p>
-<h3 id="ch5-system-band-karna">System band karna</h3>
-<p>Har window mein <strong>Ctrl + C</strong> dabayein, ya window band kar dein. Data database mein mehfooz rehta hai.</p>
-<h3 id="ch5-database-doosre-pc-se-office-ghar">Database doosre PC se (office ↔ ghar)</h3>
+<p>Supervisor window <strong>khuli rehne dein</strong>. Agar <code>.\start.ps1</code> kahe "Sentinel is already running", to system pehle se chal raha hai: bas browser kholein.</p>
+<h3 id="ch7-database-doosre-pc-se-office-ghar">Database doosre PC se (office ↔ ghar)</h3>
 <p>Dono PCs par ek jaisa data rakhne ke liye database ek backup file (<code>database\SentinelDb.bak</code>) ban kar git se jata hai.</p>
 <p><strong>Kaam khatam karte waqt (jis PC par kaam kiya):</strong></p>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project
+<pre><code class="language-powershell">.\stop.ps1
 .\database\save.ps1
 git add database\SentinelDb.bak
 git commit -m &quot;db: update&quot;
 git push
 </code></pre>
-<p><strong>Doosre PC par kaam shuru karte waqt</strong> (pehle Server band karein):</p>
-<pre><code class="language-powershell">git pull
+<p><strong>Doosre PC par kaam shuru karte waqt:</strong></p>
+<pre><code class="language-powershell">.\stop.ps1
+git pull
 .\database\load.ps1
+.\start.ps1
 </code></pre>
-<p>"yes" likhein. ✅ "Restored SentinelDb…" aaye. Database na ho to ban jata hai, ho to <strong>poora badal</strong> jata hai.</p>
+<p>"yes" likhein. ✅ "Restored SentinelDb…". Database <strong>poora badal</strong> jata hai.</p>
 <blockquote>
-<p>⚠️ Ek waqt mein <strong>ek hi PC</strong> par kaam karein. Dono jagah data badla aur save/load bhool gaye, to ek jagah ka kaam mit jayega. Login wohi email/password chalta hai jo pehle PC par tha.</p>
+<p>⚠️ Ek waqt mein <strong>ek hi PC</strong> par kaam karein. Dono jagah data badla aur save/load bhool gaye, to ek jagah ka kaam mit jayega. <code>.env</code> git mein <strong>nahi</strong> jati: har PC ki apni.</p>
 </blockquote>
-<hr /></section><section class="chapter" data-ch="6"><h1 id="ch6">6. Login Karna</h1>
+<hr /></section><section class="chapter" data-ch="8"><h1 id="ch8">8. Login Karna</h1>
 <ol>
 <li>Browser (Chrome/Edge) kholein: <strong>http://localhost:5291</strong></li>
-<li><strong>Email:</strong> <code>.env</code> wala <code>Seed__AdminEmail</code> (jaise <code>admin@sentinel.local</code>).</li>
-<li><strong>Password:</strong> <code>.env</code> wala <code>Seed__AdminPassword</code>. Khali chhoda tha to pehli dafa Server ki window mein <strong>sirf ek dafa</strong> print hua tha ("GENERATED password").</li>
+<li><strong>Email:</strong> <code>.env</code> wala <code>Seed__AdminEmail</code> (jaise <code>admin@sentinel.local</code>), ya restore kiye data ka email.</li>
+<li><strong>Password:</strong> <code>Seed__AdminPassword</code> (naye database par), ya restore kiye data ka password.</li>
 <li><strong>Sign in</strong> dabayein.</li>
 </ol>
-<p><img alt="Login screen" src="images/login.png" /></p>
-<p>✅ Dashboard khul jaye aur upar dayen taraf <strong>Live</strong> (hara nukta) likha ho.</p>
-<p><strong>Ghalat password:</strong> laal message aayega. Login 8 ghante tak chalta hai, phir dobara login.</p>
-<hr /></section><section class="chapter" data-ch="7"><h1 id="ch7">7. Dashboard Ka Tour (Har Hissa Kya Hai)</h1>
-<p><img alt="Dashboard" src="images/dashboard-fire.png" /></p>
-<h3 id="ch7-upar-ki-patti-top-bar">Upar ki patti (Top bar)</h3>
+<p><img alt="Login screen (naya design)" src="images/ui-login.png" /></p>
+<p>✅ <strong>Overview</strong> page khul jaye aur upar header mein <strong>Live</strong> likha ho.</p>
+<p><strong>Ghalat password:</strong> laal message aayega. Login 8 ghante tak chalta hai, phir dobara login. <strong>Logout</strong> header mein daen taraf hai.</p>
+<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Naye Dashboard Ka Tour (Har Page)</h1>
+<p><img alt="Overview page" src="images/ui-overview.png" /></p>
+<p><em>Tasveer: Overview page, nakli (simulated) test data ke saath.</em></p>
+<h3 id="ch9-rang">Rang ka matlab (har jagah ek jaisa, saath likha bhi hota hai)</h3>
+<p>🔴 <strong>Laal</strong> = Aag · 🟠 <strong>Narangi</strong> = Dhuwan · 🟢 <strong>Hara</strong> = Safe / Normal · 🟡 <strong>Peela</strong> = Attention / Degraded · ⚪ <strong>Gray</strong> = Offline. Severity: <strong>Low</strong> → <strong>Medium</strong> → <strong>High</strong> → <strong>Critical</strong>.</p>
+<h3 id="ch9-sidebar">Baen taraf menu (sidebar)</h3>
 <div class="table-wrap"><table>
 <thead>
-<tr>
-<th>Cheez</th>
-<th>Matlab</th>
-</tr>
+<tr><th>Group</th><th>Page</th><th>Kya hai</th></tr>
 </thead>
 <tbody>
-<tr>
-<td><strong>Dashboard · Floor Plans · AI</strong></td>
-<td>Teen pages ke beech jana</td>
-</tr>
-<tr>
-<td><strong>Beech ka pill</strong></td>
-<td>Hara <strong>"ALL SYSTEMS NOMINAL"</strong> = sab theek <strong>aur</strong> AI chal rahi hai. Peela <strong>"MONITORING DEGRADED · AI OFFLINE"</strong> (ya AI MODEL MISSING / CAMERA OFFLINE / AI DATA STALE / LIVE LINK DOWN; har 10 second, aur AI ke frames 8 second ruk jayein to foran). Incident khula ho to wajah saath likhi jati hai, jaise "ELEVATED RISK · 1 OPEN · AI OFFLINE" = koi incident nahi, lekin <strong>nigrani adhoori hai</strong>: is ka matlab "aag nahi" nahi, balke "dekha hi nahi ja raha". Peela "ELEVATED RISK" / laal "CRITICAL ALERT" = khule incidents</td>
-</tr>
-<tr>
-<td><strong>Live / Offline</strong></td>
-<td>Server se live connection hai ya nahi</td>
-</tr>
-<tr>
-<td><strong>Ghari</strong></td>
-<td>Abhi ka asli waqt, AM/PM ke saath (Windows jaisa)</td>
-</tr>
-<tr>
-<td><strong>🔊 button</strong></td>
-<td>Alarm ki awaaz band/chalu. Koi bhi incident khula ho to alarm <strong>lagatar</strong> bajta hai, jab tak incident <strong>Resolve</strong> na karein ya ye button na dabayein</td>
-</tr>
-<tr>
-<td><strong>Enable Alerts</strong></td>
-<td>Is browser par Push notifications on karna</td>
-</tr>
-<tr>
-<td><strong>Emergency Dispatch</strong> (laal)</td>
-<td>Haath se emergency elaan (Chapter 12)</td>
-</tr>
-<tr>
-<td><strong>Logout</strong></td>
-<td>Bahar nikalna</td>
-</tr>
+<tr><td rowspan="9"><strong>MONITORING</strong></td><td><strong>Overview</strong></td><td>Building ka haal ek nazar mein</td></tr>
+<tr><td><strong>Live Cameras</strong></td><td>Saare camera aur AI ke dabbe</td></tr>
+<tr><td><strong>Floor Plan</strong></td><td>Naqsha, sensors, log, aag ka risk, bahar nikalne ka raasta ("Edit plan" = naqsha banana)</td></tr>
+<tr><td><strong>Occupancy &amp; Heatmap</strong> (naya)</td><td>Har kamre mein kitne log, exits par bheer</td></tr>
+<tr><td><strong>Incidents</strong></td><td>Waqiaat; laal badge = kitne khule hain</td></tr>
+<tr><td><strong>Sensors</strong></td><td>Garmi/dhuwan sensors ki readings</td></tr>
+<tr><td><strong>Sprinklers</strong></td><td>Sprinkler zones aur relays</td></tr>
+<tr><td><strong>Activity Log</strong></td><td>Har waqia live</td></tr>
+<tr><td><strong>Reports &amp; Analytics</strong></td><td>Ginti, graph, aur AI model ki accuracy</td></tr>
+<tr><td rowspan="3"><strong>CONFIGURATION</strong></td><td><strong>AI Settings</strong></td><td>AI ka haal (hara/laal nukta), sensitivity slider, photo test</td></tr>
+<tr><td><strong>Notifications</strong> (naya)</td><td>System health, alert channels, Firebase push</td></tr>
+<tr><td><strong>Settings</strong> (sirf Admin)</td><td>Cameras add/edit/delete</td></tr>
 </tbody>
 </table></div>
-<h3 id="ch7-dashboard-ke-hisse">Dashboard ke hisse</h3>
+<h3 id="ch9-header">Upar ki patti (header, har page par)</h3>
 <div class="table-wrap"><table>
 <thead>
-<tr>
-<th>Hissa</th>
-<th>Kya dikhata hai</th>
-<th>Aap kya kar sakte hain</th>
-</tr>
+<tr><th>Cheez</th><th>Matlab</th></tr>
 </thead>
 <tbody>
-<tr>
-<td><strong>KPI patti</strong> (4 dabbe)</td>
-<td>Khule incidents, insaan, sab se zyada garmi, sab se zyada dhuwan</td>
-<td>Sirf dekhna</td>
-</tr>
-<tr>
-<td><strong>Live Feeds</strong> (cameras)</td>
-<td>Har camera, AI ke boxes aur zones</td>
-<td>All/CCTV/Drone filter, Heatmap on/off, camera par click = bara</td>
-</tr>
-<tr>
-<td><strong>Sensor Telemetry</strong></td>
-<td>6 sensors ke gauges (dhuwan ppm, garmi °C)</td>
-<td>Dekhna</td>
-</tr>
-<tr>
-<td><strong>Smart Sprinklers</strong></td>
-<td>Har sprinkler ON/OFF, Auto/Manual</td>
-<td>Switch, Auto/Manual, Master</td>
-</tr>
-<tr>
-<td><strong>Alert Logs</strong></td>
-<td>Incidents ki list</td>
-<td>Open/All filter, <strong>Resolve</strong></td>
-</tr>
-<tr>
-<td><strong>Live Event Log</strong></td>
-<td>Har waqia (SMS gaya, sprinkler chala…)</td>
-<td>Dekhna</td>
-</tr>
-<tr>
-<td><strong>Incident History &amp; Logs</strong></td>
-<td>Aag ka graph aur history</td>
-<td>Incident aur event type ka filter</td>
-</tr>
-<tr>
-<td><strong>Evacuation Route (estimate)</strong></td>
-<td>Naqsha, mehfooz raasta, aur aag lagne par <strong>risk heatmap</strong></td>
-<td>Naqshe par click = raasta</td>
-</tr>
+<tr><td><strong>Page ka naam</strong></td><td>Aap kis page par hain</td></tr>
+<tr><td><strong>Live / Connecting</strong></td><td>Server se live connection hai ya dobara jur raha hai</td></tr>
+<tr><td><strong>Ghari</strong></td><td>Abhi ka waqt</td></tr>
+<tr><td><strong>Status chip</strong></td><td>Jaise hara "ALL SYSTEMS NOMINAL", peela "ELEVATED RISK · 2 OPEN" ya "MONITORING DEGRADED · AI OFFLINE" (nigrani adhoori: iska matlab "aag nahi" <strong>nahi</strong>, balke "dekha nahi ja raha"), laal "CRITICAL ALERT"</td></tr>
+<tr><td><strong>Emergency dispatch</strong> (laal)</td><td>Haath se emergency elaan (Test 5)</td></tr>
+<tr><td><strong>Enable Alerts</strong></td><td>Is browser par alerts on</td></tr>
+<tr><td><strong>🔊 / 🔇</strong></td><td>Alarm ki awaaz band/chalu. Incident khula ho to alarm lagatar bajta hai</td></tr>
+<tr><td><strong>Avatar, naam, role</strong> · <strong>Logout</strong></td><td>Kaun login hai (Admin/…), aur bahar nikalna</td></tr>
 </tbody>
 </table></div>
-<h3 id="ch7-camera-tile-par-rang">Camera tile par rang</h3>
+<h3 id="ch9-pages">Har page kya dikhata hai</h3>
+<p><strong>Overview:</strong> upar banner (<strong>Building is Safe</strong> / <strong>Warning</strong> / <strong>Emergency</strong> + wajah + buttons), 4 cards (Cameras, Sensors, Sprinklers, Open Incidents, har ek par chip OK / Degraded / Alert / Active / None), <strong>"Needs your attention"</strong> list, aur camera tiles.</p>
+<p><strong>Live Cameras:</strong> har camera ki tile, <strong>LIVE</strong> ya <strong>NO AI DATA</strong>. AI ke dabbe: aag = <strong>bhara laal dabba</strong>, dhuwan = <strong>dashed narangi dabba</strong>, insaan = <strong>hara</strong>. Filters: All / Problems / CCTV / Drone. Camera par click = tafseel.</p>
+<p><img alt="Live Cameras page" src="images/ui-cameras.png" /></p>
+<p><em>Tasveer: Live Cameras, simulated test data.</em></p>
+<p><strong>Floor Plan:</strong> naqsha, camera ke nishan, sensor icons (hara Online, peela Warning, gray Stale/Offline, laal Active alert), insaan ke nuqte, aur do checkbox layers: <strong>People per room</strong> aur <strong>Fire risk</strong>. Naqshe par click = bahar nikalne ka raasta (faasla, chalne ka waqt, exits ka muqabla, rescue list). <strong>Edit plan</strong> = editor.</p>
+<p><img alt="Floor Plan page with route and fire risk" src="images/ui-floor-plan.png" /></p>
+<p><em>Tasveer: Floor Plan, raasta aur fire risk layer, simulated test data.</em></p>
+<p><strong>Occupancy &amp; Heatmap</strong> (naya): 4 cards (People seen now, Rooms with live data, Crowded rooms, Exits near capacity), naqsha jamni (purple) <strong>log-per-kamra heatmap</strong> ke saath (yahan fire risk layer shuru mein band), <strong>"People per room"</strong> table (Live / Stale / Unknown; data na ho to jhoota 0 <strong>nahi</strong>, "Unknown"), aur <strong>"Crowd at the exits"</strong> table (har exit ki taraf kitne log, limit, haal, mashwara jaise "Send people to exit 'X'" ya "No safe alternative route").</p>
+<p><img alt="Occupancy and Heatmap page" src="images/ui-occupancy.png" /></p>
+<p><em>Tasveer: Occupancy &amp; Heatmap, simulated test data.</em></p>
+<p><strong>Incidents</strong> (title "Incident Management"): Fire aur Smoke cards, incidents ki list (severity chip, <strong>SMOKE</strong> tag, <strong>Resolve</strong> / <strong>False alarm</strong>), incident ki tafseel (aag ka size, dhuwan, log, waqt), aur <strong>"What happened"</strong> history filters ke saath.</p>
+<p><img alt="Incidents page" src="images/ui-incidents.png" /></p>
+<p><em>Tasveer: Incidents, simulated test data.</em></p>
+<p><strong>Sensors:</strong> table (reading, limit, Normal/Warning/Alarm/Critical/Not reporting/Stale, aakhri update, chhota graph); click = history.</p>
+<p><img alt="Sensors page" src="images/ui-sensors.png" /></p>
+<p><strong>Sprinklers:</strong> zones aur relays (Auto/Manual). ⚠️ Relay on karna <strong>asli kaam</strong> hai (asli hardware jura ho to paani chalega).</p>
+<p><img alt="Sprinklers page" src="images/ui-sprinklers.png" /></p>
+<p><strong>Activity Log:</strong> har waqia live, filters ke saath.</p>
+<p><img alt="Activity Log page" src="images/ui-activity.png" /></p>
+<p><strong>Reports &amp; Analytics:</strong> din ki range (7/30 din, ya apni), kul ginti, har din ka graph, severity aur source ke hisaab (source mein ab <strong>Crowd</strong> bhi), aur <strong>"Model accuracy (offline evaluation against labelled images)"</strong>: precision, recall, F1, AP50, TP/FP/FN/TN. ⚠️ Incidents ki ginti accuracy <strong>nahi</strong> hai; accuracy sirf labelled photos par offline jaanch se aati hai.</p>
+<p><img alt="Reports page" src="images/ui-reports.png" /></p>
+<p><img alt="Reports: model accuracy" src="images/ui-reports-model-accuracy.png" /></p>
+<p><em>Tasveerein: Reports &amp; Analytics aur Model accuracy, simulated test data.</em></p>
+<p><strong>AI Settings:</strong> AI service ka haal, har model ka card <strong>"Detection threshold"</strong> slider ke saath (Test 2), camera sources, aur <strong>"Test with a picture"</strong>.</p>
+<p><strong>Notifications</strong> ("Notifications &amp; System Health", naya): health cards (Database, Django Backend, AI Service, AI Models, Cameras, Sensors, Live Updates, Simulator; har 10 second taaza, <strong>Show details</strong>), alert channels table (Configured / Not configured / Disabled + wajah), <strong>"Push notifications on this browser (Firebase)"</strong> panel, aur <strong>"Recent notification activity"</strong>. Har service ki latency: "Data Not Available".</p>
+<p><img alt="Notifications and System Health page" src="images/ui-notifications.png" /></p>
+<p><em>Tasveer: Notifications &amp; System Health, simulated test data.</em></p>
+<p><strong>Settings</strong> (sirf Admin): cameras add/edit/delete (stream link, zone, format).</p>
+<p><img alt="Settings page (cameras)" src="images/ui-settings.png" /></p>
+<h3 id="ch9-phone">Phone par</h3>
+<p>Phone par menu chhupa hota hai: upar baen taraf <strong>☰</strong> dabayein, menu ek drawer ki tarah khulta hai. (Tablet ka layout abhi target nahi.)</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Rang</th>
-<th>Matlab</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>🔴 Laal dabba (dhadakta)</td>
-<td>Aag</td>
-</tr>
-<tr>
-<td>⚪ Gray dabba</td>
-<td>Dhuwan</td>
-</tr>
-<tr>
-<td>🟢 Hara dabba</td>
-<td>Mehfooz insaan</td>
-</tr>
-<tr>
-<td>🟠 Amber "IN DANGER"</td>
-<td>Insaan khatre ke zone mein</td>
-</tr>
-<tr>
-<td>🔴 Laal dashed shakal</td>
-<td>Danger zone</td>
-</tr>
-<tr>
-<td>🟢 Hari shakal</td>
-<td>Safe zone (assembly point)</td>
-</tr>
-<tr>
-<td><strong>SIM DATA</strong> chip</td>
-<td>Data nakli (test) hai</td>
-</tr>
-<tr>
-<td><strong>NO AI DATA</strong></td>
-<td>AI se 1.5 second se data nahi aaya</td>
-</tr>
-</tbody>
+<thead><tr><th>Phone: Overview</th><th>Phone: menu khula</th></tr></thead>
+<tbody><tr><td><img alt="Overview on a phone" src="images/ui-phone-overview.png" /></td><td><img alt="Phone menu drawer" src="images/ui-phone-menu.png" /></td></tr></tbody>
 </table></div>
-<h3 id="ch7-severity-khatre-ka-darja">Severity (khatre ka darja)</h3>
-<p><strong>Low</strong> (halka) → <strong>Medium</strong> → <strong>High</strong> (zyada) → <strong>Critical</strong> (sab se khatarnak).</p>
-<hr /></section><p class="part-label">C · Har feature ka test</p><section class="chapter" data-ch="8"><h1 id="ch8">8. Test 1: Aag Ka Demo (Simulator)</h1>
+<p><em>Tasveerein: simulated test data.</em></p>
+<hr /></section><p class="part-label">C · Har feature ka test</p><section class="chapter" data-ch="10"><h1 id="ch10">10. Test 1: Aag Ka Demo (Simulator)</h1>
 <p><strong>Maqsad:</strong> dekhna ke aag lagne par poora system kaise react karta hai.</p>
 <blockquote>
-<p>⚠️ Pehle <strong>Safe Test Mode</strong> (Chapter 4) karein. Is demo mein insaan danger zone mein aate hain, jo <strong>emergency</strong> hai, aur SMS/Email chalte hain.</p>
+<p>⚠️ Pehle <strong>Safe Test Mode</strong> (Chapter 6) karein. Is demo mein insaan danger zone mein aate hain, jo <strong>emergency</strong> hai, aur alerts chalte hain.</p>
 </blockquote>
 <p><strong>Qadam:</strong></p>
 <ol>
-<li>Window 1 (Server) chal rahi ho. Login karein.</li>
-<li><code>.env</code> se apni <code>Device__ApiKey</code> aur <code>Device__SensorApiKey</code> copy karein.</li>
-<li>Nayi PowerShell window (Window 3):</li>
-</ol>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python tools\simulator.py --device-key &lt;yahan Device__ApiKey&gt; --sensor-key &lt;yahan Device__SensorApiKey&gt; --ignite &quot;Ground Floor - Warehouse&quot;
-</code></pre>
-<p>(Ya seedha <code>.\start.ps1 -Simulator</code>: ye simulator ki window khud khol deta hai.)</p>
-<ol start="4">
-<li>Browser mein Dashboard dekhein.</li>
+<li>System band ho to: <code>.\start.ps1 -Simulator</code>. (Chal raha ho to pehle <code>.\stop.ps1</code>.) Ye nakli cameras/sensors chalata hai aur <strong>Ground Floor - Warehouse</strong> mein nakli aag lagata hai.</li>
+<li>Login karein aur <strong>Overview</strong> dekhein.</li>
 </ol>
 <p><strong>✅ Kya dikhna chahiye (1–2 minute mein):</strong></p>
 <ul>
-<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> Cameras par boxes hilte hue. <strong>SIM DATA</strong> chip.</li>
-<li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> <strong>Warehouse Floor</strong> (Ground Floor - Warehouse) camera par laal aag ka dabba aur laal danger zone, hari "assembly point".</li>
-<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> Upar pill laal: <strong>CRITICAL ALERT</strong>. Alarm <strong>lagatar</strong> bajta hai (Resolve karne ya 🔊 dabane tak).</li>
-<li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> <strong>Alert Logs</strong> mein naya incident, Location "Ground Floor - Warehouse", Severity High/Critical.</li>
-<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> <strong>Live Event Log</strong> mein lines: incident khula, SMS "skipped", email (Server window mein print).</li>
-<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> Ground Floor - Warehouse ke garmi/dhuwan gauges barhte hue.</li>
-<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> Ground Floor - Warehouse ke <strong>Auto</strong> sprinklers <strong>khud chal jaate hain</strong> ("spraying"). Demo setting (<code>SENTINEL_DEBUG</code>, ya <code>Alerts__AutoSprinklerOnSimulatedData=true</code>) mein simulated data par bhi chalte hain; asli hardware nahi, sirf database.</li>
+<li class="task"><input type="checkbox" data-task="1" aria-label="Ho gaya"> <strong>Live Cameras</strong> par dabbe hilte hue, <strong>SIMULATED DATA</strong> nishan.</li>
+<li class="task"><input type="checkbox" data-task="2" aria-label="Ho gaya"> <strong>Warehouse Floor</strong> camera par bhara laal aag ka dabba.</li>
+<li class="task"><input type="checkbox" data-task="3" aria-label="Ho gaya"> Header chip laal <strong>CRITICAL ALERT</strong>, Overview banner <strong>Emergency</strong>. Alarm lagatar bajta hai (Resolve ya 🔊 tak).</li>
+<li class="task"><input type="checkbox" data-task="4" aria-label="Ho gaya"> <strong>Incidents</strong> mein naya incident, "Ground Floor - Warehouse", High/Critical; sidebar par laal badge.</li>
+<li class="task"><input type="checkbox" data-task="5" aria-label="Ho gaya"> <strong>Activity Log</strong> mein lines: incident khula, notifications.</li>
+<li class="task"><input type="checkbox" data-task="6" aria-label="Ho gaya"> <strong>Sensors</strong> par Warehouse ki garmi/dhuwan barhti hui.</li>
+<li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> <strong>Sprinklers</strong>: Warehouse ke <strong>Auto</strong> sprinklers khud Active (demo setting mein simulated data par bhi; is project mein sirf database, koi asli hardware nahi).</li>
 </ul>
-<p><strong>Band karna:</strong> Window 3 mein <strong>Ctrl + C</strong>.</p>
-<p><strong>Camera lost check (simulator band karne ke baad):</strong></p>
+<p><strong>Band karna:</strong> <code>.\stop.ps1</code>, phir simulator ke baghair <code>.\start.ps1</code>.</p>
+<p><strong>Camera lost check (simulator ke baghair chalane ke baad):</strong></p>
 <ul>
-<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> ~10–12 second baad <strong>Alert Logs</strong> mein har camera ke liye ek incident, Source <strong>Camera lost</strong>: "Camera lost: no frames from … for 10 s".</li>
-<li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> Ground Floor - Warehouse ke cameras (jahan aag thi) <strong>High</strong>, baqi <strong>Medium</strong>.</li>
-<li class="task"><input type="checkbox" data-task="10" aria-label="Ho gaya"> Simulator dobara chalayein: Live Event Log mein "Camera … is sending frames again". Phir purane "Camera lost" incidents <strong>Resolve</strong> kar dein.</li>
+<li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> ~10–12 second baad <strong>Incidents</strong> mein har nakli camera ke liye "Camera lost: no frames from … for 10 s".</li>
+<li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> Warehouse ke cameras (jahan aag thi) <strong>High</strong>, baqi <strong>Medium</strong>. Test ke baad sab <strong>Resolve</strong> kar dein.</li>
 </ul>
-<p><strong>Simulator ke options:</strong></p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Kaam</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--ignite "Ground Floor - Lobby"</code></td>
-<td>Us zone mein foran aag (kai dafa likh sakte hain)</td>
-<td>—</td>
-</tr>
-<tr>
-<td><code>--fps 2</code></td>
-<td>Har camera ke frames per second</td>
-<td>5</td>
-</tr>
-<tr>
-<td><code>--fire-probability 0</code></td>
-<td>Khud se random aag band</td>
-<td>0.004</td>
-</tr>
-<tr>
-<td><code>--telemetry-interval 5</code></td>
-<td>Sensors kitne second baad</td>
-<td>2</td>
-</tr>
-</tbody>
-</table></div>
-<hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Test 2: AI Ko Photo Dikhana (AI Page)</h1>
-<p><strong>Maqsad:</strong> dekhna ke AI models asal mein aag, dhuwan aur insaan pehchaante hain.</p>
-<p><strong>Test photo kahan se:</strong> aag wali koi bhi photo (JPG/PNG, 5 MB tak). D-Fire dataset ki test photos <code>Desktop\sentinel-colab\D-Fire.zip</code> ke andar <code>test\images\</code> mein hain (misaal <code>AoF07831.jpg</code>). Insaan wali koi bhi photo.</p>
-<p><strong>Qadam:</strong></p>
+<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Test 2: AI Settings (Photo Aur Sensitivity)</h1>
+<h3 id="ch11-a-photo">A. AI ko photo dikhana</h3>
+<p><strong>Test photo:</strong> aag/dhuwan wali koi bhi photo (JPG/PNG, 5 MB tak), aur ek bina aag wali photo (insaan wali).</p>
 <ol>
-<li>Window 1 (Server) aur Window 2 (AI service) chal rahi hon.</li>
-<li>Upar menu mein <strong>AI</strong> par click.</li>
-<li>Baen taraf dekhein: hara <strong>ONLINE · all models loaded</strong>, dono models (<code>person</code>, <code>fire_smoke</code>) ke aage hara nukta.</li>
-<li>Daen taraf <strong>Choose image…</strong> dabayein aur photo chunein.</li>
-<li>1–3 second intezar.</li>
+<li><code>.\start.ps1</code> chal raha ho. Sidebar → <strong>AI Settings</strong>.</li>
+<li>✅ AI service ka haal hara, dono models (<code>person</code>, <code>fire_smoke</code>) loaded; sidebar mein AI Settings ke aage <strong>hara nukta</strong>.</li>
+<li><strong>Test with a picture</strong> → photo chunein → <strong>Analyze</strong>. 1–3 second intezar.</li>
 </ol>
-<p><img alt="AI page" src="images/ai-tab-fire.png" /></p>
-<p><strong>✅ Kya dikhna chahiye:</strong></p>
 <ul>
-<li class="task"><input type="checkbox" data-task="11" aria-label="Ho gaya"> Photo par dabbe: aag <strong>laal</strong>, dhuwan <strong>gray</strong>, insaan <strong>hara</strong>.</li>
-<li class="task"><input type="checkbox" data-task="12" aria-label="Ho gaya"> Neeche line: model ke naam, kitne ms lage, "fire Medium", "smoke yes", "people 0".</li>
-<li class="task"><input type="checkbox" data-task="13" aria-label="Ho gaya"> Table: Class, Confidence (jaise 83%), Box, aur <strong>Why (evidence)</strong> yaani AI ne kyun kaha.</li>
-<li class="task"><input type="checkbox" data-task="14" aria-label="Ho gaya"> Bina aag wali photo par aag ka dabba <strong>na</strong> aaye.</li>
+<li class="task"><input type="checkbox" data-task="10" aria-label="Ho gaya"> Photo par dabbe: aag laal, dhuwan narangi, insaan hara; table mein Class, Confidence, Box, Why.</li>
+<li class="task"><input type="checkbox" data-task="11" aria-label="Ho gaya"> Bina aag wali photo par aag ka dabba <strong>na</strong> aaye.</li>
 </ul>
-<p><strong>Yaad rakhein:</strong></p>
-<ul>
-<li>Ye sirf <strong>preview</strong> hai: koi incident, alert ya sprinkler <strong>nahi</strong> chalta.</li>
-<li>AI se kabhi galti ho sakti hai. Kuch na mile to iska matlab ye nahi ke jagah mehfooz hai.</li>
-</ul>
-<p><strong>Masla:</strong></p>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Screen par</th>
-<th>Matlab</th>
-<th>Hal</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Laal <strong>OFFLINE</strong></td>
-<td>AI service band hai</td>
-<td>Window 2 chalayein</td>
-</tr>
-<tr>
-<td>Peela "some models missing"</td>
-<td>Koi model file nahi</td>
-<td><code>ai-service\models\</code> check (Chapter 3, Qadam 4)</td>
-</tr>
-<tr>
-<td>"sha256 mismatch"</td>
-<td>Model file badli ya kharab</td>
-<td>Sahi file dobara copy karein</td>
-</tr>
-</tbody>
-</table></div>
-<hr /></section><section class="chapter" data-ch="10"><h1 id="ch10">10. Test 3: Sensor Ko Garam Karna (PowerShell)</h1>
-<p><strong>Maqsad:</strong> dekhna ke garmi barhne par Warning, Alarm aur Critical sahi waqt par aate hain.</p>
-<p>Pehle ye kaam Swagger page se hota tha; Django mein <strong>Swagger page nahi hai</strong>. Ab hum PowerShell se seedha sensor ki reading bhejte hain, bilkul waise jaise asli sensor (machine) bhejta hai: <code>X-Device-Key</code> header mein <code>.env</code> wali <code>Device__SensorApiKey</code> (sensor key; AI wali key par 403 aata hai).</p>
-<p>Neeche purani tasveer sirf hawale ke liye hai (Swagger ab nahi hai):</p>
-<p><img alt="Swagger" src="images/swagger.png" /></p>
-<p><strong>Qadam A: tayyari</strong></p>
+<p>Ye sirf <strong>preview</strong> hai: koi incident, alert ya sprinkler <strong>nahi</strong> chalta. Ek photo mein 3-frame check nahi hota, is liye live camera se zyada false alarm ho sakte hain.</p>
+<h3 id="ch11-b-slider">B. Sensitivity slider (sirf Admin)</h3>
+<p><img alt="AI Settings with detection threshold slider" src="images/ui-ai-settings.png" /></p>
+<p><em>Tasveer: AI Settings, simulated test data.</em></p>
 <ol>
-<li>Window 1 (Server) chal rahi ho aur browser mein Dashboard khula ho.</li>
-<li>Nayi PowerShell window kholein aur apni device key rakhein:</li>
+<li><code>fire_smoke</code> model ke card par <strong>Detection threshold</strong> slider (0.25 = More sensitive … 0.55 = Fewer alerts). Default: fire_smoke 0.40, person 0.45.</li>
+<li>Slider ko misaal 0.35 par le jayein: value saath saath dikhe, "(current 0.40)" bhi.</li>
+<li><strong>Apply</strong> dabayein.</li>
 </ol>
+<ul>
+<li class="task"><input type="checkbox" data-task="12" aria-label="Ho gaya"> Naya value tab hi "active" dikhe jab AI service ne use maan liya ho.</li>
+<li class="task"><input type="checkbox" data-task="13" aria-label="Ho gaya"> <strong>Activity Log</strong> mein <code>SettingChanged</code> line.</li>
+<li class="task"><input type="checkbox" data-task="14" aria-label="Ho gaya"> <code>.\stop.ps1</code> + <code>.\start.ps1</code> ke baad bhi wohi value (ye <code>ai-service\models\thresholds.local.json</code> mein mehfooz hoti hai). Test ke baad wapas <strong>0.40</strong> karein.</li>
+</ul>
+<blockquote>
+<p>⚠️ Kam value = <strong>zyada sensitive</strong>: zyada alerts aur zyada false alarms. Zyada value = kam alerts, lekin asli aag chhoot sakti hai.</p>
+</blockquote>
+<p><strong>Masla:</strong> laal <strong>OFFLINE</strong> = AI service band (<code>.\stop.ps1</code>, <code>.\start.ps1</code>, <code>logs\ai.log</code> dekhein). "some models missing" / "sha256 mismatch" = model file nahi ya kharab (<code>.\setup.ps1</code> bata dega).</p>
+<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Test 3: Sensor Ko Garam Karna (PowerShell)</h1>
+<p><strong>Maqsad:</strong> dekhna ke garmi barhne par Warning, Alarm aur Critical sahi waqt par aate hain. Hum PowerShell se waise hi reading bhejte hain jaise asli sensor bhejta hai, <code>X-Device-Key</code> header mein <code>.env</code> wali <code>Device__SensorApiKey</code> (AI wali key par 403).</p>
+<p><strong>Qadam A:</strong> nayi PowerShell mein apni sensor key rakhein:</p>
 <pre><code class="language-powershell">$key = &#39;&lt;yahan Device__SensorApiKey&gt;&#39;
 </code></pre>
-<p><strong>Qadam B: garmi bhejna</strong></p>
-<ol>
-<li>Sensor <strong><code>temp-b1</code></strong> (Ground Floor - Warehouse ka temperature sensor; threshold 57°C). Ye command ek reading bhejti hai (yahan <code>30</code>):</li>
-</ol>
+<p><strong>Qadam B:</strong> sensor <strong><code>temp-b1</code></strong> (Ground Floor - Warehouse, limit 57°C) ko reading bhejein:</p>
 <pre><code class="language-powershell">Invoke-RestMethod -Method Post -Uri http://localhost:5291/api/iot/sensors/temp-b1/readings -Headers @{ &#39;X-Device-Key&#39; = $key } -ContentType &#39;application/json&#39; -Body &#39;{ &quot;value&quot;: 30 }&#39;
 </code></pre>
-<p>✅ Jawab mein sensor ka haal aaye: <code>id</code> = <code>temp-b1</code>, <code>currentValue</code> = <code>30</code>, <code>state</code> = <code>Normal</code>. Ghalat key par <strong>401</strong> error.</p>
-<ol start="2">
-<li>Ab <code>-Body</code> mein ek ek karke ye values bhejein (sirf number badlein), har dafa Dashboard dekhein:</li>
-</ol>
+<p>✅ Jawab: <code>id</code> = <code>temp-b1</code>, <code>currentValue</code> = <code>30</code>, <code>state</code> = <code>Normal</code>. Ghalat key par <strong>401</strong>.</p>
+<p>Ab sirf number badal kar bhejein, har dafa <strong>Sensors</strong> page dekhein:</p>
 <div class="table-wrap"><table>
 <thead>
-<tr>
-<th>Value</th>
-<th>Kya hona chahiye</th>
-<th>Hisaab</th>
-</tr>
+<tr><th>Value</th><th>Kya hona chahiye</th><th>Hisaab</th></tr>
 </thead>
 <tbody>
-<tr>
-<td><code>{ "value": 30 }</code></td>
-<td>✅ Normal, kuch nahi</td>
-<td>45.6 se kam</td>
-</tr>
-<tr>
-<td><code>{ "value": 50 }</code></td>
-<td>✅ Gauge <strong>peela</strong> (Warning), Live Event Log mein "Normal → Warning", incident nahi</td>
-<td>≥ 57 × 0.8 = 45.6</td>
-</tr>
-<tr>
-<td><code>{ "value": 60 }</code></td>
-<td>✅ <strong>High</strong> incident + Ground Floor - Warehouse ke <strong>Auto</strong> sprinklers ON</td>
-<td>≥ 57</td>
-</tr>
-<tr>
-<td><code>{ "value": 75 }</code></td>
-<td>✅ <strong>Critical</strong> incident + <strong>emergency</strong> notifications + sprinklers</td>
-<td>≥ 57 × 1.25 = 71.25</td>
-</tr>
+<tr><td><code>30</code></td><td>✅ Normal, kuch nahi</td><td>45.6 se kam</td></tr>
+<tr><td><code>50</code></td><td>✅ Peela <strong>Warning</strong>, incident nahi</td><td>≥ 57 × 0.8 = 45.6</td></tr>
+<tr><td><code>60</code></td><td>✅ <strong>High</strong> incident + Warehouse ke <strong>Auto</strong> sprinklers ON</td><td>≥ 57</td></tr>
+<tr><td><code>75</code></td><td>✅ <strong>Critical</strong> incident + emergency notifications + sprinklers</td><td>≥ 57 × 1.25 = 71.25</td></tr>
 </tbody>
 </table></div>
-<p><strong>Sensor IDs</strong> (ye demo data ke sensors hain, jo pehli dafa start par bante hain jab demo data on ho, <code>Seed__DemoData</code> ya <code>SENTINEL_DEBUG</code>; na milein to jawab mein "Sensor '…' not found"):</p>
+<p><strong>Demo sensor IDs</strong> (demo data on ho to bante hain; na milein to "Sensor '…' not found"):</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Zone</th>
-<th>Dhuwan (threshold 300 ppm)</th>
-<th>Garmi (threshold 57°C)</th>
-</tr>
-</thead>
+<thead><tr><th>Zone</th><th>Dhuwan (limit 300 ppm)</th><th>Garmi (limit 57°C)</th></tr></thead>
 <tbody>
-<tr>
-<td>Ground Floor - Lobby</td>
-<td><code>smoke-a1</code></td>
-<td><code>temp-a1</code></td>
-</tr>
-<tr>
-<td>Ground Floor - Warehouse</td>
-<td><code>smoke-b1</code></td>
-<td><code>temp-b1</code></td>
-</tr>
-<tr>
-<td>First Floor - Server Hall</td>
-<td><code>smoke-c1</code></td>
-<td><code>temp-c1</code></td>
-</tr>
+<tr><td>Ground Floor - Lobby</td><td><code>smoke-a1</code></td><td><code>temp-a1</code></td></tr>
+<tr><td>Ground Floor - Warehouse</td><td><code>smoke-b1</code></td><td><code>temp-b1</code></td></tr>
+<tr><td>First Floor - Server Hall</td><td><code>smoke-c1</code></td><td><code>temp-c1</code></td></tr>
 </tbody>
 </table></div>
 <p>Dhuwan ke liye Critical = 300 × 1.5 = <strong>450 ppm</strong>.</p>
+<ul>
+<li class="task"><input type="checkbox" data-task="15" aria-label="Ho gaya"> 50 = Warning, 60 = High, 75 = Critical sahi aaye.</li>
+</ul>
 <blockquote>
-<p>⚠️ Sensor ka data <strong>asli</strong> maana jata hai (SIMULATED nahi), is liye Alarm/Critical par Auto sprinklers <strong>chal jate hain</strong>. Is project mein sprinklers sirf database mein hain, koi asli hardware nahi. Test ke baad unhein OFF karein (Chapter 11).</p>
+<p>⚠️ Sensor ka data <strong>asli</strong> maana jata hai (SIMULATED nahi), is liye Alarm/Critical par Auto sprinklers <strong>chal jate hain</strong>. Asli relay jura ho to paani chalega. Test ke baad sprinklers OFF aur incidents Resolve karein.</p>
 </blockquote>
-<hr /></section><section class="chapter" data-ch="11"><h1 id="ch11">11. Test 4: Sprinklers</h1>
-<p><strong>Dashboard → Smart Sprinklers</strong> panel.</p>
+<hr /></section><section class="chapter" data-ch="13"><h1 id="ch13">13. Test 4: Sprinklers</h1>
+<p>Sidebar → <strong>Sprinklers</strong>. "Auto = emergency mein apne area mein khud khulta hai. Manual = sirf insaan kholta hai." Har switch badalne se pehle <strong>ek dafa poochta</strong> hai.</p>
+<blockquote>
+<p>⚠️ Sprinkler/relay on karna <strong>asli kaam</strong> hai. Asli hardware jura ho to sirf ijazat ke saath, aur kisi ko paas khara rakh kar test karein.</p>
+</blockquote>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Kaam</th>
-<th>Kaise</th>
-<th>✅ Kya dikhe</th>
-</tr>
-</thead>
+<thead><tr><th>Kaam</th><th>Kaise</th><th>✅ Kya dikhe</th></tr></thead>
 <tbody>
-<tr>
-<td>Ek sprinkler ON/OFF</td>
-<td>Us ka switch dabayein</td>
-<td>Switch badle, Live Event Log mein line</td>
-</tr>
-<tr>
-<td><strong>Auto</strong> mode</td>
-<td>"Auto" button</td>
-<td>Alarm/emergency par system khud chala sakta hai</td>
-</tr>
-<tr>
-<td><strong>Manual</strong> mode</td>
-<td>"Manual" button</td>
-<td>System khud nahi chalayega, sirf aap</td>
-</tr>
-<tr>
-<td><strong>Master</strong></td>
-<td>Upar "Master" switch → confirm</td>
-<td>Saare sprinklers ek saath ON/OFF</td>
-</tr>
+<tr><td>Ek sprinkler ON/OFF</td><td>Sprinkler par click → confirm</td><td>Haal badle (Ready / Manual / Active), Activity Log mein line</td></tr>
+<tr><td><strong>Auto</strong> / <strong>Manual</strong></td><td>Sprinkler ka Auto ya Manual button</td><td>Mode badle</td></tr>
+<tr><td>Sab ek saath</td><td><strong>Turn ALL on…</strong> / <strong>Turn ALL off…</strong> → confirm</td><td>Saare relays (Manual wale bhi) ON/OFF</td></tr>
 </tbody>
 </table></div>
-<p><strong>Check:</strong> ek sprinkler <strong>Manual</strong> karein, phir Test 3 mein <code>75</code> bhejein. ✅ Manual wala sprinkler <strong>OFF</strong> rehna chahiye. Auto wale ON.</p>
-<p><strong>Yaad rakhein:</strong> sprinkler khud OFF <strong>nahi</strong> hota. Aag ke baad aap OFF karein.</p>
-<hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Test 5: Emergency Dispatch Aur Resolve</h1>
-<p><strong>Maqsad:</strong> haath se emergency elaan karna, phir incident band karna.</p>
-<blockquote>
-<p>⚠️ Dispatch <strong>foran</strong> SMS/Email/Push bhejta hai. Pehle Safe Test Mode (Chapter 4).</p>
-</blockquote>
-<p><strong>Qadam:</strong></p>
-<ol>
-<li>Upar laal <strong>Emergency Dispatch</strong>.</li>
-<li>Form:<ul>
-<li><strong>Zone:</strong> jaise <code>Ground Floor - Warehouse</code></li>
-<li><strong>Severity:</strong> Low / Medium / High / Critical</li>
-<li><strong>Message:</strong> jaise "Test: Ground Floor - Warehouse khaali karein" (500 huroof tak)</li>
-<li><strong>Activate all sprinklers in this zone:</strong> tick sirf agar sprinklers chalane hon</li>
-</ul>
-</li>
-<li><strong>Dispatch Now</strong> dabayein.</li>
-</ol>
-<p><img alt="Emergency Dispatch" src="images/dispatch-dialog.png" /></p>
-<p><strong>✅ Kya dikhna chahiye:</strong></p>
 <ul>
-<li class="task"><input type="checkbox" data-task="15" aria-label="Ho gaya"> Alert Logs mein naya incident (Source: Manual).</li>
-<li class="task"><input type="checkbox" data-task="16" aria-label="Ho gaya"> Live Event Log: SMS skipped, email Server window mein.</li>
+<li class="task"><input type="checkbox" data-task="16" aria-label="Ho gaya"> Ek sprinkler <strong>Manual</strong> karein, phir Test 3 mein <code>75</code> bhejein: Manual wala <strong>OFF</strong> rahe, Auto wale ON.</li>
 </ul>
-<p><strong>Resolve (band karna):</strong></p>
+<p><strong>Yaad rakhein:</strong> sprinkler khud OFF <strong>nahi</strong> hota. Aag ke baad aap OFF karein.</p>
+<hr /></section><section class="chapter" data-ch="14"><h1 id="ch14">14. Test 5: Emergency Dispatch Aur Resolve</h1>
+<blockquote>
+<p>⚠️ Dispatch <strong>foran</strong> SMS/WhatsApp/Telegram/Email/Push bhejta hai (jo configured hon). Pehle Safe Test Mode (Chapter 6).</p>
+</blockquote>
 <ol>
-<li><strong>Alert Logs</strong> mein us incident ki line par <strong>Resolve</strong>.</li>
-<li>✅ Incident "Open" list se hat jaye ("All" mein Resolved dikhe). History mein <code>Resolved</code> log.</li>
+<li>Header mein laal <strong>Emergency dispatch</strong>.</li>
+<li>Form: <strong>Zone</strong> (jaise <code>Ground Floor - Warehouse</code>), <strong>Severity</strong>, <strong>Message</strong> (500 huroof tak), aur <strong>Activate all sprinklers in this zone</strong> (tick sirf agar sprinklers chalane hon).</li>
+<li><strong>Dispatch Now</strong>.</li>
 </ol>
-<hr /></section><section class="chapter" data-ch="13"><h1 id="ch13">13. Test 6: Naqsha Banana Aur Evacuation Raasta</h1>
-<h3 id="ch13-a-naqsha-banana">A. Naqsha banana</h3>
+<p><img alt="Emergency dispatch dialog" src="images/ui-dispatch-dialog.png" /></p>
+<p><em>Tasveer: Emergency dispatch form, simulated test data.</em></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="17" aria-label="Ho gaya"> <strong>Incidents</strong> mein naya incident (Source: Manual), badge barhe.</li>
+<li class="task"><input type="checkbox" data-task="18" aria-label="Ho gaya"> <strong>Notifications</strong> → "Recent notification activity" mein har channel ka haal (Safe Test Mode mein "Not configured").</li>
+<li class="task"><input type="checkbox" data-task="19" aria-label="Ho gaya"> Incident par <strong>Resolve</strong>: khule incidents se hat jaye, history mein <code>Resolved</code>. (<strong>False alarm</strong> button bhi hai: galat alarm ke liye.)</li>
+</ul>
+<hr /></section><section class="chapter" data-ch="15"><h1 id="ch15">15. Test 6: Floor Plan, Raasta, Sensor, Calibration</h1>
+<h3 id="ch15-a-naqsha-banana">A. Naqsha banana</h3>
 <ol>
-<li>Upar <strong>Floor Plans</strong> → <strong>+ New</strong>.</li>
-<li>Daen taraf <strong>Plan settings</strong>: Name ("Ground Floor"), Building ("Warehouse"), Floor (0), <strong>Width aur Height meters mein</strong> (jaise 30 × 20).</li>
-<li>(Ikhtiyari) <strong>Upload image (PNG/JPG)</strong>: apne naqshe ki photo background mein (5 MB tak).</li>
+<li>Sidebar → <strong>Floor Plan</strong> → <strong>Edit plan</strong> → <strong>+ New</strong>.</li>
+<li><strong>Plan settings</strong>: Name, Building, Floor, <strong>Width (m)</strong> aur <strong>Height (m)</strong> (jaise 30 × 20). Ikhtiyari: <strong>Upload image (PNG/JPG)</strong>.</li>
 <li>Toolbar se drag karke banayein:</li>
 </ol>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Tool</th>
-<th>Kya banana hai</th>
-</tr>
-</thead>
+<thead><tr><th>Tool</th><th>Kya banana hai</th></tr></thead>
 <tbody>
-<tr>
-<td><strong>+ Room</strong></td>
-<td>Kamre / halls</td>
-</tr>
-<tr>
-<td><strong>+ Corridor</strong></td>
-<td>Gallery</td>
-</tr>
-<tr>
-<td><strong>+ Wall</strong></td>
-<td>Deewarein (kamron ke beech)</td>
-</tr>
-<tr>
-<td><strong>+ Door</strong></td>
-<td>Deewar par darwaza (darwaze ke baghair raasta deewar paar nahi karta)</td>
-</tr>
-<tr>
-<td><strong>+ Exit</strong></td>
-<td>Bahar nikalne ke darwaze (kam az kam ek)</td>
-</tr>
-<tr>
-<td><strong>+ Safe zone</strong></td>
-<td>Assembly point</td>
-</tr>
-<tr>
-<td><strong>+ Danger zone</strong></td>
-<td>Boiler room / khatarnak jagah</td>
-</tr>
+<tr><td><strong>+ Room</strong> / <strong>+ Corridor</strong></td><td>Kamre / gallery</td></tr>
+<tr><td><strong>+ Wall</strong> / <strong>+ Door</strong></td><td>Deewar aur darwaza (darwaze ke baghair raasta deewar paar nahi karta)</td></tr>
+<tr><td><strong>+ Exit</strong></td><td>Bahar nikalne ke darwaze (kam az kam ek)</td></tr>
+<tr><td><strong>+ Safe zone</strong> / <strong>+ Danger zone</strong></td><td>Assembly point / khatarnak jagah</td></tr>
+<tr><td><strong>+ Sensor</strong> (naya)</td><td>Sensor ko naqshe par rakhna (neeche C)</td></tr>
 </tbody>
 </table></div>
-<ol start="5">
-<li><strong>Select / Move</strong> se kisi cheez par click → daen panel mein naam, size badlein. Delete key = mitana.</li>
-<li>Danger zone chunein → <strong>Linked camera/sensor zone</strong> mein list se <code>Ground Floor - Warehouse</code> chunein (likhne ki zaroorat nahi, spelling galat nahi hogi) (Ground Floor - Warehouse mein incident khula ho to ye khud active).</li>
-<li><strong>Save</strong>. ✅ "Floor plan saved" message, title se "unsaved" hat jaye.</li>
+<ol start="4">
+<li><strong>Select / Move</strong> se cheez par click → daen panel mein naam/size. Danger zone ka linked zone list se chunein (jaise <code>Ground Floor - Warehouse</code>).</li>
+<li><strong>Save</strong>. ✅ "Floor plan saved".</li>
 </ol>
-<p><img alt="Floor Plan editor" src="images/floorplan-editor.png" /></p>
-<p><strong>Zoom:</strong> mouse wheel ya + / − / Fit. Ek khana = 1 meter.</p>
-<h3 id="ch13-b-raasta-dekhna">B. Raasta dekhna</h3>
-<ol>
-<li><strong>Dashboard</strong> → neeche <strong>Evacuation Route (estimate)</strong> panel → floor plan chunein.</li>
-<li>Naqshe par wahan <strong>click</strong> karein jahan insaan khara hai.</li>
-<li>✅ <strong>Hari teer</strong> qareeb tareen exit tak, "Distance 14.8 m · ~12 s" jaisa likha.</li>
-</ol>
-<h3 id="ch13-c-aag-mein-raasta-badalna">C. Aag mein raasta badalna</h3>
-<ol>
-<li>Ground Floor - Warehouse ke danger zone ke paas wala raasta dekh lein.</li>
-<li>Test 1 (simulator <code>--ignite "Ground Floor - Warehouse"</code>) ya Test 3 (<code>temp-b1</code> = 75) chalayein.</li>
-<li>✅ Danger zone laal/active, aur raasta <strong>khud badal</strong> kar doosre exit ki taraf, danger se kam az kam 1 m door.</li>
-<li>Koi raasta na bache to ✅ saaf message: "No safe route…"</li>
-</ol>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Pehle</th>
-<th>Aag ke baad</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><img alt="Pehle" src="images/evacuation-before.png" /></td>
-<td><img alt="Baad" src="images/evacuation-after.png" /></td>
-</tr>
-</tbody>
-</table></div>
-<p><strong>Yaad rakhein:</strong> waqt sirf andaza hai (faasla ÷ 1.2 m/s). Dhuwan, bheer, seedhiyan shamil nahi.</p>
-<h3 id="ch13-d-aag-kahan-phailegi-risk-heatmap">D. Aag kahan phailegi (risk heatmap)</h3>
-<p><strong>Maqsad:</strong> aag lagne par dekhna ki system bataye <strong>agle kaun se kamre khatre mein hain</strong>.</p>
-<ol>
-<li>Naqshe mein kam az kam 2 kamre, unke beech deewar aur ek <strong>darwaza</strong> hon. Danger zone ka <strong>Linked zone</strong> = <code>Ground Floor - Warehouse</code> (A hisse wala naqsha).</li>
-<li>Ground Floor - Warehouse mein incident kholein: <strong>Emergency Dispatch</strong> (Ground Floor - Warehouse), ya simulator <code>--ignite "Ground Floor - Warehouse"</code>.</li>
-<li>Dashboard → <strong>Evacuation Route</strong> → wohi naqsha.</li>
-</ol>
-<p><strong>✅ Kya dikhna chahiye:</strong></p>
+<p><img alt="Floor plan editor" src="images/ui-floor-plan-editor.png" /></p>
+<p><em>Tasveer: Floor plan editor, simulated test data.</em></p>
 <ul>
-<li class="task"><input type="checkbox" data-task="17" aria-label="Ho gaya"> Naqshe par rang: aag wala kamra <strong>gehra laal</strong>, paas wale <strong>laal/narangi</strong>, door wale <strong>peele</strong>.</li>
-<li class="task"><input type="checkbox" data-task="18" aria-label="Ho gaya"> Jis kamre ke aur aag ke beech <strong>poori deewar</strong> hai (darwaza nahi), wo <strong>bina rang</strong> ke (mehfooz).</li>
-<li class="task"><input type="checkbox" data-task="19" aria-label="Ho gaya"> Naqshe ke neeche: "⚠ Fire risk: Next at risk: … (x m from the fire, Medium)" aur har kamre ka darja.</li>
-<li class="task"><input type="checkbox" data-task="20" aria-label="Ho gaya"> Incident <strong>Resolve</strong> karein: heatmap aur list khud gayab.</li>
+<li class="task"><input type="checkbox" data-task="20" aria-label="Ho gaya"> Naqsha bana aur save hua.</li>
 </ul>
-<p><img alt="Risk heatmap" src="images/fire-risk-heatmap.png" /></p>
-<p><strong>Yaad rakhein:</strong> ye <strong>andaza</strong> hai (darwazon ke raaste faasla). Asal aag hawa, saman aur dhuwen se alag tarah bhi phail sakti hai.</p>
-<h3 id="ch13-e-camera-ko-naqshe-se-jorna-camera-ka-insaan-khud-naqshe-par">E. Camera ko naqshe se jorna (camera ka insaan khud naqshe par)</h3>
-<p><strong>Maqsad:</strong> camera mein dikha insaan naqshe par khud <strong>amber nuqta</strong> ban kar aaye, aur us par click se raasta nikle.</p>
-<p><strong>Ek dafa ki tayyari:</strong> camera ki ek <strong>snapshot</strong> (photo) jis mein farsh ke 4 kone saaf dikhein, misaal kamre ke 4 kone.</p>
+<h3 id="ch15-b-raasta">B. Raasta dekhna, aur aag mein raasta badalna</h3>
 <ol>
-<li><strong>Floor Plans</strong> → naqsha kholein → pehle <strong>Save</strong> (title par "unsaved" na ho).</li>
-<li>Daen taraf <strong>Camera calibration</strong> → camera chunein (misaal <code>Warehouse Floor (cam-warehouse)</code>).</li>
-<li>Snapshot ko <strong>Paint</strong> mein kholein. Pehle kone par mouse rakhein: Paint neeche x, y pixel dikhata hai. Ye <strong>Camera px</strong> mein likhein.</li>
-<li>Usi kone ke liye <strong>Plan m ⌖</strong> dabayein aur naqshe par wohi kona click karein (ya meters khud likhein).</li>
-<li>Baqi 3 kono ke liye yehi. Koi 3 kone <strong>ek seedhi line</strong> mein na hon.</li>
-<li><strong>Save calibration</strong>. ✅ "Camera calibrated" message, aur list mein camera ke aage "calibrated here".</li>
+<li>Sidebar → <strong>Floor Plan</strong> → apna naqsha. Naqshe par wahan click karein jahan insaan khara hai.</li>
+<li>Phir Test 1 (simulator) ya Test 3 (<code>temp-b1</code> = 75) se Warehouse mein incident kholein, aur <strong>Fire risk</strong> checkbox on karein.</li>
 </ol>
-<p><img alt="Camera calibration panel" src="images/camera-calibration.png" /></p>
-<p><strong>Check:</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="21" aria-label="Ho gaya"> Qareeb tareen exit tak raasta, faasla aur chalne ka waqt (andaza: faasla ÷ 1.2 m/s).</li>
+<li class="task"><input type="checkbox" data-task="22" aria-label="Ho gaya"> Aag ke baad danger zone active, raasta <strong>khud badal</strong> kar doosre exit ki taraf; koi raasta na bache to saaf "No safe route…".</li>
+<li class="task"><input type="checkbox" data-task="23" aria-label="Ho gaya"> Fire risk layer: aag wala kamra gehra laal, paas wale laal/narangi, door wale peele; poori deewar ke peeche wala kamra bina rang. Resolve par khud gayab.</li>
+</ul>
+<p><strong>Yaad rakhein:</strong> raasta aur risk <strong>andaza</strong> hain. Dhuwan, bheer aur seedhiyan shamil nahi.</p>
+<h3 id="ch15-c-sensor">C. Sensor ko naqshe par rakhna (naya)</h3>
 <ol>
-<li>Simulator chalayein (Test 1) ya AI camera (Test 8).</li>
-<li>Dashboard → <strong>Evacuation Route</strong> → wohi naqsha.</li>
-<li>✅ Naqshe par <strong>amber nuqte</strong>: camera ke insaan, unke pairon ki jagah par.</li>
-<li>Kisi nuqte par click → ✅ <strong>hari teer</strong> usi jagah se exit tak.</li>
+<li><strong>Edit plan</strong> → <strong>+ Sensor</strong> → naqshe par click (sensor ki jagah).</li>
+<li>Daen panel → <strong>Sensor</strong> list se misaal <code>temp-b1</code> chunein → <strong>Save</strong>.</li>
+<li>Test 3 se <code>temp-b1</code> ko 30, phir 50, phir 60 bhejein.</li>
 </ol>
-<p><img alt="Amber nuqte aur ek nuqte se raasta" src="images/evacuation-camera-people.png" /></p>
-<p><strong>Masle:</strong></p>
+<ul>
+<li class="task"><input type="checkbox" data-task="24" aria-label="Ho gaya"> <strong>Floor Plan</strong> par sensor icon ka rang live badle: hara (Online) → peela (Warning) → laal (Active alert). Reading na aaye to gray (Stale/Offline).</li>
+</ul>
+<h3 id="ch15-d-calibration">D. Camera ko naqshe se jorna (calibration)</h3>
+<p><strong>Maqsad:</strong> camera mein dikha insaan naqshe par khud nuqta ban kar aaye (Occupancy ke liye bhi zaroori).</p>
+<ol>
+<li><strong>Edit plan</strong> → naqsha pehle <strong>Save</strong>.</li>
+<li><strong>Camera calibration</strong> → <strong>Choose a camera…</strong> se camera chunein.</li>
+<li>Camera ki snapshot Paint mein kholein; farsh ke ek kone par mouse rakhein, x, y <strong>Camera px</strong> mein likhein.</li>
+<li>Usi kone ke liye <strong>Plan m ⌖</strong> dabayein aur naqshe par wohi kona click karein. Baqi 3 kono ke liye yehi (koi 3 ek seedhi line mein na hon).</li>
+<li>Calibration save karein. ✅ "Camera calibrated".</li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" data-task="25" aria-label="Ho gaya"> Simulator ya AI camera chalne par Floor Plan par insaan ke nuqte; nuqte par click = usi jagah se raasta.</li>
+</ul>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Screen par</th>
-<th>Matlab</th>
-<th>Hal</th>
-</tr>
-</thead>
+<thead><tr><th>Screen par</th><th>Hal</th></tr></thead>
 <tbody>
-<tr>
-<td>"Three of the 4 points lie on one line"</td>
-<td>3 kone ek line mein</td>
-<td>Alag alag kone chunein</td>
-</tr>
-<tr>
-<td>"A point lies outside…"</td>
-<td>Naqshe se bahar ka point</td>
-<td>Naqshe ke andar ke meters</td>
-</tr>
-<tr>
-<td>"Save the plan first"</td>
-<td>Naqsha save nahi</td>
-<td>Pehle <strong>Save</strong></td>
-</tr>
-<tr>
-<td>Nuqte nahi aate</td>
-<td>Camera se frames nahi, ya ghalat naqsha chuna</td>
-<td>Simulator/AI chalayein, wohi naqsha chunein</td>
-</tr>
-<tr>
-<td>Nuqte ghalat jagah</td>
-<td>Points ki tarteeb ulti (camera ka kona 1 ≠ naqshe ka kona 1)</td>
-<td>Dono taraf <strong>ek hi kona</strong> ek hi number par</td>
-</tr>
+<tr><td>"Three of the 4 points lie on one line"</td><td>Alag alag kone chunein</td></tr>
+<tr><td>"A point lies outside…"</td><td>Naqshe ke andar ke meters</td></tr>
+<tr><td>"Save the plan first"</td><td>Pehle <strong>Save</strong></td></tr>
+<tr><td>Nuqte ghalat jagah</td><td>Dono taraf ek hi kona ek hi number par; camera hila ho to dobara calibrate</td></tr>
 </tbody>
 </table></div>
-<blockquote>
-<p>⚠️ Camera <strong>hila</strong> to dobara calibrate karein. Nuqta andaza hai, aur seedhiyon par khade insaan ke liye ghalat ho sakta hai.</p>
-</blockquote>
-<hr /></section><section class="chapter" data-ch="14"><h1 id="ch14">14. Test 7: Incident History Aur Logs</h1>
+<hr /></section><section class="chapter" data-ch="16"><h1 id="ch16">16. Test 7: Occupancy &amp; Heatmap Aur Crowd Limit</h1>
+<p><strong>Zaroorat:</strong> calibrate kiya hua camera (Test 6 D) aur us camera se frames (simulator ya AI camera). Insaan kam az kam 3 frames tak dikhe to gina jata hai.</p>
+<h3 id="ch16-a-occupancy">A. Kamre mein kitne log</h3>
 <ol>
-<li>Dashboard → <strong>Incident History &amp; Logs</strong>.</li>
-<li>Upar se ek <strong>incident</strong> chunein (ya "All incidents"), aur event type ("All event types").</li>
-<li>✅ Dikhe:<ul>
-<li class="task"><input type="checkbox" data-task="21" aria-label="Ho gaya"> Camera wale incident par <strong>aag ka graph</strong> (frame ka %), sensor wale par <strong>sensor ka graph</strong>.</li>
-<li class="task"><input type="checkbox" data-task="22" aria-label="Ho gaya"> Logs: <code>Opened</code>, <code>Escalated</code>, <code>FireMeasurement</code>, <code>PersonInDanger</code>, <code>EvacuationRoute</code>, <code>Resolved</code>.</li>
-<li class="task"><input type="checkbox" data-task="23" aria-label="Ho gaya"> Test data par jamni <strong>SIMULATED</strong>, raaste par neela <strong>ESTIMATE</strong>.</li>
-</ul>
-</li>
+<li>Sidebar → <strong>Occupancy &amp; Heatmap</strong>.</li>
 </ol>
-<p><img alt="Incident History" src="images/incident-history.png" /></p>
-<hr /></section><section class="chapter" data-ch="15"><h1 id="ch15">15. Test 8: AI Ko Video Se Camera Ki Tarah Chalana</h1>
-<p><strong>Maqsad:</strong> AI ko lagatar frames dena, jaise asli camera, aur dekhna ke wo khud incident banata hai.</p>
-<h3 id="ch15-sab-se-aasan-devices-page-se-admin">Sab se aasan: Devices page se (Admin)</h3>
-<ol>
-<li>Menu → <strong>Devices</strong> → <strong>+ Camera</strong>.</li>
-<li>Id <code>cam-gate</code>, Name "Main Gate", Zone list se chunein, <strong>Stream link</strong> mein camera ka <code>rtsp://…</code> (ya <code>http://…</code> video), format <strong>Simulated</strong> → <strong>Save</strong>.</li>
-<li>AI service <code>.\start.ps1</code> se chal rahi ho to <strong>1 minute ke andar</strong> ye camera khud uthati hai.</li>
-</ol>
-<p><strong>✅ Kya dikhna chahiye:</strong></p>
 <ul>
-<li class="task"><input type="checkbox" data-task="24" aria-label="Ho gaya"> Dashboard par "Main Gate (Ground Floor - Gate)" tile.</li>
-<li class="task"><input type="checkbox" data-task="25" aria-label="Ho gaya"> AI page → Camera sources mein <code>cam-gate · stream · running</code>.</li>
-<li class="task"><input type="checkbox" data-task="26" aria-label="Ho gaya"> Aag dikhe to Alert Logs mein "Main Gate" ka incident.</li>
-<li class="task"><input type="checkbox" data-task="27" aria-label="Ho gaya"> Camera delete karein to ~1 minute mein AI page se bhi hat jaye.</li>
+<li class="task"><input type="checkbox" data-task="26" aria-label="Ho gaya"> 4 cards: People seen now, Rooms with live data, Crowded rooms, Exits near capacity.</li>
+<li class="task"><input type="checkbox" data-task="27" aria-label="Ho gaya"> Naqshe par jamni (purple) heatmap: jahan log hain wahan gehra. Fire risk layer alag hai (yahan shuru mein band).</li>
+<li class="task"><input type="checkbox" data-task="28" aria-label="Ho gaya"> "People per room": camera wale kamre <strong>Live</strong>; camera 10 second se chup ho to <strong>Stale</strong> (aakhri ginti); bina camera wale <strong>Unknown</strong> (jhoota 0 nahi).</li>
 </ul>
-<blockquote>
-<p>Dashboard par link <code>rtsp://***@…</code> dikhta hai: password sirf AI service ko jata hai.</p>
-</blockquote>
-<h3 id="ch15-ya-config-json-se-video-file-ke-liye">Ya <code>config.json</code> se (video file ke liye)</h3>
-<p><strong>Qadam:</strong></p>
+<p>Do camera ek kamra dekhein to ginti = sab se bari ginti (ek hi insaan ko do dafa nahi ginte; "maximum mumkin" = dono ka jor).</p>
+<h3 id="ch16-b-crowd">B. Crowd limit (bheer ka alert)</h3>
 <ol>
-<li>Aag ki ek <strong>video file</strong> (MP4/AVI) computer par rakhein.</li>
+<li><strong>Floor Plan</strong> → <strong>Edit plan</strong> → camera wala kamra (ya exit) chunein → <strong>Max people (crowd alert)</strong> mein chhota number (jaise <code>1</code>) → <strong>Save</strong>.</li>
+<li>Camera mein us kamre mein limit se zyada log aayein (simulator mein aksar khud).</li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" data-task="29" aria-label="Ho gaya"> <strong>Incidents</strong> mein ek <strong>Crowd</strong> incident (Medium; koi mehfooz exit na ho to High), Occupancy par "Crowded rooms" barhe.</li>
+<li class="task"><input type="checkbox" data-task="30" aria-label="Ho gaya"> "Crowd at the exits" mein mashwara: "Send people to exit 'X'" (kabhi aag/dhuwan ke danger zone wala exit nahi), ya "No safe alternative route".</li>
+<li class="task"><input type="checkbox" data-task="31" aria-label="Ho gaya"> Limit wapas bara karein (ya log kam hon): Crowd incident <strong>khud resolve</strong>. Stale/Unknown data par crowd incident na khulta hai na band hota hai.</li>
+</ul>
+<hr /></section><section class="chapter" data-ch="17"><h1 id="ch17">17. Test 8: Incidents, History Aur Smoke</h1>
+<h3 id="ch17-a-history">A. "What happened" history</h3>
+<ol>
+<li>Sidebar → <strong>Incidents</strong> → kisi incident par click.</li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" data-task="32" aria-label="Ho gaya"> Tafseel: aag ka size, dhuwan, log, waqt.</li>
+<li class="task"><input type="checkbox" data-task="33" aria-label="Ho gaya"> "What happened" mein logs: <code>Opened</code>, <code>Escalated</code>, <code>FireMeasurement</code>, <code>SmokeMeasurement</code>, <code>PersonInDanger</code>, <code>EvacuationRoute</code>, <code>Notification</code>, <code>Resolved</code>; filter "All event types" se ek type chunein.</li>
+</ul>
+<h3 id="ch17-b-smoke">B. Sirf dhuwan wala incident (naya)</h3>
+<p>Ab aag aur dhuwan <strong>alag alag</strong> incident khol sakte hain. Test ke liye repo ki video <code>ai-service\samples\fire-test.avi</code> AI ko camera ki tarah dein (Test 9, <code>config.json</code> wala tareeqa, <code>"source": "samples/fire-test.avi"</code>).</p>
+<ul>
+<li class="task"><input type="checkbox" data-task="34" aria-label="Ho gaya"> Sirf dhuwan dikhe to incident par narangi <strong>SMOKE</strong> tag, aur Incidents ke <strong>Smoke</strong> card mein ginti; history mein <code>SmokeMeasurement</code> (area %, confidence).</li>
+<li class="task"><input type="checkbox" data-task="35" aria-label="Ho gaya"> Ek hi camera par aag + dhuwan dono hon to <strong>ek hi</strong> incident (do nahi).</li>
+</ul>
+<p><strong>Yaad rakhein:</strong> false alarm rokne ke rules (threshold, 3-frame confirmation, tracking) wahi hain. Asli <strong>sunset, steam, vape, laal roshni</strong> wali video par test <strong>NAHI hua</strong>; aise manzar par galat alarm ho sakta hai.</p>
+<hr /></section><section class="chapter" data-ch="18"><h1 id="ch18">18. Test 9: AI Ko Video Se Camera Ki Tarah Chalana</h1>
+<h3 id="ch18-a-settings">Tareeqa A: Settings page se (Admin)</h3>
+<ol>
+<li>Sidebar → <strong>Settings</strong> → <strong>+ Camera</strong>.</li>
+<li>Id <code>cam-gate</code>, Name "Main Gate", Area list se, <strong>Stream link</strong> mein <code>rtsp://…</code> (ya <code>http://…</code>), format → <strong>Save</strong>.</li>
+<li>AI service 1 minute ke andar camera khud uthati hai.</li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" data-task="36" aria-label="Ho gaya"> <strong>Live Cameras</strong> par "Main Gate" tile; <strong>AI Settings</strong> → camera sources mein <code>cam-gate</code> running.</li>
+<li class="task"><input type="checkbox" data-task="37" aria-label="Ho gaya"> Camera delete karein: ~1 minute mein AI Settings se bhi hat jaye.</li>
+</ul>
+<p>Screen par link <code>rtsp://***@…</code> dikhta hai: password sirf AI service ko jata hai.</p>
+<h3 id="ch18-b-config">Tareeqa B: <code>config.json</code> se (video file)</h3>
+<ol>
 <li><code>ai-service\config.example.json</code> ki copy banayein, naam <strong><code>config.json</code></strong>.</li>
-<li>Notepad mein <code>cameras</code> hissa aisa karein (apna path likhein, <code>\</code> ki jagah <code>/</code>):</li>
+<li>Notepad mein <code>cameras</code> hissa aisa karein (<code>\</code> ki jagah <code>/</code>):</li>
 </ol>
 <pre><code class="language-json">{
   &quot;api&quot;: &quot;http://localhost:5291&quot;,
   &quot;listen&quot;: &quot;127.0.0.1:8008&quot;,
   &quot;cameras&quot;: [
-    { &quot;cameraId&quot;: &quot;cam-warehouse&quot;, &quot;source&quot;: &quot;C:/Users/m_fahad/Videos/fire-test.mp4&quot;, &quot;fps&quot;: 2, &quot;loop&quot;: false, &quot;enabled&quot;: true }
+    { &quot;cameraId&quot;: &quot;cam-warehouse&quot;, &quot;source&quot;: &quot;samples/fire-test.avi&quot;, &quot;fps&quot;: 2, &quot;loop&quot;: false, &quot;enabled&quot;: true }
   ]
 }
 </code></pre>
-<ol start="4">
-<li>Window 2 (AI service) band karein (Ctrl + C), phir device key de kar dobara chalayein:</li>
+<ol start="3">
+<li><code>.\stop.ps1</code>, phir <code>.\start.ps1</code> (supervisor AI service ko <code>config.json</code> ke saath chalata hai; device key khud <code>.env</code> se leta hai).</li>
 </ol>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\ai-service
-$env:SENTINEL_DEVICE_KEY = &quot;&lt;yahan Device__ApiKey&gt;&quot;
-.\.venv\Scripts\python -m sentinel_ai
-</code></pre>
-<p><strong>✅ Kya dikhna chahiye:</strong></p>
 <ul>
-<li class="task"><input type="checkbox" data-task="28" aria-label="Ho gaya"> AI page → Camera sources: <code>cam-warehouse · file · SIMULATED / TEST INPUT · running · sent …</code></li>
-<li class="task"><input type="checkbox" data-task="29" aria-label="Ho gaya"> Dashboard ke Warehouse camera par AI ke boxes.</li>
-<li class="task"><input type="checkbox" data-task="30" aria-label="Ho gaya"> Aag <strong>3 frames</strong> tak lagatar dikhe to incident, <strong>SIMULATED DATA</strong> label ke saath.</li>
-<li class="task"><input type="checkbox" data-task="31" aria-label="Ho gaya"> Demo setting mein Auto sprinklers khud chal jaate hain (simulated data par bhi).</li>
+<li class="task"><input type="checkbox" data-task="38" aria-label="Ho gaya"> AI Settings → camera sources: <code>cam-warehouse · file · SIMULATED / TEST INPUT · running</code>.</li>
+<li class="task"><input type="checkbox" data-task="39" aria-label="Ho gaya"> Live Cameras par Warehouse camera par AI ke dabbe; aag/dhuwan <strong>3 frames</strong> lagatar dikhe to incident, <strong>SIMULATED</strong> label ke saath.</li>
 </ul>
-<p><strong>Yaad rakhein:</strong></p>
-<ul>
-<li>Video <strong>file</strong> hamesha SIMULATED maani jati hai.</li>
-<li>Agar video mein manzar har frame badalta ho (photos ka slideshow), to aag "confirm" nahi hogi. <code>fps</code> barha kar (jaise 4) dobara try karein.</li>
-<li>Is purane computer par kul ~1–2 frame per second ka budget hai.</li>
-<li><strong>Asli camera</strong> (<code>rtsp://…</code>) jorne se pehle Safe Test Mode aur ijazat zaroori. Camera ka password config mein nahi, environment variable mein rakhein.</li>
-</ul>
-<hr /></section><section class="chapter" data-ch="16"><h1 id="ch16">16. Test 9: Browser Notifications</h1>
+<p><strong>Yaad rakhein:</strong> video <strong>file</strong> hamesha SIMULATED maani jati hai. <strong>Asli CCTV/RTSP camera</strong> par test <strong>NAHI hua</strong>; jorne se pehle Safe Test Mode aur ijazat zaroori, aur camera ka password config mein nahi, environment variable mein rakhein.</p>
+<hr /></section><section class="chapter" data-ch="19"><h1 id="ch19">19. Test 10: Notifications &amp; System Health</h1>
+<h3 id="ch19-a-health">A. System health</h3>
 <ol>
-<li>Upar <strong>Enable Alerts</strong> dabayein → browser poochhe to <strong>Allow</strong>.</li>
-<li>Test 1 ya Test 5 chalayein.</li>
-<li>✅ Windows ke kone mein FireVision AI ka notification aaye (dashboard ka tab band ho tab bhi, jab tak browser background mein chal raha ho).</li>
+<li>Sidebar → <strong>Notifications</strong>.</li>
 </ol>
-<p>Ye sirf tab kaam karta hai jab <code>.env</code> mein <code>Notifications__WebPush__…</code> (VAPID) keys bhari hon <strong>aur</strong> server ke venv mein <code>pywebpush</code> install ho:</p>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python -m pip install pywebpush
+<ul>
+<li class="task"><input type="checkbox" data-task="40" aria-label="Ho gaya"> Health cards: Database, Django Backend, AI Service, AI Models, Cameras, Sensors, Live Updates, Simulator; <strong>Show details</strong> se tafseel.</li>
+<li class="task"><input type="checkbox" data-task="41" aria-label="Ho gaya"> Haal asli hai, likha hua nahi (har 10 second server se parhta hai): misaal <code>.\start.ps1</code> aur <code>.\start.ps1 -Simulator</code> par Simulator card ka haal alag ho; SQL Server band ho to Database card laal/peela.</li>
+</ul>
+<h3 id="ch19-b-channels">B. Alert channels</h3>
+<ul>
+<li class="task"><input type="checkbox" data-task="42" aria-label="Ho gaya"> "Alert channels" table: SMS, GSM, WhatsApp, Telegram, Firebase, Email, Web Push, har ek <strong>Configured</strong> / <strong>Not configured</strong> / <strong>Disabled</strong> + wajah. Safe Test Mode mein zyada tar "Not configured".</li>
+</ul>
+<p>Haal ke lafz: <strong>Delivered</strong> (sirf Telegram pakki tasdeeq deta hai), <strong>Pending</strong> (Twilio/GSM ne le liya), <strong>Sent</strong> (Firebase ne le liya), <strong>Failed</strong>, <strong>Invalid token</strong>, <strong>Disabled</strong>, <strong>Not configured</strong>. Pura fail channel 30 second baad <strong>ek dafa</strong> dobara try hota hai; ek incident + severity par message dobara nahi jata.</p>
+<h3 id="ch19-c-firebase">C. Firebase push ("Enable notifications on this browser")</h3>
+<p>Ye button <strong>tayyari ke baghair kaam nahi karta</strong>. Zaroorat:</p>
+<ol>
+<li>Apna Firebase project, aur <code>.env</code> mein <code>Notifications__Fcm__ProjectId</code>, <code>__CredentialsFile</code> (service-account JSON, project folder ke <strong>bahar</strong>), aur web values <code>__WebApiKey</code>, <code>__WebAppId</code>, <code>__MessagingSenderId</code>, <code>__VapidKey</code> (Firebase console se).</li>
+<li>Server mein <code>google-auth</code> package (abhi install <strong>nahi</strong>):</li>
+</ol>
+<pre><code class="language-powershell">sentinel-django\.venv\Scripts\python -m pip install google-auth
 </code></pre>
-<p>VAPID keys kisi bhi tool se banayein, misaal (Node.js ho to): <code>npx web-push generate-vapid-keys</code>. Keys <code>.env</code> mein daal kar Server dobara chalayein.</p>
-<hr /></section><p class="part-label">D · Masle, hifazat aur checklist</p><section class="chapter" data-ch="17"><h1 id="ch17">17. Automatic Tests (Ek Click Mein Sab Check)</h1>
-<p>Ye tests code khud check karte hain. Koi test <strong>fail</strong> nahi hona chahiye. Ye apne <strong>alag, waqti</strong> <code>test_*</code> databases istemaal karte hain aur <code>.env</code> nahi parhte, is liye asli data aur asli SMS/Email mehfooz rehte hain.</p>
-<pre><code class="language-powershell">cd C:\Users\m_fahad\Desktop\Project\sentinel-django
-.\.venv\Scripts\python manage.py test --noinput   # ✅ 79 tests, sab pass (2026-10-28)
+<ol start="3">
+<li><code>.\stop.ps1</code>, <code>.\start.ps1</code>. Notifications → <strong>"Push notifications on this browser (Firebase)"</strong> → <strong>Enable notifications on this browser</strong> → browser poochhe to <strong>Allow</strong>. Band karne ke liye <strong>Disable on this browser</strong>.</li>
+</ol>
+<ul>
+<li class="task"><input type="checkbox" data-task="43" aria-label="Ho gaya"> Tayyari ke baghair: panel saaf bataye ke setup chahiye (button kaam na kare).</li>
+<li class="task"><input type="checkbox" data-task="44" aria-label="Ho gaya"> Tayyari ke saath: naya confirmed aag/dhuwan incident par push; click karne par wohi incident khule (<code>/incidents?incident=…</code>).</li>
+</ul>
+<blockquote>
+<p>⚠️ Asli Firebase delivery <strong>NAHI test hui</strong> (aap ka apna Firebase project chahiye). Push ki snapshot link sirf tab khulti hai jab dashboard ka address us device se pahunch mein ho. Mobile app <strong>nahi</strong> hai.</p>
+</blockquote>
+<h3 id="ch19-d-baqi">D. Baqi channels aur browser alerts</h3>
+<ul>
+<li><strong>Enable Alerts</strong> (header): Web Push ke liye <code>.env</code> mein <code>Notifications__WebPush__…</code> (VAPID) keys aur <code>pywebpush</code> package chahiye: <code>sentinel-django\.venv\Scripts\python -m pip install pywebpush</code>.</li>
+<li><strong>WhatsApp</strong> (Twilio WhatsApp sender, approved hona chahiye; 24 ghante ki window ke bahar sirf approved templates), <strong>Telegram</strong> (bot token + chat ids), <strong>SMS</strong> (Twilio), <strong>Email</strong>: <code>.env.example</code> mein naam likhe hain.</li>
+<li><strong>GSM modem</strong> (USB, SIM800/SIM7600 + chalu SIM; sirf jab Twilio SMS fail ya configured na ho): <code>Notifications__Gsm__Port</code> (jaise <code>COM5</code>) aur <code>pyserial</code> package (abhi install nahi): <code>sentinel-django\.venv\Scripts\python -m pip install pyserial</code>. Hardware par test <strong>NAHI hua</strong>.</li>
+</ul>
+<p>Har aag/dhuwan incident par Firebase push jata hai; SMS/WhatsApp/Telegram/Email sirf emergency (High/Critical ya insaan khatre mein) aur haath se dispatch par. Asli Twilio/WhatsApp/Telegram/SMTP delivery <strong>NAHI test hui</strong>.</p>
+<hr /></section><p class="part-label">D · Masle, hifazat aur checklist</p><section class="chapter" data-ch="20"><h1 id="ch20">20. Automatic Tests</h1>
+<p>Ye tests code khud check karte hain. Ye apne <strong>alag, waqti</strong> <code>test_*</code> databases istemaal karte hain, <code>.env</code> nahi parhte aur koi asli message nahi bhejte.</p>
+<pre><code class="language-powershell">cd sentinel-django
+.\.venv\Scripts\python manage.py test --noinput   # ✅ 288/288 pass (2026-11-04)
 
-# Browser tests (installed Edge). Pehli dafa sirf ek baar (is ke liye Node/npm chahiye):
+# Browser tests (Edge). Pehli dafa sirf ek baar (Node/npm chahiye):
 cd e2e; npm install --offline; cd ..
-.\.venv\Scripts\python e2e\run.py                 # ✅ 10/10 pass (2026-10-28)
+.\.venv\Scripts\python e2e\run.py                 # ✅ 31/31 pass (2026-11-04)
 
-# Asli AI service ke saath poora camera lifecycle (~8 minute):
-.\.venv\Scripts\python e2e\lifecycle.py           # 2026-10-28: 3 runs mein 15/18, 18/18, 18/18 (aag ki AI confirmation ka waqt badalta hai)
+# Asli AI service, asli models aur MJPEG test camera ke saath poora lifecycle:
+.\.venv\Scripts\python e2e\lifecycle.py           # ✅ 18/18 pass (2026-11-04)
 
-cd C:\Users\m_fahad\Desktop\Project\ai-service
-.\.venv\Scripts\python -m unittest discover -s tests    # ✅ Ran 25 tests ... OK
+cd ..\ai-service
+.\.venv\Scripts\python -m unittest discover -s tests    # ✅ 57/57 pass, asli models ke tests samet (2026-11-04)
 </code></pre>
 <p><strong>AI ki accuracy dobara napna</strong> (D-Fire test folder ka path chahiye, ~20 minute):</p>
 <pre><code class="language-powershell">.\.venv\Scripts\python tools\evaluate.py --data &lt;D-Fire\test folder&gt; --classes 0=Smoke,1=Fire --sweep 0.25,0.3,0.35,0.4,0.5 --out reports\meri-jaanch
 </code></pre>
-<p>✅ Threshold 0.4 par fire image recall ~0.93 aur smoke ~0.92 aana chahiye.</p>
-<hr /></section><section class="chapter" data-ch="18"><h1 id="ch18">18. Masle Aur Un Ka Hal</h1>
+<p>✅ Threshold 0.40 par (4,306 labelled D-Fire test photos): Fire precision 0.982, recall 0.932, F1 0.956; Smoke precision 0.968, recall 0.923, F1 0.945. Nayi report <code>ai-service\reports\</code> mein ho to <strong>Reports &amp; Analytics → Model accuracy</strong> mein khud dikhti hai.</p>
+<p><strong>Kya test NAHI hua:</strong> asli CCTV/RTSP, asli sensors/relays, asli Twilio/WhatsApp/Telegram/Firebase/SMTP delivery, GSM hardware, asli sunset/steam/vape footage, tablet layout. Tests pass hona production ke liye tayyar hona <strong>nahi</strong>.</p>
+<hr /></section><section class="chapter" data-ch="21"><h1 id="ch21">21. Masle Aur Un Ka Hal</h1>
+<p>Install/start ke masle Chapter 5 ki table mein hain. Roz ke masle:</p>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Masla</th>
-<th>Wajah</th>
-<th>Hal</th>
-</tr>
-</thead>
+<thead><tr><th>Masla</th><th>Wajah</th><th>Hal</th></tr></thead>
 <tbody>
-<tr>
-<td>Top bar par <strong>Offline / Reconnecting</strong></td>
-<td>Server band hai</td>
-<td>Window 1 chalayein</td>
-</tr>
-<tr>
-<td>Login par "network error"</td>
-<td>Server band, ya port 5291 mein masla</td>
-<td>Window 1 check, <code>http://localhost:5291/health</code> kholein: <code>"status":"ok"</code> aana chahiye</td>
-</tr>
-<tr>
-<td>Ghalat password</td>
-<td><code>.env</code> ka password</td>
-<td><code>.env</code> mein <code>Seed__AdminPassword</code> dekhein. Users table pehle se ho to wohi purana password</td>
-</tr>
-<tr>
-<td>Server SQL Server se connect nahi hota (connection / login timeout error)</td>
-<td>SQL Server band</td>
-<td>Start → "Services" → <strong>SQL Server (MSSQLSERVER)</strong> → Start</td>
-</tr>
-<tr>
-<td>Server error: "Invalid object name" ya "Invalid column name …"</td>
-<td>Database khali ya purana (tables poori nahi)</td>
-<td>Khali database ho to <code>.\.venv\Scripts\python manage.py create_schema</code> (Chapter 3). Purana database ho to doosre PC se <code>.\database\load.ps1</code>. <code>manage.py migrate</code> na chalayein</td>
-</tr>
-<tr>
-<td>Server: ODBC / "Data source name not found" / driver error</td>
-<td>ODBC Driver 18 install nahi</td>
-<td>"ODBC Driver 18 for SQL Server" install karein (Chapter 2)</td>
-</tr>
-<tr>
-<td>Cameras par <strong>NO AI DATA</strong></td>
-<td>AI/simulator data nahi bhej raha</td>
-<td>Simulator (Test 1) ya AI camera (Test 8) chalayein</td>
-</tr>
-<tr>
-<td>AI page <strong>OFFLINE</strong></td>
-<td>AI service band</td>
-<td>Window 3 chalayein</td>
-</tr>
-<tr>
-<td>AI "some models missing"</td>
-<td><code>.onnx</code> file nahi</td>
-<td>Chapter 3, Qadam 4</td>
-</tr>
-<tr>
-<td>AI camera "API HTTP 401"</td>
-<td>Device key ghalat ya nahi di</td>
-<td><code>$env:SENTINEL_DEVICE_KEY</code> = <code>.env</code> ka <code>Device__ApiKey</code></td>
-</tr>
-<tr>
-<td>Simulator "401" ya "403"</td>
-<td>Device key ghalat, ya dono keys ulat di</td>
-<td><code>--device-key</code> mein <code>Device__ApiKey</code>, <code>--sensor-key</code> mein <code>Device__SensorApiKey</code></td>
-</tr>
-<tr>
-<td><code>py -3.13</code>: "not recognized" ya Python 3.13 nahi mila</td>
-<td>Python 3.13 install nahi ya PowerShell purani</td>
-<td>Chapter 2, phir <strong>nayi</strong> PowerShell kholein</td>
-</tr>
-<tr>
-<td><code>start.ps1</code>: "sentinel-django\.venv is missing" ya <code>.\.venv\Scripts\python</code> nahi mila</td>
-<td>Server ka venv nahi bana</td>
-<td>Chapter 3, Qadam 2 (<code>py -3.13 -m venv .venv</code> + <code>pip install</code>)</td>
-</tr>
-<tr>
-<td>Port 5291 "already in use" / "address already in use"</td>
-<td>Server pehle se chal raha hai</td>
-<td>Purani Server window band karein, ya computer restart</td>
-</tr>
-<tr>
-<td>SMS/Email nahi aate</td>
-<td>Safe Test Mode on, ya settings ghalat</td>
-<td><code>#</code> hatayein (Chapter 4), Live Event Log mein error dekhein</td>
-</tr>
-<tr>
-<td><code>load.ps1</code>: "Cannot open server" ya "network-related"</td>
-<td>SQL Server band, ya Express naam se install</td>
-<td>SQL Server start karein; Express ho to <code>.\database\load.ps1 -Server "localhost\SQLEXPRESS"</code> aur <code>.env</code> mein bhi wohi naam</td>
-</tr>
-<tr>
-<td><code>load.ps1</code>: version wala error</td>
-<td>Doosre PC par SQL Server purana</td>
-<td>SQL Server 2022 ya naya install karein</td>
-</tr>
-<tr>
-<td>PowerShell: "running scripts is disabled"</td>
-<td>Script chalane ki ijazat band</td>
-<td><code>powershell -ExecutionPolicy Bypass -File .\database\load.ps1</code></td>
-</tr>
-<tr>
-<td>Floor plan save par laal message</td>
-<td>Koi cheez naqshe se bahar</td>
-<td>Message mein naam likha hota hai, us ko andar karein</td>
-</tr>
-<tr>
-<td>Raasta: "Start point is not inside…"</td>
-<td>Click kamre/corridor se bahar</td>
-<td>Room/Corridor ke andar click karein</td>
-</tr>
+<tr><td>Header mein <strong>Connecting</strong> rehta hai</td><td>Server band</td><td><code>.\start.ps1</code>; <code>http://localhost:5291/health</code> par <code>"status":"ok"</code> aana chahiye</td></tr>
+<tr><td>Chip "MONITORING DEGRADED · AI OFFLINE"</td><td>AI service band ya load ho rahi</td><td>Notifications page ke health cards dekhein; <code>logs\ai.log</code>; <code>.\stop.ps1</code> + <code>.\start.ps1</code></td></tr>
+<tr><td>Cameras par <strong>NO AI DATA</strong></td><td>Koi frames nahi bhej raha</td><td>Simulator (Test 1) ya AI camera (Test 9)</td></tr>
+<tr><td>Server: "Invalid object name" / "Invalid column name"</td><td>Database khali ya purana</td><td>Chapter 5 (Raasta A ya B). <code>migrate</code> na chalayein</td></tr>
+<tr><td>Simulator "401" / "403"</td><td>Device keys ghalat ya ulat</td><td><code>.env</code> mein dono keys, alag alag</td></tr>
+<tr><td>Occupancy par sab <strong>Unknown</strong></td><td>Camera calibrate nahi, ya frames nahi</td><td>Test 6 D, phir simulator/AI camera</td></tr>
+<tr><td>Crowd incident nahi khulta</td><td>"Max people" save nahi, ya data Stale/Unknown</td><td>Edit plan → limit → Save; camera Live ho</td></tr>
+<tr><td>Slider ka Apply nahi dikhta / kaam nahi karta</td><td>Admin nahi, ya AI service band</td><td>Admin se login; AI hara ho</td></tr>
+<tr><td>"Enable notifications on this browser" kaam nahi karta</td><td>Firebase setup nahi, ya <code>google-auth</code> nahi</td><td>Test 10 C</td></tr>
+<tr><td>SMS/WhatsApp/Telegram/Email nahi aate</td><td>Safe Test Mode on, ya settings ghalat</td><td>Notifications → Alert channels ki wajah; Chapter 6 ke <code>#</code> hatayein</td></tr>
+<tr><td>Floor plan save par laal message</td><td>Koi cheez naqshe se bahar</td><td>Message mein naam likha hota hai, us ko andar karein</td></tr>
+<tr><td>Raasta: "Start point is not inside…"</td><td>Click kamre/corridor se bahar</td><td>Room/Corridor ke andar click</td></tr>
+<tr><td>Phone par menu nahi dikhta</td><td>Chhoti screen par menu chhupa hota hai</td><td>Upar baen <strong>☰</strong></td></tr>
 </tbody>
 </table></div>
-<hr /></section><section class="chapter" data-ch="19"><h1 id="ch19">19. Kya Kabhi Na Karein</h1>
+<hr /></section><section class="chapter" data-ch="22"><h1 id="ch22">22. Kya Kabhi Na Karein</h1>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>❌ Na karein</th>
-<th>Kyun</th>
-</tr>
-</thead>
+<thead><tr><th>❌ Na karein</th><th>Kyun</th></tr></thead>
 <tbody>
-<tr>
-<td>Ise asli fire alarm ki jagah lagana</td>
-<td>Ye test aur lab mein check hua hai, certified nahi</td>
-</tr>
-<tr>
-<td>Bina Safe Test Mode ke aag ka test</td>
-<td>Asli logon ko asli SMS/Email chale jayenge</td>
-</tr>
-<tr>
-<td>Asli sprinkler/alarm hardware bina ijazat jorna</td>
-<td>Paani ya ghabrahat se nuqsan</td>
-</tr>
-<tr>
-<td><code>.env</code> kisi ko bhejna ya internet par daalna</td>
-<td>Is mein passwords aur keys hain</td>
-</tr>
-<tr>
-<td>AI ke "kuch nahi mila" ko "sab mehfooz" samajhna</td>
-<td>AI se galti ho sakti hai</td>
-</tr>
-<tr>
-<td>Camera ka password <code>config.json</code> mein likhna</td>
-<td>Environment variable mein rakhein</td>
-</tr>
-<tr>
-<td>Model files (<code>.onnx</code>) badalna</td>
-<td>Fingerprint match nahi hoga, model band ho jayega</td>
-</tr>
+<tr><td>Ise asli fire alarm ki jagah lagana</td><td>Ye test aur lab mein check hua hai, certified ya production-ready nahi</td></tr>
+<tr><td>Bina Safe Test Mode ke aag ka test</td><td>Asli logon ko asli SMS/WhatsApp/Email chale jayenge</td></tr>
+<tr><td>Asli sprinkler/relay bina ijazat jorna ya on karna</td><td>Paani ya ghabrahat se nuqsan</td></tr>
+<tr><td><code>.env</code> ya Firebase JSON kisi ko bhejna, git/internet par daalna</td><td>Is mein passwords aur keys hain</td></tr>
+<tr><td><code>SentinelDb</code> par <code>manage.py migrate</code></td><td>Database kharab ho sakta hai</td></tr>
+<tr><td>Bina soche <code>load.ps1</code> chalana</td><td>Is PC ka database poora badal jata hai</td></tr>
+<tr><td>AI ke "kuch nahi mila" ko "sab mehfooz" samajhna</td><td>AI se galti ho sakti hai</td></tr>
+<tr><td>Sensitivity bohat neeche (0.25) chhor dena</td><td>Bohat false alarms</td></tr>
+<tr><td>Model files (<code>.onnx</code>) ya <code>models.json</code> badalna</td><td>Fingerprint match nahi hoga, model band ho jayega</td></tr>
 </tbody>
 </table></div>
 <p><strong>Yaad rakhein:</strong> aag mein bijli jaye to camera band ho sakte hain. Cameras ko UPS/PoE backup par rakhein, aur hamesha smoke detectors aur fire panel istemaal karein.</p>
-<hr /></section><section class="chapter" data-ch="20"><h1 id="ch20">20. Test Checklist (Print Karke Tick Karein)</h1>
+<hr /></section><section class="chapter" data-ch="23"><h1 id="ch23">23. Test Checklist (Print Karke Tick Karein)</h1>
 <div class="table-wrap"><table>
-<thead>
-<tr>
-<th>#</th>
-<th>Test</th>
-<th>Chapter</th>
-<th>✅ / ❌</th>
-<th>Note</th>
-</tr>
-</thead>
+<thead><tr><th>#</th><th>Test</th><th>Chapter</th><th>✅ / ❌</th><th>Note</th></tr></thead>
 <tbody>
-<tr>
-<td>1</td>
-<td>Software install, versions dikhe</td>
-<td>2</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>2</td>
-<td><code>.env</code>, database, packages, AI setup</td>
-<td>3</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>3</td>
-<td>Safe Test Mode on</td>
-<td>4</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>4</td>
-<td>Dono windows chalin (Server 5291, AI service 8008)</td>
-<td>5</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>5</td>
-<td>Login hua, "Live" hara</td>
-<td>6</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>6</td>
-<td>Simulator: Ground Floor - Warehouse mein aag, CRITICAL, incident, alarm lagatar, Ground Floor - Warehouse sprinklers khud chale</td>
-<td>8</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>6b</td>
-<td>Simulator band: ~10 sec baad "Camera lost" (Ground Floor - Warehouse High)</td>
-<td>8</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>7</td>
-<td>AI page: aag ki photo par laal dabba</td>
-<td>9</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>8</td>
-<td>AI page: bina aag photo par aag nahi</td>
-<td>9</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>9</td>
-<td>Sensor 50 = Warning, 60 = High, 75 = Critical</td>
-<td>10</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>10</td>
-<td>Sprinkler: Manual wala khud nahi chala</td>
-<td>11</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>11</td>
-<td>Emergency Dispatch + Resolve</td>
-<td>12</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>12</td>
-<td>Naqsha bana aur save hua</td>
-<td>13</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>13</td>
-<td>Raasta + waqt dikha</td>
-<td>13</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>14</td>
-<td>Aag mein raasta khud badla</td>
-<td>13</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>14b</td>
-<td>Aag par risk heatmap aur "Next at risk", deewar ke peeche wala kamra mehfooz</td>
-<td>13</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>14c</td>
-<td>Camera calibrate hua, naqshe par amber nuqte, nuqte se raasta</td>
-<td>13</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>15</td>
-<td>History mein graph aur logs</td>
-<td>14</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>16</td>
-<td>AI video camera: SIMULATED incident</td>
-<td>15</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>17</td>
-<td>Browser notification aaya</td>
-<td>16</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>18</td>
-<td>Automatic tests: Django 79 + AI service 25, aur 10 browser tests pass</td>
-<td>17</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>19</td>
-<td>Safe Test Mode <strong>band</strong> kiya (<code>#</code> hataye)</td>
-<td>4</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>20</td>
-<td><code>save.ps1</code> → push → doosre PC par pull → <code>load.ps1</code></td>
-<td>5</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>21</td>
-<td><code>start.ps1</code> se dono windows khulin</td>
-<td>5</td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td>22</td>
-<td>Devices page: camera add, edit, delete (Admin)</td>
-<td>15</td>
-<td></td>
-<td></td>
-</tr>
+<tr><td>1</td><td>Software install, <code>py -3.13 --version</code> chala</td><td>2</td><td></td><td></td></tr>
+<tr><td>2</td><td>Project folder mila, <code>.\setup.ps1</code> chala</td><td>3</td><td></td><td></td></tr>
+<tr><td>3</td><td><code>.env</code> bhari (2 alag device keys)</td><td>4</td><td></td><td></td></tr>
+<tr><td>4</td><td>Database: <code>load.ps1</code> ya <code>create_schema</code>; setup.ps1 "Setup complete"</td><td>5</td><td></td><td></td></tr>
+<tr><td>5</td><td><code>.\start.ps1</code> "Sentinel is running", login, header "Live"</td><td>5, 8</td><td></td><td></td></tr>
+<tr><td>6</td><td>Safe Test Mode on</td><td>6</td><td></td><td></td></tr>
+<tr><td>7</td><td>Sidebar ke saare pages khule (phone par ☰ bhi)</td><td>9</td><td></td><td></td></tr>
+<tr><td>8</td><td>Simulator: Warehouse mein aag, CRITICAL, incident, sprinklers khud; baad mein "Camera lost"</td><td>10</td><td></td><td></td></tr>
+<tr><td>9</td><td>AI Settings: aag photo par dabba, bina aag par nahi</td><td>11</td><td></td><td></td></tr>
+<tr><td>10</td><td>AI Settings: slider Apply, SettingChanged log, restart ke baad bhi; wapas 0.40</td><td>11</td><td></td><td></td></tr>
+<tr><td>11</td><td>Sensor 50 = Warning, 60 = High, 75 = Critical</td><td>12</td><td></td><td></td></tr>
+<tr><td>12</td><td>Sprinkler: Manual wala khud nahi chala</td><td>13</td><td></td><td></td></tr>
+<tr><td>13</td><td>Emergency dispatch + Resolve</td><td>14</td><td></td><td></td></tr>
+<tr><td>14</td><td>Naqsha, raasta, aag mein raasta badla, fire risk layer</td><td>15</td><td></td><td></td></tr>
+<tr><td>15</td><td>Sensor naqshe par, rang live badla</td><td>15</td><td></td><td></td></tr>
+<tr><td>16</td><td>Camera calibrate, naqshe par insaan ke nuqte</td><td>15</td><td></td><td></td></tr>
+<tr><td>17</td><td>Occupancy: Live/Stale/Unknown, jamni heatmap</td><td>16</td><td></td><td></td></tr>
+<tr><td>18</td><td>Crowd limit: Crowd incident khula aur khud resolve hua</td><td>16</td><td></td><td></td></tr>
+<tr><td>19</td><td>Incident history logs; smoke incident par SMOKE tag</td><td>17</td><td></td><td></td></tr>
+<tr><td>20</td><td>AI video camera: SIMULATED incident; Settings se camera add/delete</td><td>18</td><td></td><td></td></tr>
+<tr><td>21</td><td>Notifications: health cards, alert channels, Firebase panel</td><td>19</td><td></td><td></td></tr>
+<tr><td>22</td><td>Automatic tests: Django 288, AI 57, browser 31, lifecycle 18 pass</td><td>20</td><td></td><td></td></tr>
+<tr><td>23</td><td>Safe Test Mode <strong>band</strong> kiya (<code>#</code> hataye), stop/start</td><td>6</td><td></td><td></td></tr>
+<tr><td>24</td><td><code>.\stop.ps1</code> "Sentinel stopped"</td><td>5, 7</td><td></td><td></td></tr>
 </tbody>
 </table></div>
 <p><strong>Tester ka naam:</strong> .................................... <strong>Tareekh:</strong> ....................</p></section>

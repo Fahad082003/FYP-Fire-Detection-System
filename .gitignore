@@ -5,6 +5,7 @@ node_modules/
 __pycache__/
 .venv/
 ai-service/config.json
+ai-service/models/thresholds.local.json
 *.pth
 bin/
 obj/

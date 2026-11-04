@@ -5,7 +5,8 @@ import { live } from './shell.js';
 import { PlanMap } from './planmap.js';
 
 const $ = (id) => document.getElementById(id);
-const TYPES = { Room: 'Room', Corridor: 'Corridor', Wall: 'Wall', Door: 'Door', Exit: 'Exit', SafeZone: 'Safe zone', DangerZone: 'Danger zone' };
+const TYPES = { Room: 'Room', Corridor: 'Corridor', Wall: 'Wall', Door: 'Door', Exit: 'Exit', SafeZone: 'Safe zone', DangerZone: 'Danger zone', Sensor: 'Sensor' };
+const SENSOR_SIZE = 0.6; // a sensor marker is a 0.6 m square around the clicked point; its name is the sensor id
 const SNAP = 0.1, MIN_SIZE = 0.2, MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const THICKNESS = { Wall: 0.2, Door: 0.4 }; // walls and doors are drawn as lines; doors overlap the 0.2 m wall
 const snap = (v) => Math.round(v / SNAP) * SNAP;
@@ -25,7 +26,7 @@ export function drawnRect(type, a, b, w, h) {
   return { x: round(x), y: round(y), width: round(width), height: round(height) };
 }
 
-const ed = { plans: [], current: null, elements: [], selected: null, tool: 'select', preview: null, imageUrl: null, dirty: false, busy: false, drag: null,
+const ed = { plans: [], current: null, elements: [], selected: null, capacities: {}, tool: 'select', preview: null, imageUrl: null, dirty: false, busy: false, drag: null,
   calib: { camera: null, image: [], plan: [], pick: null } };
 const form = $('plan-form');
 const map = new PlanMap($('editor-map'), onPointer);
@@ -63,8 +64,19 @@ function renderElement() {
     return;
   }
   const num = (field, label) => `<label class="field"><span>${label}</span><input class="input" type="number" step="0.1" data-num="${field}" value="${e[field]}"></label>`;
+  const placed = new Set(ed.elements.filter((x) => x.type === 'Sensor' && x !== e).map((x) => x.name));
+  const name = e.type === 'Sensor'
+    ? `<label class="field"><span>Sensor</span><select class="input" data-text="name"><option value="">Choose a sensor…</option>${live.sensors.map((s) =>
+      `<option value="${esc(s.id)}" ${s.id === e.name ? 'selected' : ''} ${placed.has(s.id) ? 'disabled' : ''}>${esc(s.id)} · ${esc(s.type)} · ${esc(s.locationZone)}${
+        placed.has(s.id) ? ' (already placed)' : ''}</option>`).join('')}</select></label>
+      <p class="tiny muted">Only the position is saved here; the sensor's status on the Building Map comes from its live readings.</p>`
+    : `<label class="field"><span>Name</span><input class="input" data-text="name" value="${esc(e.name)}" maxlength="80"></label>`;
+  const limitKey = `${e.type}:${e.name}`;
+  const limit = ['Room', 'Corridor', 'SafeZone', 'Exit'].includes(e.type)
+    ? `<label class="field"><span>Max people (crowd alert)</span><input class="input" type="number" min="1" max="10000" step="1" data-capacity
+        value="${ed.capacities[limitKey] ?? ''}" placeholder="no limit" ${e.name ? '' : 'disabled title="Name it first"'}></label>` : '';
   panel.innerHTML = `<h3 class="panel-title">Selected element</h3><div class="strong small">${TYPES[e.type]}</div>
-    <label class="field"><span>Name</span><input class="input" data-text="name" value="${esc(e.name)}" maxlength="80"></label>
+    ${name}${limit}
     <div class="grid-2">${num('x', 'X (m)')}${num('y', 'Y (m)')}${num('width', 'Width (m)')}${num('height', 'Height (m)')}</div>
     ${e.type === 'Door' || e.type === 'Exit' ? `<label class="row small"><input type="checkbox" data-check="isBlocked" ${e.isBlocked ? 'checked' : ''}> Blocked / closed</label>` : ''}
     ${e.type === 'DangerZone' ? `<label class="row small"><input type="checkbox" data-check="isActive" ${e.isActive ? 'checked' : ''}> Active now (manual)</label>
@@ -105,6 +117,8 @@ async function open(plan, reloadImage) {
   for (const k of ['name', 'building', 'floorNumber', 'widthMeters', 'heightMeters']) form.elements[k].value = plan[k];
   ed.elements = plan.elements.map((e) => ({ ...e }));
   ed.selected = null;
+  ed.capacities = {};
+  api(`/api/floorplans/${plan.id}/capacities`).then((c) => { if (ed.current?.id === plan.id) { ed.capacities = c; renderElement(); } }).catch(() => undefined);
   ed.dirty = false;
   if (reloadImage) setImage(null);
   render();
@@ -160,6 +174,9 @@ $('save-plan').addEventListener('click', async () => {
       name: f.name.value, building: f.building.value, floorNumber: Number(f.floorNumber.value), widthMeters: Number(f.widthMeters.value),
       heightMeters: Number(f.heightMeters.value), elements: ed.elements } });
     ed.plans = ed.plans.map((p) => (p.id === saved.id ? saved : p));
+    const names = new Set(saved.elements.map((e) => `${e.type}:${e.name}`)); // a renamed or deleted element drops its limit
+    await api(`/api/floorplans/${saved.id}/capacities`, { method: 'PUT',
+      body: Object.fromEntries(Object.entries(ed.capacities).filter(([k]) => names.has(k))) });
     open(saved, false);
     toast('Floor plan saved', `${saved.elements.length} element(s)`, 'success', 3000);
   } catch (err) {
@@ -216,6 +233,12 @@ $('tools').addEventListener('click', (e) => {
 
 $('element-panel').addEventListener('change', (e) => {
   const t = e.target;
+  if ('capacity' in t.dataset) {
+    const e2 = ed.elements[ed.selected], v = Math.round(Number(t.value));
+    if (t.value === '') delete ed.capacities[`${e2.type}:${e2.name}`]; else if (v >= 1) ed.capacities[`${e2.type}:${e2.name}`] = v;
+    setDirty(true);
+    return;
+  }
   if (t.dataset.num) {
     const v = Number(t.value);
     if (Number.isFinite(v)) update({ [t.dataset.num]: round(Math.max(t.dataset.num === 'width' || t.dataset.num === 'height' ? MIN_SIZE : 0, v)) });
@@ -252,6 +275,7 @@ function onPointer(p) {
   // The cyan corner resizes with any tool: right after drawing, the draw tool is still active.
   if (ed.tool === 'select' || (p.kind === 'down' && p.handle) || ed.drag?.mode === 'resize') return onSelectPointer(p);
   if (ed.tool === 'pan') return;
+  if (ed.tool === 'Sensor') { if (p.kind === 'down') placeSensor(p); return; }
   if (p.kind === 'down') { ed.drag = { mode: 'draw', start: p }; return; }
   if (ed.drag?.mode !== 'draw') return;
   const rect = drawnRect(ed.tool, ed.drag.start, p, planWidth(), planHeight());
@@ -265,6 +289,19 @@ function onPointer(p) {
     setDirty(true);
     renderElement();
   }
+  renderMap();
+}
+
+/** A click with "+ Sensor": a marker centred there, named after the first sensor not yet on this plan (changeable in the panel). */
+function placeSensor(p) {
+  const half = SENSOR_SIZE / 2;
+  const at = (v, max) => round(Math.min(max - SENSOR_SIZE, Math.max(0, snap(v - half))));
+  const free = live.sensors.find((s) => !ed.elements.some((e) => e.type === 'Sensor' && e.name === s.id));
+  ed.elements = [...ed.elements, { type: 'Sensor', name: free?.id ?? '', x: at(p.x, planWidth()), y: at(p.y, planHeight()), width: SENSOR_SIZE,
+    height: SENSOR_SIZE, isBlocked: false, isActive: false, zone: null }];
+  ed.selected = ed.elements.length - 1;
+  setDirty(true);
+  renderElement();
   renderMap();
 }
 

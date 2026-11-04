@@ -1,6 +1,7 @@
-"""HTTP service (/health, /infer) + one worker thread per configured camera that posts to the Sentinel API."""
+"""HTTP service (/health, /infer, /config) + one worker thread per configured camera that posts to the Sentinel API."""
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
@@ -27,6 +28,10 @@ CAMERA_SYNC_SECONDS = 60  # how often the camera list is re-read from the API
 # Longest wait for a network stream to open or deliver a frame (OpenCV's FFmpeg default is 30 s). The server already calls a
 # camera lost after 10 s without frames, so waiting longer only delays the reconnect.
 STREAM_TIMEOUT_MS = 10_000
+# Sensitivity controller: the confidence thresholds an admin may choose. Only the range the models were evaluated over
+# (reports/: 0.25 to 0.55); a value outside it has no measured precision/recall behind it.
+THRESHOLD_MIN, THRESHOLD_MAX = 0.25, 0.55
+OVERRIDES_FILE = "thresholds.local.json"  # in the models folder: the admin's choice survives a restart; models.json stays as shipped
 
 
 def mask(source: str) -> str:
@@ -49,11 +54,19 @@ class Engine:
             self.load()
 
     def load(self) -> None:
+        overrides = self.overrides()
         for spec in load_manifest(self.models_dir):
             entry = {"name": spec["name"], "file": spec["file"], "license": spec.get("license"),
-                     "categories": sorted(set(spec["categories"].values())), "threshold": spec.get("threshold")}
+                     "categories": sorted(set(spec["categories"].values())), "threshold": spec.get("threshold"),
+                     "defaultThreshold": spec.get("threshold")}
             try:
-                self.detectors.append(self.detector_factory(spec, self.models_dir))
+                detector = self.detector_factory(spec, self.models_dir)
+                value = overrides.get(spec["name"])
+                if valid_threshold(value):
+                    detector.threshold = entry["threshold"] = float(value)
+                elif value is not None:
+                    log.warning("ignoring saved threshold %r for %s (allowed %s to %s)", value, spec["name"], THRESHOLD_MIN, THRESHOLD_MAX)
+                self.detectors.append(detector)
                 entry.update(loaded=True, error=None)
             except ModelError as e:
                 self.missing.append(spec["name"])
@@ -61,6 +74,39 @@ class Engine:
                 log.warning("model %s not loaded: %s", spec["name"], e)
             self.models.append(entry)
         self.loading = False
+
+    def overrides(self) -> dict:
+        try:
+            data = json.loads((self.models_dir / OVERRIDES_FILE).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return {}
+        except (OSError, ValueError) as e:
+            log.warning("ignoring %s: %s", OVERRIDES_FILE, e)
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def set_threshold(self, name: str, value) -> float:
+        """Applies a new confidence threshold to one loaded model between two inferences and saves it; ValueError if refused."""
+        if not valid_threshold(value):
+            raise ValueError(f"threshold must be a number from {THRESHOLD_MIN} to {THRESHOLD_MAX}")
+        detector = next((d for d in self.detectors if d.name == name), None)
+        if detector is None:
+            raise ValueError(f"model {name!r} is not loaded")
+        with self.lock:  # never in the middle of an inference
+            saved = {**self.overrides(), name: float(value)}
+            tmp = self.models_dir / (OVERRIDES_FILE + ".tmp")
+            tmp.write_text(json.dumps(saved, indent=2), encoding="utf-8")
+            os.replace(tmp, self.models_dir / OVERRIDES_FILE)  # saved first: a failed write leaves the old value active
+            detector.threshold = float(value)
+            next(m for m in self.models if m["name"] == name)["threshold"] = detector.threshold
+        log.info("threshold of %s set to %s", name, detector.threshold)
+        return detector.threshold
+
+    def config(self) -> dict:
+        active = {d.name: d.threshold for d in self.detectors}  # what inference really uses
+        return {"min": THRESHOLD_MIN, "max": THRESHOLD_MAX, "models": [
+            {"name": m["name"], "loaded": m["loaded"], "threshold": active.get(m["name"]), "defaultThreshold": m["defaultThreshold"]}
+            for m in self.models]}
 
     def pipeline(self, camera_id: str, simulated: bool, zones=None) -> CameraPipeline:
         return CameraPipeline(self.detectors, camera_id, simulated, self.settings, zones, self.missing)
@@ -220,7 +266,11 @@ class Server(ThreadingHTTPServer):
     allow_reuse_address = False
 
 
-def make_handler(engine: Engine, cameras: list):
+def valid_threshold(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and THRESHOLD_MIN <= value <= THRESHOLD_MAX
+
+
+def make_handler(engine: Engine, cameras: list, device_key: str = ""):
     class Handler(BaseHTTPRequestHandler):
         def _json(self, code: int, body: dict):
             data = json.dumps(body).encode()
@@ -233,10 +283,28 @@ def make_handler(engine: Engine, cameras: list):
         def do_GET(self):
             if urlparse(self.path).path == "/health":
                 return self._json(200, engine.health(cameras))
+            if urlparse(self.path).path == "/config":
+                return self._json(200, engine.config())
             self._json(404, {"error": "not found"})
+
+        def post_config(self):
+            """{"model": name, "threshold": x}. Only the Sentinel server (the device key) may change it."""
+            if not device_key or not hmac.compare_digest(self.headers.get("X-Device-Key", ""), device_key):
+                return self._json(403, {"error": "config changes need the Sentinel device key"})
+            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                body = json.loads(self.rfile.read(min(length, 4096))) if 0 < length <= 4096 else None
+                active = engine.set_threshold(body["model"], body["threshold"])
+            except (ValueError, TypeError, KeyError) as e:
+                return self._json(400, {"error": str(e) if isinstance(e, ValueError) and body else "body must be {model, threshold}"})
+            except OSError as e:
+                return self._json(500, {"error": f"could not save the setting: {e}"})
+            self._json(200, {"model": body["model"], "threshold": active, **engine.config()})
 
         def do_POST(self):
             url = urlparse(self.path)
+            if url.path == "/config":
+                return self.post_config()
             if url.path != "/infer":
                 return self._json(404, {"error": "not found"})
             camera_id = parse_qs(url.query).get("cameraId", ["upload-test"])[0]
@@ -284,7 +352,7 @@ def serve(config: dict, models_dir: Path):
     cameras = []
     host, port = config.get("listen", "127.0.0.1:8008").rsplit(":", 1)
     try:
-        server = Server((host, int(port)), make_handler(engine, cameras))
+        server = Server((host, int(port)), make_handler(engine, cameras, key))
     except OSError as e:  # never take over a port another service holds
         raise SystemExit(f"cannot listen on {host}:{port}, the port is in use (is another AI service running?): {e}")
     failed = []

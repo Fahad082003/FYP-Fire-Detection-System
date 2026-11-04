@@ -1,9 +1,9 @@
 {% extends "sentinel/shell.html" %}
 {% block title %}Reports · Sentinel{% endblock %}
+{% block heading %}Reports &amp; Analytics{% endblock %}
 {% block page %}
 <main class="page page-reports">
   <header class="page-head">
-    <h1>Reports</h1>
     <nav class="seg" aria-label="Period">
       {% for label, start, end in periods %}<a class="seg-btn" href="?start={{ start }}&amp;end={{ end }}"
         {% if form.data.start == start and form.data.end == end %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
@@ -61,5 +61,17 @@
       </div>
     {% endif %}
   {% endif %}
+
+  <section class="panel" aria-labelledby="accuracy-title" id="model-accuracy">
+    <h2 id="accuracy-title" class="section-title">Model accuracy (offline evaluation against labelled images)</h2>
+    <p class="small dim">Measured by <span class="mono">ai-service/tools/evaluate.py</span> on datasets with ground-truth labels, at the threshold each model
+      runs with. Box metrics: a detection is correct when it overlaps a labelled box (IoU ≥ 0.5). Image confusion: does an image with the class get
+      at least one detection. These are <b>not</b> computed from incidents: incident totals and false alarms above are operator outcomes, not accuracy.
+      A new run is recorded by putting its output folder (report.json) in the evaluation directory; runs are listed oldest first to compare them.</p>
+    {% include "sentinel/_evaluations.html" with runs=measured %}
+    {% if synthetic %}<details class="small" style="margin-top:10px"><summary>Synthetic stress runs ({{ synthetic|length }}): the same labelled images
+      darkened or fogged by a script. They show the trend under those effects, not real-world accuracy.</summary>
+      {% include "sentinel/_evaluations.html" with runs=synthetic %}</details>{% endif %}
+  </section>
 </main>
 {% endblock %}

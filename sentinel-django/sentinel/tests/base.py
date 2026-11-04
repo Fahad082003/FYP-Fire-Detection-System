@@ -1,5 +1,7 @@
 """Shared test setup: the real first-run seeder (admin + demo devices), an operator, and API clients.
 Port of SentinelApiFactory.cs. Runs on the throwaway database built by sentinel.test_runner."""
+import tempfile
+from pathlib import Path
 from unittest import mock
 
 from django.conf import settings
@@ -7,7 +9,7 @@ from django.core.cache import cache
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from sentinel import notifications, services
+from sentinel import notifications, occupancy, services
 from sentinel.models import AppUser, UserRole
 from sentinel.watchdog import watchdog
 
@@ -17,7 +19,7 @@ ADMIN_EMAIL, PASSWORD = "admin@test.local", "Test@12345"
 
 class SentinelTestCase(TestCase):
     """Demo data as seeded in Development: cameras cam-lobby, cam-warehouse, cam-server, drone-01; sensors smoke/temp-a1, b1, c1;
-    sprinklers spr-a1, spr-a2, spr-b1, spr-b2, spr-c1. In-memory state (cache, watchdog, notification queue) is reset per test."""
+    sprinklers spr-a1, spr-a2, spr-b1, spr-b2, spr-c1. In-memory state (cache, watchdog, occupancy, notification queue) is reset per test."""
 
     @classmethod
     def setUpTestData(cls):
@@ -29,8 +31,16 @@ class SentinelTestCase(TestCase):
         cls.operator.save(force_insert=True)
 
     def setUp(self):
+        tmp = tempfile.TemporaryDirectory()  # crowd limits are a file: never the real App_Data one
+        self.addCleanup(tmp.cleanup)
+        patcher = mock.patch.dict(settings.SENTINEL, CAPACITY_FILE=Path(tmp.name) / "capacities.json", SNAPSHOT_DIR=Path(tmp.name) / "snapshots")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         cache.clear()
         watchdog.__init__()  # a fresh process: nothing remembered
+        occupancy._latest.clear()
+        notifications._retries.clear()
+        notifications._fcm_creds.update(path=None, value=None)
         while not notifications.jobs.empty():
             notifications.jobs.get_nowait()
 

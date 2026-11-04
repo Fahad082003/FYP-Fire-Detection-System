@@ -1,9 +1,10 @@
 {% extends "sentinel/shell.html" %}
+{% load static %}
 {% block title %}Settings · Sentinel{% endblock %}
+{% block heading %}Settings{% endblock %}
 {% block page %}
 <main class="page">
   <header class="page-head">
-    <h1>Settings</h1>
     <span class="page-sub">{% if user.is_admin %}Cameras of this building{% else %}Only an Admin can add, edit or delete cameras.{% endif %}</span>
   </header>
   <div class="split">
@@ -78,9 +79,5 @@
     {% endif %}
   </div>
 
-  <section class="panel" aria-labelledby="sys-title">
-    <div class="section-head"><h2 id="sys-title" class="section-title">System health</h2><a href="{% url 'ai' %}">Details</a></div>
-    <div class="health-strip" id="health-strip"><p class="empty">Checking system health…</p></div>
-  </section>
 </main>
 {% endblock %}

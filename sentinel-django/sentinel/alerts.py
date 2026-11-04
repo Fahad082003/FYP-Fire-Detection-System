@@ -53,15 +53,16 @@ def evaluate_detection(frame: dict) -> IncidentAlert | None:
 
     # Frames arrive several times a second per camera: re-evaluate at most every N seconds unless severity rises
     # or fire first appears (D-18: smoke + a Low fire ranks below smoke alone, yet the incident must learn it is a fire).
-    # A person newly in danger also passes, or a second person entering within the window would never be logged.
+    # Smoke first appearing passes too (its first measurement is when smoke was seen), and so does a person newly in danger,
+    # or a second person entering within the window would never be logged.
     throttle_key = f"vision-eval:{frame['cameraId']}"
     at_risk = _people_at_risk(frame)
-    last_severity, last_fire, last_risk = cache.get(throttle_key) or (None, False, frozenset())
+    last_severity, last_fire, last_smoke, last_risk = cache.get(throttle_key) or (None, False, False, frozenset())
     if last_severity is not None and rank(severity) <= rank(last_severity) and (last_fire or not frame["fireDetected"]) \
-            and at_risk <= last_risk:
+            and (last_smoke or not frame["smokeDetected"]) and at_risk <= last_risk:
         return None
-    cache.set(throttle_key, (max_severity(severity, last_severity), last_fire or frame["fireDetected"], last_risk | at_risk),
-              _opt("VISION_EVALUATION_INTERVAL_SECONDS"))
+    cache.set(throttle_key, (max_severity(severity, last_severity), last_fire or frame["fireDetected"],
+                             last_smoke or frame["smokeDetected"], last_risk | at_risk), _opt("VISION_EVALUATION_INTERVAL_SECONDS"))
 
     camera = CameraFeed.objects.filter(pk=frame["cameraId"]).first()
     zone = camera.location_zone if camera else "Unassigned"
@@ -84,8 +85,14 @@ def evaluate_detection(frame: dict) -> IncidentAlert | None:
         IncidentSource.VISION, zone, severity, f"{', '.join(parts)} on {camera_name}{tags}", camera.id if camera else None,
         None, frame["fireDetected"], frame["fireSeverity"], frame["humanCount"], frame["dangerCount"]))
     emergency = is_emergency(frame) or severity == "Critical"
+    incident.smoke_detected = frame["smokeDetected"] or IncidentLog.objects.filter(
+        incident=incident, type=IncidentLogType.SMOKE_MEASUREMENT).exists()  # dto.incident reads it; this frame's log comes next
     publish_incident(incident, action, emergency, simulated=frame["simulated"])
     _log_frame(incident, frame, camera_name)
+    if action == "created" and not emergency and (frame["fireDetected"] or frame["smokeDetected"]):
+        # Every new confirmed fire or smoke incident reaches the registered phones and browsers (Firebase); SMS, e-mail and the
+        # other channels stay for emergencies. Queued after the smoke log, so the push already says "Smoke".
+        notifications.enqueue(incident, only=("fcm",))
     if incident.fire_detected:
         warn_fire_proximity(incident)
     if frame["fireDetected"]:
@@ -122,22 +129,28 @@ def _union_area(boxes, fw: float, fh: float) -> float:
 
 
 def _log_frame(incident: IncidentAlert, f: dict, camera_name: str) -> None:
-    """Requirement 3.2 / 2.3: fire-measurement history and one alert per person per danger zone per incident."""
+    """Requirement 3.2 / 2.3: fire- and smoke-measurement history and one alert per person per danger zone per incident."""
     sim = " [SIMULATED DATA]" if f["simulated"] else ""
-    if f["fireDetected"]:
-        # Measured value = AI fire bounding boxes as % of the frame. It is not a physical fire size.
-        fw, fh = (1.0, 1.0) if f["normalized"] else (f["frameWidth"], f["frameHeight"])
-        boxes = _union_area([d["bbox"] for d in f["detections"] if d["category"] == "Fire"], fw, fh)
-        area = round(min(100.0, boxes / (fw * fh) * 100), 2)
-        last = (IncidentLog.objects.filter(incident=incident, type=IncidentLogType.FIRE_MEASUREMENT).order_by("-id").first())
+    fw, fh = (1.0, 1.0) if f["normalized"] else (f["frameWidth"], f["frameHeight"])
+    for category, log_type in (("Fire", IncidentLogType.FIRE_MEASUREMENT), ("Smoke", IncidentLogType.SMOKE_MEASUREMENT)):
+        if not f[f"{category.lower()}Detected"]:
+            continue
+        # Measured value = AI boxes of this class as % of the frame. It is not a physical fire or smoke size.
+        boxes = [d for d in f["detections"] if d["category"] == category]
+        area = round(min(100.0, _union_area([d["bbox"] for d in boxes], fw, fh) / (fw * fh) * 100), 2)
+        severity = f["fireSeverity"] if category == "Fire" else None  # the AI rates the fire size only
+        last = IncidentLog.objects.filter(incident=incident, type=log_type).order_by("-id").first()
         if last is None or (last.fire_area_percent, last.fire_severity, last.human_count, last.danger_count) != (
-                area, f["fireSeverity"], f["humanCount"], f["dangerCount"]):
+                area, severity, f["humanCount"], f["dangerCount"]):
+            confidence = max((d["confidence"] for d in boxes), default=None)
             add_log(IncidentLog(
-                incident=incident, type=IncidentLogType.FIRE_MEASUREMENT, zone=incident.zone, fire_area_percent=area,
-                fire_severity=f["fireSeverity"], human_count=f["humanCount"], danger_count=f["dangerCount"],
-                simulated=f["simulated"],
-                details=f"Fire boxes cover {_num(area)}% of the frame on {camera_name}, AI fire severity {f['fireSeverity'] or 'n/a'}{sim}"))
-            _warn_if_growing(incident, camera_name, f["simulated"])
+                incident=incident, type=log_type, zone=incident.zone, fire_area_percent=area, fire_severity=severity,
+                human_count=f["humanCount"], danger_count=f["dangerCount"], simulated=f["simulated"],
+                details=f"{category} boxes cover {_num(area)}% of the frame on {camera_name}"
+                        + (f", AI fire severity {severity or 'n/a'}" if category == "Fire" else "")
+                        + (f", top confidence {confidence:.2f}" if confidence is not None else "") + sim))
+            if category == "Fire":
+                _warn_if_growing(incident, camera_name, f["simulated"])
 
     untracked = Counter()
     for d in f["detections"]:

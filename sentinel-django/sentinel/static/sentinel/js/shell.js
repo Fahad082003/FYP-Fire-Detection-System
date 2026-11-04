@@ -100,6 +100,7 @@ function connect() {
   on('activity', (a) => live.addActivity(a));
   on('notification', onNotification);
   on('incidentLog', (l) => live.emit('incidentLog', l));
+  on('occupancy', (o) => live.emit('occupancy', o));
 }
 
 function applySnapshot(s) {
@@ -159,9 +160,10 @@ function onIncident({ action, incident }) {
 
 function onNotification(n) {
   const channel = n.channel.toUpperCase();
+  // Delivered only when the provider confirms it; Pending = the provider accepted it (no delivery receipt).
   const message = n.skipped ? `${channel} skipped for incident #${n.incidentId} (${n.detail})`
-    : n.ok ? `${channel} alert for incident #${n.incidentId} delivered to ${n.delivered}${n.detail ? ` — ${n.detail}` : ''}`
-      : `${channel} alert for incident #${n.incidentId} failed${n.detail ? `: ${n.detail}` : ''}`;
+    : `${channel} for incident #${n.incidentId}: ${n.status ?? (n.ok ? 'Pending' : 'Failed')} · ${n.delivered} sent${n.failed ? `, ${n.failed} failed` : ''}${
+      n.detail ? ` — ${n.detail}` : ''}`;
   live.addActivity({ level: n.skipped ? 'info' : n.ok ? 'notify' : 'warning', message, zone: null, timestamp: n.timestamp });
 }
 
@@ -348,6 +350,23 @@ function notifyLocal(incident) {
   push.registration.showNotification(`${incident.severity.toUpperCase()} · Incident #${incident.id}`, {
     body: `${incident.zone} — humans in danger: ${incident.dangerCount}`, tag: `incident-${incident.id}`,
     requireInteraction: incident.severity === 'Critical', data: { url: location.href },
+  });
+}
+
+// ---------------------------------------------------------------- menu: a drawer on phones; the open-incident count on "Incidents"
+const app = document.getElementById('app'), navToggle = document.getElementById('nav-toggle');
+function setNav(open) {
+  app.classList.toggle('nav-open', open);
+  navToggle.setAttribute('aria-expanded', String(open));
+}
+navToggle.addEventListener('click', () => setNav(!app.classList.contains('nav-open')));
+document.getElementById('nav-scrim').addEventListener('click', () => setNav(false));
+const navIncidents = document.getElementById('nav-incidents');
+for (const name of ['incidents', 'snapshot']) {
+  live.on(name, () => {
+    const n = live.openIncidents().length;
+    navIncidents.textContent = String(n);
+    navIncidents.classList.toggle('hidden', !n);
   });
 }
 

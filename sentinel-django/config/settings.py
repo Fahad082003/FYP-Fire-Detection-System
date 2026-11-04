@@ -200,6 +200,28 @@ SENTINEL = {
     "WEBPUSH_PUBLIC_KEY": env("Notifications__WebPush__PublicKey"),
     "WEBPUSH_PRIVATE_KEY": env("Notifications__WebPush__PrivateKey"),
     "WEBPUSH_SUBJECT": env("Notifications__WebPush__Subject", "mailto:ops@sentinel.local"),
+    # WhatsApp through Twilio: its own sender (an approved WhatsApp sender, "whatsapp:" is added) and recipients, never the SMS ones.
+    "WHATSAPP_ACCOUNT_SID": env("Notifications__WhatsApp__TwilioAccountSid"),
+    "WHATSAPP_AUTH_TOKEN": env("Notifications__WhatsApp__TwilioAuthToken"),
+    "WHATSAPP_FROM": env("Notifications__WhatsApp__FromNumber"),
+    "WHATSAPP_RECIPIENTS": env("Notifications__WhatsApp__Recipients"),
+    "TELEGRAM_BOT_TOKEN": env("Notifications__Telegram__BotToken"),
+    "TELEGRAM_CHAT_IDS": env("Notifications__Telegram__ChatIds"),
+    # Firebase Cloud Messaging (HTTP v1): the project id and the path of a service-account JSON file (kept outside the repo).
+    "FCM_PROJECT_ID": env("Notifications__Fcm__ProjectId"),
+    "FCM_CREDENTIALS_FILE": env("Notifications__Fcm__CredentialsFile"),
+    # Firebase Web SDK in the dashboard (public values from the Firebase console, not secrets) and the Web Push key pair's
+    # public key ("Web Push certificates"), so a browser can get its FCM registration token.
+    "FCM_WEB_API_KEY": env("Notifications__Fcm__WebApiKey"),
+    "FCM_WEB_APP_ID": env("Notifications__Fcm__WebAppId"),
+    "FCM_SENDER_ID": env("Notifications__Fcm__MessagingSenderId"),
+    "FCM_VAPID_KEY": env("Notifications__Fcm__VapidKey"),
+    "SNAPSHOT_DIR": BASE_DIR / env("Notifications__SnapshotDirectory", "App_Data/snapshots"),  # one JPEG per notified incident
+    # GSM modem fallback (serial, AT commands): used when internet SMS (Twilio) is not configured or failed for an alert.
+    "GSM_PORT": env("Notifications__Gsm__Port"),  # e.g. COM5; empty = disabled
+    "GSM_BAUD": int(env_number("Notifications__Gsm__BaudRate", 115200)),
+    "GSM_RECIPIENTS": env("Notifications__Gsm__Recipients"),  # empty = the SMS recipients
+    "NOTIFY_RETRY_SECONDS": env_number("Notifications__RetrySeconds", 30),  # one retry for a channel that failed completely
     "AI_BASE_URL": env("AiService__BaseUrl", "http://localhost:8008"),
     "AI_TIMEOUT_SECONDS": env_number("AiService__TimeoutSeconds", 20),
     "AI_MAX_IMAGE_BYTES": int(env_number("AiService__MaxImageBytes", 5 * 1024 * 1024)),
@@ -207,6 +229,10 @@ SENTINEL = {
     "DANGER_CLEARANCE_METERS": env_number("FloorPlans__DangerClearanceMeters", 1.0),
     "FLOORPLAN_IMAGE_DIR": BASE_DIR / env("FloorPlans__ImageDirectory", "App_Data/floorplans"),
     "FLOORPLAN_MAX_IMAGE_BYTES": int(env_number("FloorPlans__MaxImageBytes", 5 * 1024 * 1024)),
+    "CAPACITY_FILE": BASE_DIR / env("FloorPlans__CapacityFile", "App_Data/capacities.json"),  # crowd limits per room/exit
+    "OCCUPANCY_STALE_SECONDS": env_number("FloorPlans__OccupancyStaleSeconds", 10),  # a room's count is "stale" this long after its camera's last frame
+    # Offline model evaluations (ai-service/tools/evaluate.py output, one report.json per run) shown on the Reports page.
+    "AI_EVALUATION_DIR": Path(env("AiService__EvaluationDirectory", str(BASE_DIR.parent / "ai-service" / "reports"))),
 }
 if SENTINEL["DEVICE_API_KEY"] and SENTINEL["DEVICE_API_KEY"] == SENTINEL["SENSOR_API_KEY"]:
     raise RuntimeError("Device__ApiKey (AI service) and Device__SensorApiKey (sensor gateways) must be different keys.")

@@ -1,10 +1,10 @@
 {% extends "sentinel/shell.html" %}
 {% load static %}
 {% block title %}Building Map · Edit plan · Sentinel{% endblock %}
+{% block heading %}Floor Plan · Edit{% endblock %}
 {% block page %}
 <main class="page">
   <header class="page-head">
-    <h1>Building Map</h1>
     <nav class="seg push-right" aria-label="Mode">
       <a class="seg-btn" href="{% url 'map' %}">View</a>
       <a class="seg-btn" href="{% url 'floor_plans' %}" aria-current="page">Edit plan</a>
@@ -39,11 +39,12 @@
         <button type="button" class="seg-btn" data-tool="Exit">+ Exit</button>
         <button type="button" class="seg-btn" data-tool="SafeZone">+ Safe zone</button>
         <button type="button" class="seg-btn" data-tool="DangerZone">+ Danger zone</button>
+        <button type="button" class="seg-btn" data-tool="Sensor">+ Sensor</button>
       </div>
       <div class="panel-body" style="padding:8px">
         <div id="editor-map"></div>
         <p class="tiny muted" style="margin-top:8px">Drag on the plan to draw the selected element (1 grid square = 1 m). <b>Select / Move</b>: drag an element to
-          move it, drag the cyan corner to resize, <kbd>Delete</kbd> to remove. Mouse wheel zooms. An uploaded image is only a background to trace over:
+          move it, drag the cyan corner to resize, <kbd>Delete</kbd> to remove. <b>+ Sensor</b>: click where the sensor hangs. Mouse wheel zooms. An uploaded image is only a background to trace over:
           walls, rooms and exits are not detected from it.</p>
       </div>
     </div>
@@ -87,6 +88,7 @@
         <li><span class="swatch" style="border:1px solid #22c55e;background:rgb(34 197 94 / .2)"></span>Safe zone</li>
         <li><span class="swatch" style="border:1px dashed #ef4444;background:rgb(239 68 68 / .2)"></span>Danger zone</li>
         <li><span class="swatch" style="background:rgb(239 68 68 / .5)"></span>Blocked</li>
+        <li><span class="swatch" style="border:1px solid #38bdf8;border-radius:50%;background:rgb(14 165 233 / .25)"></span>Sensor (click to place)</li>
       </ul>
     </section>
   </aside>

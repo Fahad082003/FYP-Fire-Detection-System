@@ -13,7 +13,7 @@ from django.test import override_settings
 from rest_framework.settings import api_settings
 from rest_framework.test import APIClient
 
-from sentinel.models import IncidentAlert, SmartSprinkler
+from sentinel.models import IncidentAlert, IncidentLog, IncidentLogType, SmartSprinkler
 
 from .base import SentinelTestCase
 
@@ -37,8 +37,8 @@ class StubAi:
         class Handler(BaseHTTPRequestHandler):
             def _answer(self):
                 stub.calls += 1
-                if self.headers.get("Content-Length"):
-                    self.rfile.read(int(self.headers["Content-Length"]))
+                body = self.rfile.read(int(self.headers["Content-Length"])) if self.headers.get("Content-Length") else b""
+                stub.last = (self.command, self.path, body, self.headers.get("X-Device-Key"))
                 status, text, delay = stub.reply(self.path)
                 time.sleep(delay)
                 data = text.encode()
@@ -199,3 +199,78 @@ class AiTests(SentinelTestCase):
     def test_overlong_explanation_is_rejected(self):
         r = self.post_frame(cameraId="cam-lobby", detections=[{"category": "Human", "bbox": [1, 2, 3, 4], "explanation": "x" * 241}])
         self.assertEqual(r.status_code, 400)
+
+
+class SensitivityTests(SentinelTestCase):
+    """GET/PUT /api/ai/sensitivity against the AI service stub. The AI service's own suite proves the value reaches inference."""
+
+    def setUp(self):
+        super().setUp()
+        self.ai = StubAi()
+        self.addCleanup(self.ai.close)
+        patcher = mock.patch.dict(settings.SENTINEL, AI_BASE_URL=self.ai.url, AI_TIMEOUT_SECONDS=1)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+    CONFIG = {"min": 0.25, "max": 0.55, "models": [{"name": "fire_smoke", "loaded": True, "threshold": 0.4, "defaultThreshold": 0.4},
+                                                   {"name": "person", "loaded": True, "threshold": 0.45, "defaultThreshold": 0.45}]}
+
+    def reply_with(self, applied=None, status=200, error=None):
+        def reply(path):
+            if self.ai.last[0] == "POST":
+                return (status, json.dumps({"error": error}) if error else json.dumps(
+                    {"model": "fire_smoke", "threshold": applied, **self.CONFIG}), 0)
+            return 200, json.dumps(self.CONFIG), 0
+        self.ai.reply = reply
+
+    def put(self, client, threshold=0.45):
+        return client.put("/api/ai/sensitivity", {"model": "fire_smoke", "threshold": threshold}, format="json")
+
+    def test_an_admin_change_returns_what_the_ai_service_applied_and_is_audited(self):
+        self.reply_with(applied=0.45)
+        r = self.put(self.admin_client)
+        self.assertEqual((r.status_code, r.json()["threshold"]), (200, 0.45))
+        method, path, body, key = self.ai.last
+        self.assertEqual((method, path, json.loads(body), key), ("POST", "/config", {"model": "fire_smoke", "threshold": 0.45}, "test-device-key"))
+        [entry] = IncidentLog.objects.filter(type=IncidentLogType.SETTING_CHANGED)
+        self.assertIn("set the fire_smoke confidence threshold to 0.45 (was 0.4); applied by the AI service", entry.details)
+
+    def test_the_active_value_is_the_ai_services_answer_not_the_requested_one(self):
+        self.reply_with(applied=0.5)  # whatever the service reports is what is shown as active
+        self.assertEqual(self.put(self.admin_client, 0.45).json()["threshold"], 0.5)
+        self.assertEqual(self.op.get("/api/ai/sensitivity").json()["models"][0]["threshold"], 0.4)  # GET = the service's view
+
+    def test_operators_devices_and_bad_values_cannot_change_it(self):
+        self.reply_with(applied=0.45)
+        self.assertEqual(self.put(self.op).status_code, 403)
+        self.assertEqual(self.put(self.device).status_code, 401)
+        self.assertEqual(self.put(APIClient()).status_code, 401)
+        self.assertEqual(self.admin_client.put("/api/ai/sensitivity", {"model": "fire_smoke", "threshold": "high"}, format="json").status_code, 400)
+        self.assertEqual(self.ai.calls, 0)  # refused before the AI service is asked
+        self.assertFalse(IncidentLog.objects.filter(type=IncidentLogType.SETTING_CHANGED).exists())
+
+    def test_a_refused_or_unreachable_ai_service_changes_nothing(self):
+        self.reply_with(status=400, error="threshold must be a number from 0.25 to 0.55")
+        r = self.put(self.admin_client, 0.9)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("0.25 to 0.55", r.json()["detail"])
+        with mock.patch.dict(settings.SENTINEL, AI_BASE_URL=closed_port_url()):
+            r = self.put(self.admin_client)
+            self.assertEqual(r.status_code, 503)
+            self.assertIn("nothing was changed", r.json()["detail"])
+            self.assertEqual(self.op.get("/api/ai/sensitivity").status_code, 503)
+        self.assertFalse(IncidentLog.objects.filter(type=IncidentLogType.SETTING_CHANGED).exists())
+
+    def test_the_ai_page_shows_the_active_threshold_and_only_admins_get_the_control(self):
+        self.ai.reply = lambda path: (200, json.dumps({"status": "ok", "models": [{"name": "fire_smoke", "loaded": True, "threshold": 0.45,
+                                                       "defaultThreshold": 0.4, "categories": ["Fire"], "file": "f", "license": "x"}],
+                                                       "cameras": [], "inference": {"count": 0, "avgMs": None}}), 0)
+        self.client.force_login(self.admin)
+        html = self.client.get("/ai").content.decode()
+        self.assertIn('data-sensitivity="fire_smoke"', html)
+        self.assertIn("Active in the AI service: 0.45", html)
+        self.assertIn("(default 0.4)", html)
+        self.assertIn(">Apply</button>", html)
+        self.client.force_login(self.operator)
+        html = self.client.get("/ai").content.decode()
+        self.assertNotIn(">Apply</button>", html)
+        self.assertIn("Only an Admin can change it.", html)

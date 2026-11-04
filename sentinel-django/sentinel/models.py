@@ -44,6 +44,7 @@ class IncidentSource(models.TextChoices):
     MANUAL = "Manual"
     CAMERA_LOST = "CameraLost"
     SENSOR_LOST = "SensorLost"  # fits the existing nvarchar(16) column: no schema change
+    CROWD = "Crowd"  # a room or exit over its configured limit (occupancy.evaluate_crowd); same column
 
 
 class UserRole(models.TextChoices):
@@ -59,6 +60,7 @@ class FloorElementType(models.TextChoices):
     EXIT = "Exit"
     SAFE_ZONE = "SafeZone"
     DANGER_ZONE = "DangerZone"
+    SENSOR = "Sensor"  # a sensor's position: name = the sensor id, x/y/width/height its marker; same table, no schema change
 
 
 class IncidentLogType(models.TextChoices):
@@ -73,6 +75,9 @@ class IncidentLogType(models.TextChoices):
     FALSE_ALARM = "FalseAlarm"  # operator's verdict on an incident; same column, no schema change
     SENSOR_RECOVERED = "SensorRecovered"  # a stale sensor reports again; same column, no schema change
     CORROBORATED = "Corroborated"  # a smoke sensor in the zone confirms an AI fire; same column, no schema change
+    SETTING_CHANGED = "SettingChanged"  # an admin changed a system setting (AI sensitivity); same column, no schema change
+    NOTIFICATION = "Notification"  # one channel's delivery attempt for an incident and its result; same column
+    SMOKE_MEASUREMENT = "SmokeMeasurement"  # AI smoke boxes (% of frame in FireAreaPercent) and confidence; 16 chars, same column
 
 
 SEVERITIES = ["Low", "Medium", "High", "Critical"]  # ordered: index = rank

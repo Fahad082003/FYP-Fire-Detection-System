@@ -1,0 +1,176 @@
+{
+  "evaluatedAt": "2026-11-04T09:06:58+00:00",
+  "realImages": {
+    "source": "reports/2026-10-19-fire_smoke-yolox_tiny-dfire-test/predictions.jsonl",
+    "images": 4306,
+    "threshold": 0.4,
+    "rules": {
+      "none (current pipeline)": {
+        "Fire": {
+          "tp": 1039,
+          "fp": 19,
+          "fn": 76,
+          "tn": 3172,
+          "precision": 0.982,
+          "recall": 0.9318,
+          "f1": 0.9563
+        },
+        "Smoke": {
+          "tp": 1920,
+          "fp": 63,
+          "fn": 161,
+          "tn": 2162,
+          "precision": 0.9682,
+          "recall": 0.9226,
+          "f1": 0.9449
+        }
+      },
+      "box at least 100 px\u00b2": {
+        "Fire": {
+          "tp": 1036,
+          "fp": 18,
+          "fn": 79,
+          "tn": 3173,
+          "precision": 0.9829,
+          "recall": 0.9291,
+          "f1": 0.9553
+        },
+        "Smoke": {
+          "tp": 1920,
+          "fp": 63,
+          "fn": 161,
+          "tn": 2162,
+          "precision": 0.9682,
+          "recall": 0.9226,
+          "f1": 0.9449
+        }
+      },
+      "box at least 400 px\u00b2": {
+        "Fire": {
+          "tp": 993,
+          "fp": 16,
+          "fn": 122,
+          "tn": 3175,
+          "precision": 0.9841,
+          "recall": 0.8906,
+          "f1": 0.935
+        },
+        "Smoke": {
+          "tp": 1916,
+          "fp": 63,
+          "fn": 165,
+          "tn": 2162,
+          "precision": 0.9682,
+          "recall": 0.9207,
+          "f1": 0.9438
+        }
+      },
+      "confidence at least 0.45": {
+        "Fire": {
+          "tp": 1025,
+          "fp": 14,
+          "fn": 90,
+          "tn": 3177,
+          "precision": 0.9865,
+          "recall": 0.9193,
+          "f1": 0.9517
+        },
+        "Smoke": {
+          "tp": 1894,
+          "fp": 59,
+          "fn": 187,
+          "tn": 2166,
+          "precision": 0.9698,
+          "recall": 0.9101,
+          "f1": 0.939
+        }
+      },
+      "confidence at least 0.5": {
+        "Fire": {
+          "tp": 1008,
+          "fp": 13,
+          "fn": 107,
+          "tn": 3178,
+          "precision": 0.9873,
+          "recall": 0.904,
+          "f1": 0.9438
+        },
+        "Smoke": {
+          "tp": 1854,
+          "fp": 53,
+          "fn": 227,
+          "tn": 2172,
+          "precision": 0.9722,
+          "recall": 0.8909,
+          "f1": 0.9298
+        }
+      },
+      "fire only together with smoke": {
+        "Fire": {
+          "tp": 827,
+          "fp": 15,
+          "fn": 288,
+          "tn": 3176,
+          "precision": 0.9822,
+          "recall": 0.7417,
+          "f1": 0.8452
+        },
+        "Smoke": {
+          "tp": 1920,
+          "fp": 63,
+          "fn": 161,
+          "tn": 2162,
+          "precision": 0.9682,
+          "recall": 0.9226,
+          "f1": 0.9449
+        }
+      }
+    }
+  },
+  "synthetic": {
+    "sunset": {
+      "frames": 20,
+      "expected": "no fire, no smoke",
+      "fireFrames": 0,
+      "smokeFrames": 0
+    },
+    "red lights (blinking)": {
+      "frames": 20,
+      "expected": "no fire, no smoke",
+      "fireFrames": 0,
+      "smokeFrames": 0
+    },
+    "kitchen steam": {
+      "frames": 20,
+      "expected": "no fire, no smoke",
+      "fireFrames": 0,
+      "smokeFrames": 0
+    },
+    "vape": {
+      "frames": 20,
+      "expected": "no fire, no smoke",
+      "fireFrames": 0,
+      "smokeFrames": 0
+    },
+    "red object": {
+      "frames": 20,
+      "expected": "no fire, no smoke",
+      "fireFrames": 0,
+      "smokeFrames": 0
+    },
+    "flickering warm glow": {
+      "frames": 20,
+      "expected": "no fire, no smoke",
+      "fireFrames": 0,
+      "smokeFrames": 0
+    }
+  },
+  "realSample": {
+    "source": "samples/fire-test.avi",
+    "frames": 40,
+    "expected": "fire and smoke in the clip (no per-frame labels)",
+    "fireFrames": 7,
+    "smokeFrames": 8,
+    "smokeWithoutFireFrames": 4
+  }
+}

@@ -1,9 +1,9 @@
 {% extends "sentinel/shell.html" %}
 {% block title %}AI Service · Sentinel{% endblock %}
+{% block heading %}AI Settings{% endblock %}
 {% block page %}
 <main class="page">
   <header class="page-head">
-    <h1>AI Service</h1>
     <a class="btn btn-sm btn-ghost push-right" href="{% url 'ai' %}">Refresh</a>
   </header>
 
@@ -24,6 +24,17 @@
         <article class="panel card">
           <div class="card-head"><b>{{ m.name }}</b><span class="{% if m.loaded %}text-green{% else %}text-red{% endif %} strong small">{% if m.loaded %}Loaded{% else %}Not loaded{% endif %}</span></div>
           <p class="small dim">Finds: {{ m.categories|join:", " }} · threshold {{ m.threshold }}</p>
+          {% if m.loaded %}<form class="slider-form" data-sensitivity="{{ m.name }}" novalidate>
+            <div class="slider-head"><label for="threshold-{{ m.name }}">Detection threshold</label>
+              <span class="mono"><b data-sensitivity-value>{{ m.threshold|floatformat:2 }}</b> <span class="muted" data-sensitivity-current>(current {{ m.threshold|floatformat:2 }})</span></span></div>
+            {# The range the models were evaluated over; the AI service checks it again and is the authority. #}
+            <input class="slider" id="threshold-{{ m.name }}" type="range" name="threshold" min="0.25" max="0.55" step="0.01" value="{{ m.threshold }}"
+              aria-label="{{ m.name }} confidence threshold" {% if not request.user.is_admin %}disabled{% endif %}>
+            <div class="slider-scale"><span>0.25 · More sensitive</span><span>0.55 · Fewer alerts</span></div>
+            <div class="row">{% if request.user.is_admin %}<button type="submit" class="btn btn-sm btn-primary">Apply</button>{% endif %}
+            <span class="tiny muted" data-sensitivity-status aria-live="polite">Active in the AI service: {{ m.threshold }}{% if m.defaultThreshold %}
+              (default {{ m.defaultThreshold }}){% endif %}. Lower = more sensitive (more alerts, more false alarms).{% if not request.user.is_admin %} Only an Admin can change it.{% endif %}</span></div>
+          </form>{% endif %}
           <p class="tiny muted">{{ m.file }} · {{ m.license }}</p>
           {% if m.note %}<p class="tiny text-amber">{{ m.note }}</p>{% endif %}
           {% if m.error %}<p class="tiny text-red">{{ m.error }}</p>{% endif %}
@@ -92,16 +103,6 @@
     </div>
   </section>
 
-  <section class="panel" aria-labelledby="health-title">
-    <div class="section-head"><h2 id="health-title" class="section-title">System health</h2>
-      <span class="small strong" id="health-overall" role="status">CHECKING…</span>
-      <button type="button" class="btn btn-ghost btn-sm" id="health-details-toggle" aria-expanded="false" aria-controls="health-details">Show details</button></div>
-    <div class="health-strip" id="health-strip"><p class="empty">Checking system health…</p></div>
-    <div class="hidden" id="health-details">
-      <p class="small muted" id="health-checked"></p>
-      <div class="scroll scroll-360" id="health"><p class="empty">Checking system health…</p></div>
-    </div>
-  </section>
 </main>
 {% endblock %}
 {% block scripts %}{{ block.super }}{% endblock %}

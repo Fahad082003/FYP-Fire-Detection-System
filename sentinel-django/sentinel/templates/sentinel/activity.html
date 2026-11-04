@@ -1,9 +1,9 @@
 {% extends "sentinel/shell.html" %}
 {% block title %}Activity Log · Sentinel{% endblock %}
+{% block heading %}Activity Log{% endblock %}
 {% block page %}
 <main class="page page-narrow">
   <header class="page-head">
-    <h1>Activity Log</h1>
     <div class="seg push-right" role="tablist" aria-label="Show" id="activity-filter">
       <button type="button" role="tab" class="seg-btn" aria-selected="true" data-filter="">Everything</button>
       <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="fire|smoke">Fire &amp; smoke</button>
@@ -23,7 +23,7 @@
         <select class="input input-sm" id="history-incident" aria-label="Incident"><option value="">All incidents</option></select>
         <select class="input input-sm" id="history-type" aria-label="Event type">
           <option value="">All event types</option>
-          <option>Opened</option><option>Escalated</option><option>Resolved</option><option>FireMeasurement</option>
+          <option>Opened</option><option>Escalated</option><option>Resolved</option><option>FireMeasurement</option><option>SmokeMeasurement</option>
           <option>PersonInDanger</option><option>EvacuationRoute</option><option>FireGrowth</option><option>RiskWarning</option><option>FalseAlarm</option><option>SensorRecovered</option><option>Corroborated</option>
         </select>
       </div></div>

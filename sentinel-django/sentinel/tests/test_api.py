@@ -111,7 +111,7 @@ class ApiTests(SentinelTestCase):
         r = self.op.post("/api/incidents/dispatch", {"zone": "Ground Floor - Lobby", "message": "Evacuate via east exit"}, format="json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.json()["source"], "Manual")
-        self.assertEqual(notifications.jobs.get_nowait(), (r.json()["id"], True))  # forced: the cooldown never applies
+        self.assertEqual(notifications.jobs.get_nowait(), (r.json()["id"], True, None))  # forced: the cooldown never applies
         resolved = self.op.post(f"/api/incidents/{r.json()['id']}/resolve").json()
         self.assertTrue(resolved["isResolved"])
         self.assertEqual(self.op.post("/api/incidents/dispatch", {"zone": ""}, format="json").status_code, 400)
@@ -157,7 +157,8 @@ class ApiTests(SentinelTestCase):
         self.assertEqual(IncidentAlert.objects.get(pk=incident.pk).updated_at, incident.updated_at)  # both frames throttled
         self.assertEqual(IncidentLog.objects.filter(incident=incident, type=IncidentLogType.FIRE_MEASUREMENT).count(), 1)
         self.assertEqual(IncidentAlert.objects.count(), 1)
-        self.assertEqual(notifications.jobs.qsize(), 0)  # a Low fire is no emergency: nothing is sent
+        self.assertEqual([j for j in notifications.jobs.queue if j[2] is None], [])  # a Low fire is no emergency: no SMS, e-mail or other channel
+        self.assertEqual(list(notifications.jobs.queue), [(incident.id, False, ("fcm",))])  # only the new-fire push
 
     def test_resolving_a_stale_copy_keeps_the_escalation_that_happened_since(self):
         """resolve_incident re-reads the incident under the alert engine's lock instead of saving an old copy over it."""
@@ -209,7 +210,7 @@ class ApiTests(SentinelTestCase):
         for _ in range(3):  # the dashboard polls the trend
             self.assertEqual(self.op.get(f"/api/incidents/{incident.id}").json()["fireTrend"]["trend"], "Increasing")
         self.assertEqual(growth.count(), 1)
-        self.assertEqual(notifications.jobs.qsize(), 0)  # a warning, not an emergency notification
+        self.assertEqual([j for j in notifications.jobs.queue if j[2] is None], [])  # a warning, not an emergency notification (only the new-fire push is queued)
 
     def test_simulated_sensor_alarm_is_labelled_and_never_opens_sprinklers(self):
         r = self.sensor.post("/api/iot/telemetry", {"readings": [{"sensorId": "temp-b1", "value": 80.0}], "simulated": True}, format="json")
@@ -654,7 +655,7 @@ class RiskWarningTests(SentinelTestCase):
         self.assertIn("corridor 'Hall' overlaps danger zone 'Fire zone'", warned[0])
         self.assertTrue(any("room 'Near room' is 5 m from" in w for w in warned))  # the 5 m boundary counts
         self.assertFalse(any("Far room" in w for w in warned))                     # 6 m: safe distance, no warning
-        self.assertEqual(notifications.jobs.qsize(), 0)  # a warning, never an SMS/e-mail/push
+        self.assertEqual([j for j in notifications.jobs.queue if j[2] is None], [])  # a warning, never an SMS/e-mail (only the new-fire push is queued)
 
     def test_no_duplicates_from_more_frames_polling_or_saving_the_plan_again(self):
         plan = self.save_plan()
@@ -1224,7 +1225,7 @@ class FusionTests(SentinelTestCase):
         after = IncidentAlert.objects.get(pk=incident.id)
         self.assertEqual((after.severity, after.source, after.fire_detected), ("Medium", "Vision", True))  # unchanged
         relay.assert_not_called()
-        notify.assert_not_called()
+        self.assertEqual([c.kwargs.get("only") for c in notify.call_args_list], [("fcm",)])  # the new-fire push only, no emergency
 
     def test_camera_fire_then_smoke_alarm_corroborates_and_both_incidents_keep_their_history(self):
         incident = self.camera_fire()
@@ -1289,8 +1290,8 @@ class NotificationSafetyTests(SentinelTestCase):
 
     def deliver(self, incident_id):
         published = []
-        with mock.patch.object(events, "publish", side_effect=lambda kind, data: published.append(data)):
-            notifications.deliver(incident_id)
+        with mock.patch.object(events, "publish", side_effect=lambda kind, data: kind == "notification" and published.append(data)):
+            notifications.deliver(incident_id)  # each attempt is also an incidentLog event: only the notification ones here
         return {p["channel"]: p for p in published}
 
     def emergency(self, **extra):
@@ -1301,13 +1302,15 @@ class NotificationSafetyTests(SentinelTestCase):
         self.assertEqual([n for n in os.environ if n.upper().startswith("NOTIFICATIONS__")], [])  # removed by manage.py test
         s = settings.SENTINEL
         self.assertFalse(any(s[k] for k in ("SMS_ACCOUNT_SID", "SMS_AUTH_TOKEN", "SMS_RECIPIENTS", "EMAIL_RECIPIENTS",
-                                            "WEBPUSH_PRIVATE_KEY")))
+                                            "WEBPUSH_PRIVATE_KEY", "WHATSAPP_AUTH_TOKEN", "TELEGRAM_BOT_TOKEN", "FCM_CREDENTIALS_FILE",
+                                            "GSM_PORT")))
         self.assertEqual(settings.EMAIL_BACKEND, "django.core.mail.backends.locmem.EmailBackend")  # Django's test runner
         self.emergency()
         with mock.patch("urllib.request.urlopen", side_effect=AssertionError("network call")) as network:
             result = self.deliver(IncidentAlert.objects.get().id)
         network.assert_not_called()
-        self.assertEqual({c: r["skipped"] for c, r in result.items()}, {"sms": True, "email": True, "push": True})
+        self.assertEqual({c: r["skipped"] for c, r in result.items()},
+                         {c: True for c in ("sms", "gsm", "whatsapp", "telegram", "fcm", "email", "push")})
 
     def test_a_failing_provider_is_logged_without_secrets_and_the_other_channels_still_run(self):
         self.emergency()

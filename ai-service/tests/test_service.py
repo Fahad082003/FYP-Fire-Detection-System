@@ -223,6 +223,35 @@ class PipelineTests(unittest.TestCase):
         img = np.zeros((416, 416, 3), np.uint8)
         self.assertFalse(any(pipe.process(img)["fireDetected"] for _ in range(8)))  # seen twice, 7 frames apart: the track expired between
 
+    def test_a_look_alike_the_model_keeps_seeing_is_confirmed_like_a_real_fire(self):
+        # What the filter can and cannot do (false-alarm review): it drops boxes seen in fewer than 3 frames, but a red light or a
+        # sunset that the model scores as fire in most frames is confirmed like a real fire. Only the model (or labelled
+        # footage to retrain it) can tell them apart; the 3-frame rule only delays such an alarm by a few frames.
+        img = np.zeros((416, 416, 3), np.uint8)
+        box = [(200, 200, 100, 100, 0.8, 1)]
+        steady = CameraPipeline([detector(SPEC_FIRE, *[box] * 6)], "cam-1", simulated=False)
+        self.assertEqual([steady.process(img)["fireDetected"] for _ in range(6)], [False, False, True, True, True, True])
+        blinking = CameraPipeline([detector(SPEC_FIRE, *[box if i % 2 == 0 else [] for i in range(8)])], "cam-1", simulated=False)
+        self.assertEqual([blinking.process(img)["fireDetected"] for _ in range(8)].index(True), 4)  # on every other frame: frame 5
+
+    def test_a_moving_fire_and_its_smoke_keep_their_own_tracks_and_stay_confirmed(self):
+        img = np.zeros((416, 416, 3), np.uint8)
+        frames = [[(100 + 8 * t, 200, 80, 80, 0.8, 1), (90 + 8 * t, 60, 120, 90, 0.7, 0)] for t in range(6)]  # both drift right
+        pipe = CameraPipeline([detector(SPEC_FIRE, *frames)], "cam-1", simulated=False)
+        out = [pipe.process(img) for _ in range(6)]
+        self.assertEqual([p["fireDetected"] for p in out], [False, False, True, True, True, True])
+        tracks = {(d["category"], d["trackId"]) for p in out for d in p["detections"]}
+        self.assertEqual(tracks, {("Fire", "F2"), ("Smoke", "S1")})  # one track each the whole time, never swapped
+        self.assertEqual([d["hits"] for p in out[2:] for d in p["detections"] if d["category"] == "Fire"], [3, 4, 5, 6])
+
+    def test_a_box_that_jumps_somewhere_else_every_frame_is_never_confirmed(self):
+        # Reflections or flicker that the model reports at a new place each frame: no box overlaps the last one, so no track
+        # reaches 3 hits. A real fire stays where it burns.
+        img = np.zeros((416, 416, 3), np.uint8)
+        frames = [[(20 + 70 * (t % 5), 40 + 60 * (t % 3), 50, 50, 0.9, 1)] for t in range(10)]
+        pipe = CameraPipeline([detector(SPEC_FIRE, *frames)], "cam-1", simulated=False)
+        self.assertFalse(any(pipe.process(img)["fireDetected"] for _ in range(10)))
+
     def test_people_carry_the_tracker_hits_and_a_single_image_carries_none(self):
         person = [(100, 200, 40, 120, 0.9, 0)]
         pipe = CameraPipeline([detector(SPEC_PERSON, person, classes=1)], "cam-1", simulated=False)
@@ -801,3 +830,67 @@ class TestCameraTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SensitivityTests(unittest.TestCase):
+    """POST /config: the admin's confidence threshold, applied to the loaded model, saved, and refused when unsafe."""
+    KEY = "test-device-key"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = Path(tmp.name)
+        (self.dir / "models.json").write_text(json.dumps({"models": [SPEC_FIRE]}))
+        self.box = [(200, 200, 100, 100, 0.42, 1)]  # a fire scored 0.42: kept at 0.40, dropped at 0.45
+
+    def engine(self):
+        return Engine(self.dir, detector_factory=lambda spec, d: detector(spec, *[self.box] * 20))
+
+    def serve(self, engine):
+        server = Server(("127.0.0.1", 0), make_handler(engine, [], self.KEY))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        return f"http://127.0.0.1:{server.server_address[1]}"
+
+    def call(self, url, body, key=KEY):
+        request = urllib.request.Request(url + "/config", data=json.dumps(body).encode(), method="POST",
+                                         headers={"Content-Type": "application/json", **({"X-Device-Key": key} if key else {})})
+        try:
+            with urllib.request.urlopen(request) as r:
+                return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read())
+
+    def test_a_new_threshold_is_applied_to_inference_reported_and_kept_after_a_restart(self):
+        engine = self.engine()
+        url = self.serve(engine)
+        img = np.zeros((416, 416, 3), np.uint8)
+        self.assertEqual(len(engine.detectors[0].detect(img)), 1)  # default 0.40 keeps the 0.42 box
+        code, body = self.call(url, {"model": "fire_smoke", "threshold": 0.45})
+        self.assertEqual((code, body["threshold"]), (200, 0.45))
+        self.assertEqual(engine.detectors[0].detect(img), [])  # the running model uses it at once
+        config = json.loads(urllib.request.urlopen(url + "/config").read())
+        self.assertEqual(config["models"], [{"name": "fire_smoke", "loaded": True, "threshold": 0.45, "defaultThreshold": 0.40}])
+        self.assertEqual(json.loads(urllib.request.urlopen(url + "/health").read())["models"][0]["threshold"], 0.45)
+        restarted = self.engine()
+        self.assertEqual(restarted.detectors[0].threshold, 0.45)  # saved in thresholds.local.json, models.json untouched
+        self.assertEqual(json.loads((self.dir / "models.json").read_text())["models"][0]["threshold"], 0.40)
+
+    def test_without_a_saved_choice_the_shipped_threshold_is_used(self):
+        self.assertEqual(self.engine().config()["models"][0]["threshold"], 0.40)
+        (self.dir / "thresholds.local.json").write_text('{"fire_smoke": 0.9}')  # outside the evaluated range: ignored
+        self.assertEqual(self.engine().detectors[0].threshold, 0.40)
+
+    def test_unsafe_values_unknown_models_and_callers_without_the_key_are_refused(self):
+        engine = self.engine()
+        url = self.serve(engine)
+        for bad in (0.1, 0.6, True, "0.4", None):
+            code, body = self.call(url, {"model": "fire_smoke", "threshold": bad})
+            self.assertEqual(code, 400, bad)
+            self.assertIn("0.25 to 0.55", body["error"])
+        self.assertEqual(self.call(url, {"model": "person", "threshold": 0.4})[0], 400)
+        self.assertEqual(self.call(url, {"model": "fire_smoke", "threshold": 0.45}, key="wrong")[0], 403)
+        self.assertEqual(self.call(url, {"model": "fire_smoke", "threshold": 0.45}, key=None)[0], 403)
+        self.assertEqual(engine.detectors[0].threshold, 0.40)
+        self.assertFalse((self.dir / "thresholds.local.json").exists())

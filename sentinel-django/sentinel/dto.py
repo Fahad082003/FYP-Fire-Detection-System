@@ -51,11 +51,12 @@ def incident(i) -> dict:
         i.is_resolved and i.incidentlog_set.filter(type=IncidentLogType.FALSE_ALARM).exists())
     corroborated = i.corroborated if hasattr(i, "corroborated") else (
         i.fire_detected and i.incidentlog_set.filter(type=IncidentLogType.CORROBORATED).exists())
+    smoke = i.smoke_detected if hasattr(i, "smoke_detected") else i.incidentlog_set.filter(type=IncidentLogType.SMOKE_MEASUREMENT).exists()
     return {
         "id": i.id, "timestamp": i.timestamp, "updatedAt": i.updated_at, "cameraId": i.camera_id,
         "cameraName": i.camera.name if i.camera_id and i.camera else None, "sensorId": i.sensor_id,
         "source": i.source, "zone": i.zone, "severity": i.severity, "fireDetected": i.fire_detected,
-        "fireSeverity": i.fire_severity, "humanCount": i.human_count, "dangerCount": i.danger_count,
+        "fireSeverity": i.fire_severity, "smokeDetected": smoke, "humanCount": i.human_count, "dangerCount": i.danger_count,
         "message": i.message, "isResolved": i.is_resolved, "resolvedAt": i.resolved_at, "falseAlarm": false_alarm,
         "corroborated": corroborated,
     }

@@ -6,7 +6,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import exceptions, serializers, status
@@ -16,10 +16,10 @@ from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import exception_handler
 
-from . import ai_client, alerts, dto, services, sprinklers
+from . import ai_client, alerts, dto, events, notifications, occupancy, services, sprinklers
 from . import health as health_checks  # api.health is the liveness route
 from .forms import CameraForm
-from .models import (CameraFeed, FloorPlan, IncidentAlert, IncidentLogType, SensorNode, SmartSprinkler, SprinklerMode,
+from .models import (CameraFeed, FloorPlan, IncidentAlert, IncidentLog, IncidentLogType, SensorNode, SmartSprinkler, SprinklerMode,
                      WebPushSubscription)
 from .security import AI_SERVICE, SENSOR_GATEWAY, IsAdmin, actor, is_device, issue_token, operator_or
 from .validation import PayloadError
@@ -441,10 +441,45 @@ def floor_plan_risk(request, plan_id):
     return Response(services.risk(_plan(plan_id)))
 
 
+@api_view(["GET", "PUT"])
+def floor_plan_capacities(request, plan_id):
+    """Max people per named room/exit, e.g. {"Exit:East": 30}. PUT replaces them (same rights as editing the plan)."""
+    plan = _plan(plan_id)
+    return Response(occupancy.save_capacities(plan, request.data) if request.method == "PUT" else occupancy.capacities(plan.id))
+
+
+@api_view(["GET"])
+def floor_plan_occupancy(request, plan_id):
+    """People per room from the calibrated cameras: live, stale (with the last count) or unknown, never a guessed 0."""
+    return Response(occupancy.plan_occupancy(_plan(plan_id)))
+
+
 # ---------------------------------------------------------------- AI service
 @api_view(["GET"])
 def ai_status(request):
     return Response(ai_client.status())
+
+
+class SensitivityBody(serializers.Serializer):
+    model = serializers.CharField(max_length=64)
+    threshold = serializers.FloatField()
+
+
+@api_view(["GET", "PUT"])
+def ai_sensitivity(request):
+    """GET: the thresholds the AI service is really using. PUT (Admin only): {"model", "threshold"}; the AI service applies it
+    and answers with what it applied, which is what is returned and logged. Nothing is shown as active that it did not apply."""
+    if request.method == "GET":
+        return Response(ai_client.config())
+    if not IsAdmin().has_permission(request, None):
+        raise exceptions.PermissionDenied("Only an Admin can change the AI sensitivity.")
+    d = body(SensitivityBody, request)
+    before = next((m["threshold"] for m in ai_client.config()["models"] if m["name"] == d["model"]), None)
+    result = ai_client.set_threshold(d["model"], d["threshold"])
+    details = f"{actor(request)} set the {d['model']} confidence threshold to {result['threshold']} (was {before}); applied by the AI service"
+    alerts.add_log(IncidentLog(type=IncidentLogType.SETTING_CHANGED, zone="AI service", details=details))
+    events.activity("info", details)
+    return Response(result)
 
 
 @api_view(["POST"])
@@ -469,6 +504,66 @@ def push_subscribe(request):
         "p256dh": d["keys"]["p256dh"], "auth": d["keys"]["auth"], "user": request.user,
         "user_agent": request.headers.get("User-Agent", "")[:255], "is_active": True})
     return Response({"subscribed": True}, status=status.HTTP_201_CREATED)
+
+
+FCM_TOKEN = r"^[A-Za-z0-9_:\-]{20,450}$"
+
+
+class FcmTokenBody(serializers.Serializer):
+    token = serializers.RegexField(FCM_TOKEN, error_messages={"invalid": "Not an FCM registration token."})
+    replaces = serializers.RegexField(FCM_TOKEN, required=False, error_messages={"invalid": "Not an FCM registration token."})
+
+
+def _own_devices(user):
+    return WebPushSubscription.objects.filter(user=user, endpoint__startswith=notifications.FCM_PREFIX)
+
+
+@api_view(["GET", "POST", "DELETE"])
+def fcm_token(request):
+    """Firebase Cloud Messaging devices of the signed-in user (a browser here, or a phone app later: the same API).
+    GET: this user's devices (only the token's last characters), Firebase status and the public web config.
+    POST {"token", "replaces"?}: register or refresh a device; a token that a browser/app got belongs to whoever signs in
+    on it now. DELETE {"token"}: unregister one of the user's own devices. Stored with the web-push subscriptions
+    (Endpoint "fcm:<token>"), so no new table is needed."""
+    if request.method == "GET":
+        o, devices = settings.SENTINEL, _own_devices(request.user).order_by("-created_at")
+        web = {"apiKey": o["FCM_WEB_API_KEY"], "projectId": o["FCM_PROJECT_ID"], "messagingSenderId": o["FCM_SENDER_ID"],
+               "appId": o["FCM_WEB_APP_ID"], "vapidKey": o["FCM_VAPID_KEY"]}
+        return Response({"firebase": notifications.fcm_status(), "webConfig": web if all(web.values()) else None,
+                         "devices": [{"id": d.id, "active": d.is_active, "createdAt": d.created_at, "userAgent": d.user_agent,
+                                      "tokenEnd": d.endpoint[-8:]} for d in devices]})
+    d = body(FcmTokenBody, request)
+    endpoint = notifications.FCM_PREFIX + d["token"]
+    if request.method == "DELETE":
+        if not _own_devices(request.user).filter(endpoint=endpoint).update(is_active=False):
+            raise Http404("No such device of yours.")  # someone else's token is never touched
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    if d.get("replaces") and d["replaces"] != d["token"]:  # Firebase rotated this device's token
+        if not _own_devices(request.user).filter(endpoint=notifications.FCM_PREFIX + d["replaces"]).update(is_active=False):
+            raise Http404("The token to replace is not one of your devices.")
+    _, created = WebPushSubscription.objects.update_or_create(endpoint=endpoint, defaults={
+        "p256dh": "", "auth": "", "user": request.user, "user_agent": request.headers.get("User-Agent", "")[:255], "is_active": True})
+    return Response({"registered": True, "created": created}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def incident_snapshot(request, incident_id):
+    """The stored camera snapshot of an incident: for a signed-in operator, or with the signed link in its push (24 h)."""
+    from django.core import signing
+    from .security import is_operator
+    signed = request.query_params.get("s")
+    try:
+        allowed = is_operator(request.user) or (signed is not None and signing.TimestampSigner(salt=notifications.SNAPSHOT_SALT)
+                                                .unsign(signed, max_age=86400) == str(incident_id))
+    except signing.BadSignature:  # also SignatureExpired
+        allowed = False
+    if not allowed:
+        raise exceptions.NotAuthenticated()
+    path = notifications.snapshot_path(incident_id)
+    if not path.is_file():
+        raise Http404(f"Incident #{incident_id} has no snapshot.")
+    return HttpResponse(path.read_bytes(), content_type="image/jpeg")  # at most 2 MB: read whole, no open file handle left
 
 
 @api_view(["POST"])

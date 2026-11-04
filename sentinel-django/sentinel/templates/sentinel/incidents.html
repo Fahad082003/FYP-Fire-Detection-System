@@ -1,9 +1,9 @@
 {% extends "sentinel/shell.html" %}
 {% block title %}Incidents · Sentinel{% endblock %}
+{% block heading %}Incident Management{% endblock %}
 {% block page %}
 <main class="page">
   <header class="page-head">
-    <h1>Incidents</h1>
     <div class="seg" role="tablist" aria-label="Incident filter" id="incident-filter">
       <button type="button" role="tab" class="seg-btn" aria-selected="true" data-filter="open">Open (<span id="open-count">0</span>)</button>
       <button type="button" role="tab" class="seg-btn" aria-selected="false" data-filter="all">All</button>
@@ -13,7 +13,7 @@
   <div class="split">
     <section class="split-main scroll-x" aria-label="Incident list">
       <table class="data incident-list">
-        <thead class="sr-only"><tr><th>Severity</th><th>What and where</th><th>Source</th><th>Fire size (est.)</th><th>People</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead class="sr-only"><tr><th>Severity</th><th>What and where</th><th>Source</th><th>Fire size (est.) / smoke</th><th>People</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="incident-rows"><tr><td colspan="7" class="empty">Loading incidents…</td></tr></tbody>
       </table>
     </section>
@@ -25,7 +25,7 @@
           <select class="input input-sm" id="history-incident" aria-label="Incident"><option value="">All incidents</option></select>
           <select class="input input-sm" id="history-type" aria-label="Event type">
             <option value="">All event types</option>
-            <option>Opened</option><option>Escalated</option><option>Resolved</option><option>FireMeasurement</option>
+            <option>Opened</option><option>Escalated</option><option>Resolved</option><option>FireMeasurement</option><option>SmokeMeasurement</option>
             <option>PersonInDanger</option><option>EvacuationRoute</option><option>FireGrowth</option><option>RiskWarning</option><option>FalseAlarm</option><option>SensorRecovered</option><option>Corroborated</option>
           </select>
         </div>
