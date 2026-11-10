@@ -16,7 +16,7 @@ from rest_framework.test import APIClient
 from sentinel import events, services
 from sentinel.security import hash_password, verify_password
 
-from sentinel.models import AppUser, SmartSprinkler
+from sentinel.models import AppUser, CameraFeed, SensorNode, SmartSprinkler
 
 from .base import ADMIN_EMAIL, PASSWORD, SENSOR_KEY, SentinelTestCase
 
@@ -111,6 +111,40 @@ class PageTests(SentinelTestCase):
         page = self.client.get("/devices")
         self.assertNotContains(page, '<td><b>Main Gate</b>', html=False)
         self.assertContains(page, "Camera deleted: Main Gate")
+
+    def test_a_zone_already_in_use_is_accepted_even_without_the_floor_area_format(self):
+        SmartSprinkler.objects.filter(pk="spr-a1").update(zone="Zone A")  # an older database's zone names
+        self.client.force_login(self.admin)
+        form = {"id": "cam-hall", "name": "Hall", "feed_type": "CCTV", "stream_url": "", "stream_format": "Simulated"}
+        self.assertRedirects(self.client.post("/devices?add", {**form, "location_zone": "Zone A"}), "/devices", fetch_redirect_response=False)
+        self.assertEqual(CameraFeed.objects.get(pk="cam-hall").location_zone, "Zone A")
+        self.assertContains(self.client.post("/devices?add", {**form, "id": "cam-x", "location_zone": "Zone Q"}), "already in use")  # new: needs a dash
+
+    def test_admins_add_and_delete_sensors_and_sprinklers_and_operators_cannot(self):
+        self.client.force_login(self.operator)
+        page = self.client.get("/devices")
+        self.assertContains(page, "smoke-a1")
+        self.assertNotContains(page, "Add sensor")
+        self.assertEqual(self.client.post("/devices", {"kind": "sensor", "delete": "smoke-a1"}).status_code, 403)
+        self.client.force_login(self.admin)
+        sensor = {"kind": "sensor", "id": "smoke-d1", "type": "Smoke", "threshold": "300", "location_zone": "Ground Floor - Lobby"}
+        self.assertRedirects(self.client.post("/devices", sensor), "/devices", fetch_redirect_response=False)
+        made = SensorNode.objects.get(pk="smoke-d1")
+        self.assertEqual((made.type, made.threshold, made.location_zone, made.last_reading_at), ("Smoke", 300, "Ground Floor - Lobby", None))
+        refused = self.client.post("/devices", {**sensor, "threshold": "0"})  # a duplicate id and a limit of 0
+        self.assertEqual(refused.status_code, 400)
+        self.assertContains(refused, "already exists", status_code=400)
+        self.assertContains(refused, "Limit must be above 0.", status_code=400)
+        sprinkler = {"kind": "sprinkler", "id": "spr-d1", "zone": "Ground Floor - Lobby", "mode": "Manual"}
+        self.assertRedirects(self.client.post("/devices", sprinkler), "/devices", fetch_redirect_response=False)
+        self.assertEqual(SmartSprinkler.objects.get(pk="spr-d1").mode, "Manual")
+        SmartSprinkler.objects.filter(pk="spr-d1").update(is_active=True)
+        self.client.post("/devices", {"kind": "sprinkler", "delete": "spr-d1"})  # spraying: never removed
+        self.assertTrue(SmartSprinkler.objects.filter(pk="spr-d1").exists())
+        SmartSprinkler.objects.filter(pk="spr-d1").update(is_active=False)
+        for kind, device in (("sprinkler", "spr-d1"), ("sensor", "smoke-d1")):
+            self.client.post("/devices", {"kind": kind, "delete": device})
+        self.assertFalse(SmartSprinkler.objects.filter(pk="spr-d1").exists() or SensorNode.objects.filter(pk="smoke-d1").exists())
 
     def test_logout_needs_a_post(self):
         self.client.force_login(self.operator)

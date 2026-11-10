@@ -9,7 +9,8 @@ const $ = (id) => document.getElementById(id);
 
 // ================================================================ video wall
 const MJPEG_RETRY_MS = 5000;
-const wall = { filter: 'all', heatmap: true, focused: null, selected: new URLSearchParams(location.search).get('camera'), tiles: new Map() };
+const wall = { filter: 'all', heatmap: false, // the heatmap is opt-in (Live Cameras checkbox): boxes alone are easier to read
+  focused: null, selected: new URLSearchParams(location.search).get('camera'), tiles: new Map() };
 let hlsLoading = null;
 
 function loadHls() { // vendored hls.js (Apache-2.0), fetched only when an HLS feed exists

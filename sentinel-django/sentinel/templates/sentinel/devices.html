@@ -56,10 +56,9 @@
           <select class="input" name="feed_type">{% for value, label in feed_types %}
             <option value="{{ value }}" {% if form.feed_type.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
           {% for e in form.feed_type.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
-        <label class="field"><span>Area: "Floor - Area" (pick one, or type a new one)</span>
+        <label class="field"><span>Area: pick one in use, or type a new "Floor - Area"</span>
           <input class="input" name="location_zone" list="zone-list" value="{{ form.location_zone.value|default_if_none:'' }}"
                  placeholder="e.g. First Floor - Kitchen" maxlength="64" required {% if form.location_zone.errors %}aria-invalid="true"{% endif %}>
-          <datalist id="zone-list">{% for z in zones %}<option value="{{ z }}"></option>{% endfor %}</datalist>
           {% for e in form.location_zone.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
         <label class="field"><span>Stream link (empty = demo camera)</span>
           <input class="input mono small" name="stream_url" value="{{ form.stream_url.value|default_if_none:'' }}"
@@ -78,6 +77,74 @@
       </form>
     {% endif %}
   </div>
+
+  <div class="split">
+    <section class="panel split-main" aria-labelledby="sensors-title" id="sensor-setup">
+      <h2 id="sensors-title" class="section-title">Sensors</h2>
+      <div class="scroll"><table class="data">
+        <thead><tr><th>Sensor</th><th>Type</th><th>Where</th><th class="num">Limit</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>{% for s in sensors %}<tr>
+          <td class="mono strong">{{ s.id }}</td><td>{{ s.type }}</td><td>{{ s.location_zone }}</td><td class="num">{{ s.threshold|floatformat:"-2" }} {{ s.unit }}</td>
+          <td class="nowrap" style="text-align:right">{% if user.is_admin %}
+            <form method="post" style="display:inline" data-confirm="Delete sensor?" data-confirm-label="Delete"
+                  data-confirm-text="{{ s.id }} and its readings are removed. Its old incidents stay in the history.">
+              {% csrf_token %}<input type="hidden" name="kind" value="sensor">
+              <button type="submit" name="delete" value="{{ s.id }}" class="btn btn-sm btn-ghost btn-text-red">Delete</button></form>{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="5" class="empty">No sensor yet.</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% if user.is_admin %}
+      <form method="post" class="stack" style="margin-top:12px" aria-label="Add sensor" novalidate>
+        {% csrf_token %}<input type="hidden" name="kind" value="sensor">
+        <h3 class="panel-title">Add sensor</h3>
+        <div class="grid-2">
+          <label class="field"><span>Id</span><input class="input mono" name="id" value="{{ sensor_form.id.value|default_if_none:'' }}" placeholder="e.g. smoke-d1" maxlength="64" required>
+            {% for e in sensor_form.id.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+          <label class="field"><span>Type</span><select class="input" name="type">{% for value, label in sensor_types %}
+            <option value="{{ value }}" {% if sensor_form.type.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+          <label class="field"><span>Limit (ppm for smoke, °C for temperature)</span><input class="input" name="threshold" type="number" step="any" min="0.01"
+            value="{{ sensor_form.threshold.value|default_if_none:'' }}" placeholder="smoke 300 · temperature 57" required>
+            {% for e in sensor_form.threshold.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+          <label class="field"><span>Where (zone)</span><input class="input" name="location_zone" list="zone-list" value="{{ sensor_form.location_zone.value|default_if_none:'' }}"
+            placeholder="e.g. Ground Floor - Lobby" maxlength="64" required>
+            {% for e in sensor_form.location_zone.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+        </div>
+        <p class="tiny muted">The sensor shows "Not reporting" until its gateway posts readings with this id (Device__SensorApiKey).
+          Put it on the map with Floor Plan → Edit plan → + Sensor.</p>
+        <div class="row"><button type="submit" class="btn btn-primary btn-sm">Add sensor</button></div>
+      </form>{% endif %}
+    </section>
+
+    <section class="panel split-side" aria-labelledby="sprinklers-title" id="sprinkler-setup">
+      <h2 id="sprinklers-title" class="section-title">Sprinklers</h2>
+      <div class="scroll"><table class="data">
+        <thead><tr><th>Sprinkler</th><th>Where</th><th>Mode</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <tbody>{% for s in sprinklers %}<tr>
+          <td class="mono strong">{{ s.id }}</td><td>{{ s.zone }}</td><td>{{ s.mode }}{% if s.is_active %} · <span class="text-red">spraying</span>{% endif %}</td>
+          <td class="nowrap" style="text-align:right">{% if user.is_admin %}
+            <form method="post" style="display:inline" data-confirm="Delete sprinkler?" data-confirm-label="Delete"
+                  data-confirm-text="{{ s.id }} is removed from the system (the relay itself is not switched).">
+              {% csrf_token %}<input type="hidden" name="kind" value="sprinkler">
+              <button type="submit" name="delete" value="{{ s.id }}" class="btn btn-sm btn-ghost btn-text-red">Delete</button></form>{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="4" class="empty">No sprinkler yet.</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% if user.is_admin %}
+      <form method="post" class="stack" style="margin-top:12px" aria-label="Add sprinkler" novalidate>
+        {% csrf_token %}<input type="hidden" name="kind" value="sprinkler">
+        <h3 class="panel-title">Add sprinkler</h3>
+        <label class="field"><span>Id</span><input class="input mono" name="id" value="{{ sprinkler_form.id.value|default_if_none:'' }}" placeholder="e.g. spr-d1" maxlength="64" required>
+          {% for e in sprinkler_form.id.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+        <label class="field"><span>Where (zone)</span><input class="input" name="zone" list="zone-list" value="{{ sprinkler_form.zone.value|default_if_none:'' }}"
+          placeholder="e.g. Ground Floor - Lobby" maxlength="64" required>
+          {% for e in sprinkler_form.zone.errors %}<span class="error">{{ e }}</span>{% endfor %}</label>
+        <label class="field"><span>Mode</span><select class="input" name="mode">{% for value, label in modes %}
+          <option value="{{ value }}" {% if sprinkler_form.mode.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+        <p class="tiny muted">Auto opens by itself in an emergency in its zone (real data only, see Alerts__AutoSprinklerOnSimulatedData);
+          Manual only by a person. The zone must be the same name as the cameras and sensors of that area.</p>
+        <div class="row"><button type="submit" class="btn btn-primary btn-sm">Add sprinkler</button></div>
+      </form>{% endif %}
+    </section>
+  </div>
+  <datalist id="zone-list">{% for z in zones %}<option value="{{ z }}"></option>{% endfor %}</datalist>
 
 </main>
 {% endblock %}

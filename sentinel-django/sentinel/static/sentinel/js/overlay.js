@@ -201,7 +201,7 @@ export class OverlayRenderer {
       ctx.strokeRect(x - grow, y - grow, w + grow * 2, h + grow * 2);
     }
     const name = (det.label || det.category).toUpperCase();
-    const label = `${atRisk ? 'IN DANGER · ' : ''}${name} ${Math.round((det.confidence ?? 1) * 100)}%${det.trackId ? ` #${det.trackId}` : ''}`;
+    const label = `${atRisk ? 'IN DANGER · ' : ''}${name} ${Math.round((det.confidence ?? 1) * 100)}%`; // short: the track id only cluttered the picture
     this.drawTag(label, x, y, color, isFire ? '#ffffff' : '#1a1204', y - 18 < r.y ? 'inside' : 'above');
   }
 

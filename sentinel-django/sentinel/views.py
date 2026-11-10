@@ -22,8 +22,9 @@ from rest_framework.utils.encoders import JSONEncoder
 
 from . import ai_client, events, notifications, services
 from .api import AnalyzeThrottle, LoginThrottle
-from .forms import CameraForm, LoginForm, ReportForm
-from .models import CameraFeed, FeedType, IncidentLog, IncidentLogType, SmartSprinkler, StreamFormat
+from .forms import CameraForm, LoginForm, ReportForm, SensorForm, SprinklerForm, existing_zones
+from .models import (CameraFeed, FeedType, IncidentLog, IncidentLogType, SensorNode, SensorType, SmartSprinkler, SprinklerMode,
+                     StreamFormat)
 from .rules import mask_credentials
 from .security import is_operator
 
@@ -121,34 +122,59 @@ def devices(request):
         camera = CameraFeed.objects.filter(pk=request.GET["edit"]).first()
     show_form = request.user.is_admin and ("add" in request.GET or camera is not None)
     form = None
+    device_forms = {}
     if request.method == "POST":
         if not request.user.is_admin:
             return HttpResponseForbidden("Only an Admin can add, edit or delete cameras.")
-        if "delete" in request.POST:
+        kind = request.POST.get("kind")
+        if kind in ("sensor", "sprinkler"):  # sensors and sprinklers: added and deleted here, edited by deleting and adding
+            model = SensorNode if kind == "sensor" else SmartSprinkler
+            if "delete" in request.POST:
+                target = model.objects.filter(pk=request.POST["delete"]).first()
+                if target is not None and kind == "sprinkler" and target.is_active:
+                    messages.error(request, f"Sprinkler {target.id} is spraying: turn it off on the Sprinklers page before deleting it.")
+                elif target is not None:
+                    target.delete()  # the database removes a sensor's readings; its old incidents stay in the history
+                    messages.success(request, f"{kind.title()} deleted: {target.id}")
+                return redirect("devices")
+            device_form = (SensorForm if kind == "sensor" else SprinklerForm)(request.POST)
+            if device_form.is_valid():
+                data = device_form.cleaned_data
+                if kind == "sensor":
+                    SensorNode.objects.create(id=data["id"], type=data["type"], threshold=data["threshold"],
+                                              location_zone=data["location_zone"], current_value=0)
+                else:
+                    SmartSprinkler.objects.create(id=data["id"], zone=data["zone"], mode=data["mode"])
+                messages.success(request, f"{kind.title()} added: {data['id']}")
+                return redirect("devices")
+            device_forms[kind] = device_form
+        elif "delete" in request.POST:
             target = CameraFeed.objects.filter(pk=request.POST["delete"]).first()
             if target:
                 services.delete_camera(target)
                 messages.success(request, f"Camera deleted: {target.name}")
             return redirect("devices")
-        form = CameraForm(request.POST, camera=camera)
-        if form.is_valid():
+        else:
+            form = CameraForm(request.POST, camera=camera)
+        if form is not None and form.is_valid():
             saved = services.save_camera(form, camera)
             messages.success(request, f"Camera saved: {saved.name} ({saved.location_zone})")
             return redirect("devices")
-        show_form = True
+        show_form = form is not None
     elif show_form:
         initial = {"feed_type": FeedType.CCTV, "stream_format": StreamFormat.SIMULATED}
         if camera:
             initial = {"id": camera.id, "name": camera.name, "feed_type": camera.feed_type, "location_zone": camera.location_zone,
                        "stream_url": mask_credentials(camera.stream_url), "stream_format": camera.stream_format}
         form = CameraForm(initial=initial, camera=camera)
-    zones = sorted({*CameraFeed.objects.values_list("location_zone", flat=True),
-                    *services.sensors().values_list("location_zone", flat=True),
-                    *SmartSprinkler.objects.values_list("zone", flat=True)})
     return render(request, "sentinel/devices.html", {
         "page": "devices", "cameras": [(c, mask_credentials(c.stream_url)) for c in services.cameras()],
-        "form": form if show_form else None, "editing": camera, "zones": zones,
-        "feed_types": FeedType.choices, "formats": StreamFormat.choices})
+        "form": form if show_form else None, "editing": camera, "zones": existing_zones(),
+        "feed_types": FeedType.choices, "formats": StreamFormat.choices,
+        "sensors": services.sensors(), "sprinklers": SmartSprinkler.objects.order_by("zone", "id"),
+        "sensor_types": SensorType.choices, "modes": SprinklerMode.choices,
+        "sensor_form": device_forms.get("sensor"), "sprinkler_form": device_forms.get("sprinkler")},
+        status=400 if device_forms else 200)
 
 
 @login_required
