@@ -348,6 +348,14 @@ tr.sensor.Warning td { background: #231d0a; } tr.sensor.Alarm td, tr.sensor.Crit
 .cam-status.on { background: var(--safe-bg); color: var(--safe-text); } .cam-status.off { background: var(--offline-bg); color: var(--offline-text); }
 .cam-status.warn { background: var(--degraded-bg); color: var(--degraded-text); } .cam-status.muted { background: var(--offline-bg); color: var(--offline-text); }
 .tile-state { pointer-events: none; position: absolute; right: 10px; bottom: 10px; }
+.tile-clock { flex: none; color: #fff; font-size: 12px; text-shadow: 0 1px 2px #000; }
+.tile-alarm .tile-state { left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; }
+.tile-alarm .chips { bottom: auto; top: 40px; right: 10px; }
+.tile-critical .stage, .tile-elevated.tile-alarm .stage { box-shadow: inset 0 0 0 2px var(--status-fire), inset 0 0 40px rgb(239 68 68 / .45); }
+.alarm-banner { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: var(--r-input); border: 2px solid #fff3;
+  font-size: clamp(14px, 2.4vw, 22px); font-weight: 800; letter-spacing: .04em; color: #fff; animation: pulse 1.2s infinite; }
+.alarm-banner svg { width: 1.3em; height: 1.3em; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ab-danger { background: rgb(220 38 38 / .92); } .ab-warn { background: rgb(217 119 6 / .92); }
 #fire-smoke .fs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
 .fs-card { min-width: 0; border: 1px solid var(--border); border-radius: var(--r-card); background: var(--surface-1); padding: 14px 16px; }
 .fs-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 15px; font-weight: 600; }
@@ -395,3 +403,11 @@ table.incident-list td.empty { border-radius: var(--r-card); border: 1px solid v
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ---------------------------------------------------------------- floor plan: the way-out banner */
+.evac-banner { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; padding: 14px 16px; border-radius: var(--r-card); border: 2px solid; color: #fff; }
+.evac-banner b { font-size: 22px; font-weight: 800; letter-spacing: .03em; line-height: 1.2; } .evac-banner span { font-size: 14px; opacity: .92; }
+.eb-go { background: #0f3d24; border-color: var(--status-safe); } .eb-warn { background: #4a2a06; border-color: #f59e0b; } .eb-stop { background: #7f1d1d; border-color: var(--status-fire); }
+.evac-banner .evac-demo { align-self: flex-start; padding: 1px 6px; border-radius: var(--r-chip); background: #fff; color: #7f1d1d; font-size: 11px; font-weight: 800; opacity: 1; }
+.chip-go { background: #14532d; color: #bbf7d0; }
+.evac-banner .evac-via { font-size: 13px; font-weight: 600; }

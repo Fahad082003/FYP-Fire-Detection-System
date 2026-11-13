@@ -58,7 +58,7 @@ Dark UI ("Fire Safety Command Center"). Har page par upar header bar: page ka na
 |---|---|---|---|
 | MONITORING | Overview (pehle Dashboard) | `/` | building status banner, 4 cards (Cameras, Sensors, Sprinklers, Open Incidents), "Needs your attention", camera tiles |
 | | Live Cameras (pehle Cameras) | `/cameras` | LIVE / NO AI DATA tiles; aag = laal box, dhuwan = dashed orange box, log = hara; filters All / Problems / CCTV / Drone |
-| | Floor Plan (pehle Building Map) | `/map` | cameras, sensors (status ka rang), log, "People per room" aur "Fire risk" layers, click = bahar nikalne ka rasta. "Edit plan" = `/floor-plans` ("+ Sensor", "Max people (crowd alert)", 4-point calibration) |
+| | Floor Plan (pehle Building Map) | `/map` | cameras, sensors (status ka rang), log, "People per room" aur "Fire risk" layers, floor tabs, click = bahar nikalne ka rasta (bara "GO TO" banner, "via" kamron ke naam), "Demo fire" checkbox (farzi aag/dhuwan, kuch save nahi). "Edit plan" = `/floor-plans` ("+ Sensor", "Max people (crowd alert)", 4-point calibration) |
 | | **Occupancy & Heatmap** (naya) | `/occupancy` | 4 cards, logon ka purple heatmap, "People per room" (Live / Stale / Unknown) aur "Crowd at the exits" tables |
 | | Incidents | `/incidents` | Fire aur Smoke cards, list (SMOKE tag, Resolve / False alarm), detail, "What happened" history. `/incidents?incident=<id>` woh incident kholta hai (push click) |
 | | Sensors | `/sensors` | readings, limits, Normal/Warning/Alarm/Critical/Not reporting/Stale, history |
@@ -167,7 +167,7 @@ Authentication: browser apni session cookie (CSRF ke saath) istemal karta hai. S
 | `GET /api/iot/sprinklers` | operator ya sensor key | sirf parhna |
 | `POST /api/iot/sprinklers/{id}/toggle` | operator | khali body ulat deti hai; **koi device key sprinkler nahi chala sakti** |
 | `POST /api/iot/sprinklers/master` | operator | |
-| `GET/POST /api/floorplans`, `GET/PUT/DELETE /api/floorplans/{id}`, `GET/PUT …/image`, `POST …/route`, `GET …/risk` | operator | |
+| `GET/POST /api/floorplans`, `GET/PUT/DELETE /api/floorplans/{id}`, `GET/PUT …/image`, `POST …/route`, `POST …/routes`, `GET …/risk` | operator | route aur risk mein optional `simulate` (danger-zone/exit ids, demo; `/route` phir log nahi likhta). Har raaste mein `via` (guzarne wali jagahon ke naam). Linked zone mein khule incident wala Exit raaste ke liye band |
 | `GET /api/floorplans/{id}/occupancy` | operator | har kamre ke log: Live / Stale / Unknown, kabhi andaze ka 0 nahi |
 | `GET`, `PUT /api/floorplans/{id}/capacities` | operator | "Max people" per kamra/exit, maslan `{"Exit:East": 30}`; PUT sab badal deta hai |
 | `GET`, `PUT /api/ai/sensitivity` | operator / PUT sirf admin | `{"model", "threshold"}`; sirf AI service ki confirm ki hui value active dikhti hai; har badlao `SettingChanged` log |

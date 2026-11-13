@@ -744,7 +744,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </tr>
 <tr>
 <td>+ Exit</td>
-<td>Emergency exit</td>
+<td>Emergency exit. Is ka bhi linked zone ho sakta hai: us zone mein khula incident (aag ya dhuwan) = exit raaste ke liye band</td>
 </tr>
 <tr>
 <td>+ Safe zone / + Danger zone</td>
@@ -770,6 +770,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <li>Naqsha 0.5 m ke khanon (grid) mein. Bari building par khana bara (max ~200,000 khane).</li>
 <li>Chal sakte hain: khule Room/Corridor/Door/Exit/SafeZone. Band: deewar, band darwaza, <strong>active danger zone</strong>.</li>
 <li>Danger zone active hai jab "Active now" tick ho, <strong>ya</strong> us ke linked zone mein khula incident ho.</li>
+<li><strong>Dhuwen wala exit:</strong> jis Exit ka linked zone mein khula incident ho, wo bhi raaste ke liye danger maana jata hai (<code>_active_danger(exits=True)</code>). Exits ke muqable mein wo "Danger". Fire risk map exits ko aag ka source nahi banata.</li>
 <li><strong>Dijkstra</strong> (8 simtein): qareeb tareen pohanch-sakne-wala khula exit.</li>
 <li><strong>1 m clearance:</strong> danger zone se 1 m ke andar wale khane mehngay. Koi raasta 1 m door na reh sake to saaf warning: "CLEARANCE VIOLATED".</li>
 <li>Insaan khud danger zone ke andar ho to bahar nikalne ki ijazat, message "leave immediately".</li>
@@ -777,10 +778,14 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <h3 id="ch9-waqt-eta">Waqt (ETA)</h3>
 <pre><code>Andazan waqt = faasla (m) ÷ 1.2 m/s       misaal: 26.9 m ÷ 1.2 = ~22 s
 </code></pre>
-<p>Dhuwan, bheer, seedhiyan shamil nahi. Is liye screen par "estimate" likha hai.</p>
-<p>Floor Plan page par naqshe ke kisi point par click = bahar ka raasta: raasta, faasla, chalne ka waqt, <strong>exits ka muqabla</strong> (<code>POST /api/floorplans/{id}/routes</code>) aur rescue list.</p>
+<p>Dhuwen ka phailna, bheer, seedhiyan shamil nahi. Is liye screen par "estimate" likha hai.</p>
+<p>Floor Plan page par upar <strong>floor tabs</strong> se floor chunein. Naqshe ke kisi point par click = bahar ka raasta: bara banner (<strong>GO TO EAST</strong> · faasla · waqt; narangi <strong>CAREFUL</strong> jab clearance toote; laal <strong>NO SAFE WAY OUT</strong>), raasta, <strong>exits ka muqabla</strong> (<code>POST /api/floorplans/{id}/routes</code>) aur rescue list.</p>
+<p><strong>Turn-by-turn ("via"):</strong> har raaste ke saath <code>via</code> list aati hai: wo naam wale kamre, corridors, darwaze aur exit jin se raasta guzarta hai, tarteeb se (darwaze/exit pehle, phir sab se chhoti jagah). Banner par "via Store → Store door → Hall → East". Bina naam wali jagah list mein nahi aati; daen/baen ki hidayat nahi di jati (insaan ka rukh maloom nahi).</p>
+<p><strong>Demo fire:</strong> Floor Plan par "Demo fire" checkbox. Danger zone par click = farzi aag, exit par click = farzi dhuwan. Browser element ids <code>simulate</code> mein <code>/route</code>, <code>/routes</code> aur <code>/risk?simulate=1,2</code> ko bhejta hai (50 tak, ghalat ho to 400). Simulate ke saath <code>/route</code> <strong>log nahi likhta</strong>; koi incident, alarm ya notification nahi. Test: <code>DemoFireTests</code>.</p>
 <p><img alt="Floor Plan page: raasta aur fire risk layer (simulated test data)" src="images/ui-floor-plan.png" /></p>
-<p><em>Floor Plan page: mehfooz raasta aur "Fire risk" layer. Simulated test data.</em></p>
+<p><em>Floor Plan page: floor tabs, GO TO banner, mehfooz raasta aur "Fire risk" layer. Simulated test data.</em></p>
+<p><img alt="Floor Plan: demo smoke at an exit (simulated test data)" src="images/ui-floor-plan-demo.png" /></p>
+<p><em>Demo fire: West exit par farzi dhuwan, raasta East ki taraf. Kuch save nahi hota.</em></p>
 <h3 id="ch9-aag-kahan-phailegi-risk-prediction-risk-heatmap">Aag kahan phailegi (risk prediction + risk heatmap)</h3>
 <p><strong>Requirement (Part 3):</strong> "Predict which areas might be affected next" aur "Generate heatmaps for risk zones", taake high-risk ilaqon ki <strong>early warning</strong> mil sake.</p>
 <p><strong>Kaise hisaab hota hai (rule-based, <code>sentinel/geometry.py</code>, <code>fire_risk</code>):</strong></p>
@@ -867,6 +872,9 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </ol>
 <p>(Calibration panel upar wali editor ki tasveer mein hai.)</p>
 <p><strong>Is ke baad:</strong> Floor Plan page par us camera ke har insaan ka <strong>nuqta</strong> naqshe par aata hai (insaan ke <strong>pairon</strong> ka point: box ka neeche beech). Kisi nuqte par click karein to raasta <strong>usi insaan ki jagah</strong> se nikalta hai. Yehi nuqte kamre-wise ginti ke liye bhi istemaal hote hain (neeche).</p>
+<p><strong>Ulta hisaab: raasta video par.</strong> Live Cameras/Overview par calibrated camera ki tile har 5 second logon ke pairon ke plan points <code>POST …/routes</code> ko bhejti hai (read-only). Jawab mein <code>activeDangerZones</code> khali na ho (floor par aag) to har insaan ke mehfooz exit ka raasta <strong>ulti homography</strong> (plan meters → camera pixels) se tasveer par hari dashed line ban kar khinchta hai, chip <strong>WAY OUT → EXIT</strong> ke saath. Jis plan point ka <code>w</code> calibration points ke ulat sign ka ho (camera ke ufaq se peeche) wahan line ruk jati hai. Asli camera par NOT TESTED.</p>
+<p><img alt="Camera tile: the way out drawn on the picture (simulated test data)" src="images/ui-camera-way-out.png" /></p>
+<p><em>Camera tile par raasta. Simulated test data.</em></p>
 <div class="table-wrap"><table>
 <thead>
 <tr>
@@ -1079,10 +1087,10 @@ SmartSprinklers          Users ──1──* PushSubscriptions
 <div class="table-wrap"><table>
 <thead><tr><th>Page</th><th>Kya hai</th></tr></thead>
 <tbody>
-<tr><td><strong>Overview</strong></td><td>Building status banner (Building is Safe / Warning / Emergency + wajah + buttons), 4 cards (Cameras, Sensors, Sprinklers, Open Incidents) har ek par chip (OK / Degraded / Alert / Active / None), "Needs your attention" list, camera tiles</td></tr>
-<tr><td><strong>Live Cameras</strong></td><td>Tiles par LIVE / NO AI DATA; aag = solid laal box, dhuwan = dashed narangi box, insaan = hara. Filters: All / Problems / CCTV / Drone. Camera par click = tafseel</td></tr>
-<tr><td><strong>Floor Plan</strong></td><td>Naqsha, camera ke nishaan, sensor icons (halat ka rang), insaanon ke nuqte, "People per room" aur "Fire risk" layers (checkbox). Point par click = raasta, faasla, waqt, exits ka muqabla, rescue list. "Edit plan" = editor (Chapter 9)</td></tr>
-<tr><td><strong>Occupancy &amp; Heatmap</strong></td><td>4 cards (People seen now, Rooms with live data, Crowded rooms, Exits near capacity), jamni heatmap wala naqsha, "People per room" table (Live / Stale / Unknown, kabhi nakli 0 nahi) aur "Crowd at the exits" table (load, limit, halat, mashwara)</td></tr>
+<tr><td><strong>Overview</strong></td><td>Building status banner (Building is Safe / Warning / Emergency + wajah + buttons), 4 cards (Cameras, Sensors, Sprinklers, Open Incidents) har ek par chip (OK / Degraded / Alert / Active / None), "Needs your attention" list, camera tiles (aag wale pehle, FIRE DETECTED banner)</td></tr>
+<tr><td><strong>Live Cameras</strong></td><td>Tiles par ghari aur LIVE / NO AI DATA; aag = solid laal box, dhuwan = dashed narangi box, insaan = hara. Aag/dhuwan mein bara FIRE/SMOKE DETECTED banner aur wo camera sab se pehle. Calibrated camera par aag ke waqt raasta video par (WAY OUT chip). Filters: All / Problems / CCTV / Drone. Camera par click = tafseel (IN DANGER ginti, aag ka size, "Open incident #" link)</td></tr>
+<tr><td><strong>Floor Plan</strong></td><td>Floor tabs, naqsha, camera ke nishaan, sensor icons (halat ka rang), insaanon ke nuqte, "People per room" aur "Fire risk" layers (checkbox), "Demo fire" checkbox. Point par click = GO TO banner ("via" ke saath), raasta, faasla, waqt, exits ka muqabla, rescue list. "Edit plan" = editor (Chapter 9)</td></tr>
+<tr><td><strong>Occupancy &amp; Heatmap</strong></td><td>Floor tabs, 4 cards (People seen now, Rooms with live data, Crowded rooms, Exits near capacity), jamni heatmap wala naqsha, "People per room" table (Live / Stale / Unknown, kabhi nakli 0 nahi) aur "Crowd at the exits" table (load, limit, halat, mashwara)</td></tr>
 <tr><td><strong>Incidents</strong> ("Incident Management")</td><td>Fire aur Smoke cards, incident list (severity chip, SMOKE tag, Resolve / False alarm), detail (aag ka size, dhuwan, log, waqt), "What happened" history filters ke saath. Link <code>/incidents?incident=&lt;id&gt;</code> seedha wohi incident kholta hai (push click)</td></tr>
 <tr><td><strong>Sensors</strong></td><td>Table: reading, limit, Normal/Warning/Alarm/Critical/Not reporting/Stale, aakhri update, sparkline; click = history</td></tr>
 <tr><td><strong>Sprinklers</strong></td><td>Zones aur relays (Auto/Manual). ⚠️ Relay ON karna <strong>asli action</strong> hai (hardware jura ho to pani chalega)</td></tr>

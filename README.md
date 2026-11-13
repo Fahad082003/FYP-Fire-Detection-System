@@ -5,7 +5,7 @@ Aag aur khatre ki real-time monitoring. Project ki apni AI service (ya koi bhi p
 - incidents kholta aur escalate karta hai, aur alerts bhejta hai: SMS (Twilio), GSM modem SMS (fallback), WhatsApp, Telegram, Firebase push, email aur web push;
 - smart sprinklers khud chalu karta hai;
 - camera khamosh ho jaye to **camera lost** alert deta hai;
-- calibrated cameras mein dikhne wale logon ko floor plan par rakhta hai aur unki jagah se evacuation route nikalta hai;
+- calibrated cameras mein dikhne wale logon ko floor plan par rakhta hai aur unki jagah se evacuation route nikalta hai; aag ke waqt yeh raasta camera ki video par bhi khinchta hai, aur jis exit ke zone mein aag/dhuwan ho wo band maana jata hai;
 - andaza lagata hai ke aag agle kin kamron tak pohanch sakti hai (rule-based, darwazon ke zariye) aur floor plan par risk heatmap dikhata hai;
 - **Occupancy & Heatmap** page: har kamre mein kitne log hain (Live / Stale / Unknown, kabhi nakli 0 nahi) aur logon ka purple heatmap (fire risk layer se alag);
 - **crowd alert**: kamre ya exit par "Max people" se zyada log hon to ek "Crowd" incident, aur safe doosre exit ka mashwara;
@@ -170,6 +170,6 @@ Nateeje aur poori AI audit: [ai-service/reports](ai-service/reports/README.md).
 - **[docs/FIREVISION_AI_FEATURES_GUIDE_ROMAN_URDU.html](docs/FIREVISION_AI_FEATURES_GUIDE_ROMAN_URDU.html)**: har feature kaise istemal karein.
 - **[docs/FIREVISION_AI_HARDWARE_GUIDE_ROMAN_URDU.html](docs/FIREVISION_AI_HARDWARE_GUIDE_ROMAN_URDU.html)**: asli hardware jorna — RTSP cameras, ESP32 sensors (`/api/iot/telemetry`), sprinkler relays (`/api/iot/sprinklers`), sensors ko naqshe par rakhna, aur saare alert channels ka setup: Twilio SMS, GSM modem, WhatsApp, Telegram, SMTP, Web Push aur Firebase.
 
-Guides 2026-11-04 ko naye UI ke mutabiq update hui hain (Overview, Live Cameras, Floor Plan, Occupancy & Heatmap, Incidents, Sensors, Sprinklers, Activity Log, Reports & Analytics, AI Settings, Notifications, Settings). Tasveerein `docs/images` mein hain aur simulated test data dikhati hain.
+Guides 2026-11-13 ko update hui hain: CCTV wall (FIRE DETECTED banner), video par raasta, floor tabs, GO TO banner, "via" aur Demo fire. Is se pehle 2026-11-04 ko naye UI ke mutabiq (Overview, Live Cameras, Floor Plan, Occupancy & Heatmap, Incidents, Sensors, Sprinklers, Activity Log, Reports & Analytics, AI Settings, Notifications, Settings). Tasveerein `docs/images` mein hain aur simulated test data dikhati hain.
 
 **Production-ready ya safety-certified nahi.** Abhi test nahi hue: asli RTSP CCTV, asli sensors aur relays, asli Twilio SMS/WhatsApp, Telegram, Firebase aur SMTP delivery, GSM modem hardware, asli sunset/steam/vape footage (false alarms), aur tablet layout. Koi mobile app nahi. Push ke snapshot links sirf wahan chalte hain jahan se dashboard ka address pohanch mein ho.

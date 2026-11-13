@@ -69,7 +69,7 @@ class Grid:
 
 
 def _fail(message: str, start_in_danger: bool = False) -> dict:
-    return {"found": False, "message": message, "path": [], "distanceMeters": 0, "exitName": None,
+    return {"found": False, "message": message, "path": [], "via": [], "distanceMeters": 0, "exitName": None,
             "startInDangerZone": start_in_danger, "clearanceViolated": False, "minDangerGapMeters": None}
 
 
@@ -116,12 +116,12 @@ def find_routes(width, height, elements, active_danger, start_x, start_y, cleara
         if not cells:
             in_danger = any(z.x < e.x + e.width and e.x < z.x + z.width and z.y < e.y + e.height and e.y < z.y + z.height
                             for z in p["dangers"])
-            results.append(_exit(e, "Danger", "The exit lies inside an active danger zone.") if in_danger
+            results.append(_exit(e, "Danger", "The exit lies inside an active danger zone or has an open fire/smoke alarm.") if in_danger
                            else _exit(e, "Unreachable", "No route: cut off by walls, closed doors or active danger zones."))
             continue
         r = _route(p, prev, min(cells, key=dist.get), [e], clearance, start_x, start_y)
         results.append({**_exit(e, "Danger" if r["clearanceViolated"] else "Available", r["message"] if r["clearanceViolated"] else None),
-                        "found": True, "path": r["path"], "distanceMeters": r["distanceMeters"],
+                        "found": True, "path": r["path"], "via": r["via"], "distanceMeters": r["distanceMeters"],
                         "clearanceViolated": r["clearanceViolated"], "minDangerGapMeters": r["minDangerGapMeters"]})
     order = {"Available": 0, "Danger": 1, "Unreachable": 2, "Blocked": 3}
     results.sort(key=lambda x: (order[x["status"]], x["distanceMeters"] if x["found"] else math.inf))
@@ -131,7 +131,7 @@ def find_routes(width, height, elements, active_danger, start_x, start_y, cleara
 
 
 def _exit(e, status: str, reason: str | None) -> dict:
-    return {"exitName": e.name, "status": status, "found": False, "path": [], "distanceMeters": None, "clearanceViolated": False,
+    return {"exitName": e.name, "status": status, "found": False, "path": [], "via": [], "distanceMeters": None, "clearanceViolated": False,
             "minDangerGapMeters": None, "reason": reason}
 
 
@@ -160,7 +160,9 @@ def _prepare(width, height, elements, active_danger, start_x, start_y) -> dict:
         return _fail("Start point is on a wall, a closed door or inside an active danger zone."
                      if any(inside(a, start_x, start_y) for a in walk)
                      else "Start point is not inside a room, corridor or other walkable area.", bool(start_danger))
-    return {"g": g, "free": free, "gap": gap, "start": start, "dangers": dangers, "start_danger": bool(start_danger),
+    # Named places for the turn-by-turn list: doors and exits first (they sit inside rooms), then the smallest space.
+    spaces = sorted((e for e in walk if e.name and e.name.strip()), key=lambda e: (e.type not in ("Door", "Exit"), e.width * e.height))
+    return {"g": g, "free": free, "gap": gap, "start": start, "dangers": dangers, "start_danger": bool(start_danger), "spaces": spaces,
             "startInDangerZone": bool(start_danger)}
 
 
@@ -207,8 +209,19 @@ def _route(p: dict, prev: dict, reached: int, exits, clearance: float, start_x: 
     message = (f"Route to exit '{exit_name}'.{leave}" if not violated else
                f"NO route keeps the required {fmt(clearance)} m clearance from active danger zones. The least-exposed route to "
                f"exit '{exit_name}' passes within {fmt(min_gap)} m of danger: it is NOT a safe route, verify on site.{leave}")
-    return {"found": True, "message": message, "path": path, "distanceMeters": round(distance, 2), "exitName": exit_name,
+    return {"found": True, "message": message, "path": path, "via": _via(p, cells), "distanceMeters": round(distance, 2), "exitName": exit_name,
             "startInDangerZone": p["start_danger"], "clearanceViolated": violated, "minDangerGapMeters": min_gap}
+
+
+def _via(p: dict, cells: list[int]) -> list[str]:
+    """Turn-by-turn: the named rooms, corridors, doors and exit the route walks through, in order."""
+    g, half, names = p["g"], p["g"].cell / 2, []
+    for i in cells:
+        r, c = divmod(i, g.cols)
+        e = next((e for e in p["spaces"] if inside(e, c * g.cell + half, r * g.cell + half)), None)
+        if e and (not names or names[-1] != e.name.strip()):
+            names.append(e.name.strip())
+    return names
 
 
 def _level(d: float) -> int:

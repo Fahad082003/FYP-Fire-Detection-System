@@ -426,19 +426,19 @@ def floor_plan_image(request, plan_id):
 @api_view(["POST"])
 def floor_plan_route(request, plan_id):
     d = request.data if isinstance(request.data, dict) else {}
-    return Response(services.route(_plan(plan_id), d.get("x"), d.get("y")))
+    return Response(services.route(_plan(plan_id), d.get("x"), d.get("y"), services.simulated_zones(d.get("simulate"))))
 
 
 @api_view(["POST"])
 def floor_plan_routes(request, plan_id):
     """Read-only per-exit comparison for one or more start points: {"starts": [[x, y], ...]}."""
     d = request.data if isinstance(request.data, dict) else {}
-    return Response(services.routes(_plan(plan_id), d.get("starts")))
+    return Response(services.routes(_plan(plan_id), d.get("starts"), services.simulated_zones(d.get("simulate"))))
 
 
 @api_view(["GET"])
 def floor_plan_risk(request, plan_id):
-    return Response(services.risk(_plan(plan_id)))
+    return Response(services.risk(_plan(plan_id), services.simulated_zones(request.query_params.get("simulate"))))
 
 
 @api_view(["GET", "PUT"])

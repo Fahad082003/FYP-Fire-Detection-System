@@ -245,13 +245,14 @@ test('route comparison and rescue list: every exit with its status, then camera 
     widthMeters: 20, heightMeters: 10, elements: [
       { type: 'Corridor', name: 'Hall', x: 0, y: 4, width: 20, height: 2 },
       { type: 'Exit', name: 'East', x: 19, y: 4, width: 1, height: 2 }, { type: 'Exit', name: 'West', x: 0, y: 4, width: 1, height: 2 },
-      { type: 'Exit', name: 'North', x: 9, y: 3, width: 2, height: 1, isBlocked: true }] }) });
+      { type: 'Exit', name: 'North', x: 9, y: 3, width: 2, height: 1, isBlocked: true },
+      { type: 'DangerZone', name: 'Demo fire', x: 17.5, y: 4, width: 1, height: 2 }] }) }); // not linked to a zone: only the demo lights it
   // cam-lobby's frame (640 x 480) mapped onto this plan, as ai-service/tools/live_test.py does
   await api('/api/cameras/cam-lobby/calibration', { method: 'PUT', body: JSON.stringify({ floorPlanId: plan.id,
     imagePoints: [[0, 240], [640, 240], [640, 480], [0, 480]], planPoints: [[2, 3], [18, 3], [18, 7], [2, 7]] }) });
   try {
     const page = await dashboard('/map');
-    await page.selectOption('#evac-plan', String(plan.id));
+    await page.locator(`#floor-tabs [data-plan="${plan.id}"]`).click();
     const map = page.locator('#evacuation svg');
     await map.scrollIntoViewIfNeeded();
     const m = await map.boundingBox();
@@ -263,6 +264,18 @@ test('route comparison and rescue list: every exit with its status, then camera 
     assert.match(await table.locator('tr', { hasText: 'North' }).textContent(), /Blocked\s*—\s*—/); // no route: no distance or time
     await table.locator('tr', { hasText: 'West' }).getByRole('button', { name: 'Show' }).click();
     await table.locator('tr', { hasText: 'West' }).getByRole('button', { name: 'Shown' }).waitFor();
+    const banner = page.locator('#evacuation [data-banner]');
+    await banner.filter({ hasText: /^GO TO EAST\d+ m · ~\d+ svia Hall → East$/ }).waitFor(); // the route answer can come after the exit table
+
+    await page.locator('#demo-fire').check(); // demo: the zone between the start and East "burns", the way out turns west
+    await page.mouse.click(m.x + m.width / 2 + (18 - 10) * s, m.y + m.height / 2 + (5 - 5) * s);
+    await banner.filter({ hasText: /^DEMO FIRE.*GO TO WEST/ }).waitFor();
+    await page.locator('#map-detail', { hasText: 'Demo fire started in Demo fire. Nothing is saved, logged or sent.' }).waitFor();
+    await page.mouse.click(m.x + m.width / 2 + (0.5 - 10) * s, m.y + m.height / 2 + (5 - 5) * s); // demo smoke at West: both ways closed
+    await banner.filter({ hasText: /^DEMO FIRE.*NO SAFE WAY OUT/ }).waitFor();
+    await page.locator('#map-detail', { hasText: 'Demo smoke blocks exit West.' }).waitFor();
+    await page.locator('#demo-fire').uncheck(); // off: the real situation again
+    await banner.filter({ hasText: /^GO TO EAST/ }).waitFor();
 
     // A person seen by the calibrated camera: feet at (320, 400) px -> about (10, 5.7) m on the plan
     const person = { cameraId: 'cam-lobby', detections: [{ category: 'Human', confidence: 0.9, bbox: [300, 300, 40, 100] }] };
@@ -276,6 +289,30 @@ test('route comparison and rescue list: every exit with its status, then camera 
     await rescue.locator('tr', { hasText: 'Location stale' }).waitFor({ timeout: 6000 }); // no new frame: the marker ages
     await page.locator('#evacuation [data-rescue]', { hasText: 'No person markers from cameras calibrated to this plan right now.' })
       .waitFor({ timeout: 6000 }); // expired markers are not listed as current people
+    assert.deepEqual(page.problems, []);
+    await page.context().close();
+  } finally {
+    await api('/api/cameras/cam-lobby/calibration', { method: 'DELETE' });
+    await api(`/api/floorplans/${plan.id}`, { method: 'DELETE' });
+  }
+});
+
+test('camera picture: with a fire on its floor, a calibrated camera shows the way out of the people it sees', async () => {
+  const plan = await api('/api/floorplans', { method: 'POST', body: JSON.stringify({ name: 'Video route e2e', building: 'E2E', floorNumber: 0,
+    widthMeters: 20, heightMeters: 10, elements: [
+      { type: 'Corridor', name: 'Hall', x: 0, y: 4, width: 20, height: 2 },
+      { type: 'Exit', name: 'East', x: 19, y: 4, width: 1, height: 2 }, { type: 'Exit', name: 'West', x: 0, y: 4, width: 1, height: 2 },
+      { type: 'DangerZone', name: 'Fire e2e', x: 17.5, y: 4, width: 1, height: 2, isActive: true }] }) }); // the fire cuts East off
+  await api('/api/cameras/cam-lobby/calibration', { method: 'PUT', body: JSON.stringify({ floorPlanId: plan.id,
+    imagePoints: [[0, 240], [640, 240], [640, 480], [0, 480]], planPoints: [[2, 3], [18, 3], [18, 7], [2, 7]] }) });
+  try {
+    const page = await dashboard();
+    const chip = page.locator('.tile', { hasText: 'Main Lobby' }).locator('.chip-go', { hasText: 'WAY OUT → WEST' });
+    for (let i = 0; i < 12 && !(await chip.count()); i++) { // feet at (320, 400) px -> about (10, 5.7) m: west of the fire
+      await postFrame({ cameraId: 'cam-lobby', detections: [{ category: 'Human', confidence: 0.9, bbox: [300, 300, 40, 100], trackId: 'v1' }] });
+      await page.waitForTimeout(1000);
+    }
+    await chip.waitFor({ timeout: 2000 });
     assert.deepEqual(page.problems, []);
     await page.context().close();
   } finally {
@@ -381,7 +418,7 @@ test('floor plans: draw a corridor and an exit, save, then the dashboard routes 
   assert.deepEqual(plan.elements.map((e) => e.type), ['Corridor', 'Exit']);
 
   await page.goto(`${BASE}/map`);
-  await page.selectOption('#evac-plan', String(plan.id));
+  await page.locator(`#floor-tabs [data-plan="${plan.id}"]`).click();
   const map = page.locator('#evacuation svg');
   await map.scrollIntoViewIfNeeded();
   const m = await map.boundingBox();
@@ -427,6 +464,19 @@ test('overview: building status, device counts, fire and smoke apart, camera sta
   }
   await page.locator('.tile', { hasText: 'Warehouse Floor' }).locator('.tile-state', { hasText: 'Fire Detected' }).waitFor();
   await page.locator('.tile', { hasText: 'Main Lobby' }).locator('.tile-state', { hasText: 'Smoke Detected' }).waitFor();
+  assert.match(await page.locator('#video-wall .tile').first().textContent(), /Warehouse Floor/); // the fire camera moves to the front
+  assert.equal(await page.locator('.tile', { hasText: 'Warehouse Floor' }).locator('.alarm-banner').textContent(), 'FIRE DETECTED');
+  const cams = await newPage(); // the camera's side panel: fire size and a link to its open incident
+  await cams.goto(`${BASE}/cameras?camera=cam-warehouse`);
+  await cams.locator('#camera-detail h2', { hasText: 'Warehouse Floor' }).waitFor(); // the page is live before the frames arrive
+  const fireSize = cams.locator('#camera-detail dd', { hasText: /FIRE \(/ });
+  for (let i = 0; i < 20 && !(await fireSize.count()); i++) {
+    await postFrame({ cameraId: 'cam-warehouse', simulated: true, fireSeverity: 'High', detections: [{ category: 'Fire', confidence: 0.91, bbox: [200, 150, 160, 140] }] });
+    await cams.waitForTimeout(500);
+  }
+  await fireSize.waitFor();
+  await cams.locator('#camera-detail a', { hasText: /^Open incident #\d+$/ }).waitFor();
+  await cams.context().close();
   await status.locator('[data-title]', { hasText: /^(Emergency|Warning)$/ }).waitFor();
   await page.locator('#attention .att', { hasText: 'Warehouse' }).first().waitFor(); // the problem is listed under "Needs your attention"
   await agrees();
@@ -582,7 +632,7 @@ test('building map: people per room from the server (live, stale, unknown) as th
     headers: { 'Content-Type': 'application/json', 'X-Device-Key': process.env.SENSOR_KEY }, body: JSON.stringify({ value }) });
   try {
     const page = await dashboard('/occupancy');
-    await page.selectOption('#evac-plan', String(plan.id));
+    await page.locator(`#floor-tabs [data-plan="${plan.id}"]`).click();
     const rows = page.locator('#evacuation [data-room-counts]');
     await rows.locator('tr', { hasText: 'Lobby' }).filter({ hasText: 'Unknown' }).waitFor(); // no frame yet: unknown, not 0
     assert.match(await rows.locator('tr', { hasText: 'Store' }).textContent(), /\?\s*Unknown\s*No calibrated camera sees this room/);
@@ -603,7 +653,7 @@ test('building map: people per room from the server (live, stale, unknown) as th
     assert.match(await page.locator('#occ-kpis').textContent(), /Rooms with live data\s*0 \/ 3/); // the totals follow: stale is not live
 
     await page.goto(`${BASE}/map`); // sensors are shown on the Floor Plan, where a click opens their details
-    await page.selectOption('#evac-plan', String(plan.id));
+    await page.locator(`#floor-tabs [data-plan="${plan.id}"]`).click();
     const sensor = page.locator('#evacuation svg [data-sensor="temp-a1"]');
     await sensor.locator('title', { hasText: 'temp-a1 · Offline · never reported' }).waitFor({ state: 'attached' }); // once this page has the live data
     await read(50); // Warning (limit 57 °C)
@@ -717,7 +767,7 @@ test('crowd density: an overcrowded exit shows the safe alternative and opens on
     ({ category: 'Human', confidence: 0.9, trackId: `c${i}`, hits: 5, bbox: [470 + 3 * i, 250, 20, 150] })) });
   try {
     const page = await dashboard('/occupancy');
-    await page.selectOption('#evac-plan', String(plan.id));
+    await page.locator(`#floor-tabs [data-plan="${plan.id}"]`).click();
     await people(4);
     const east = page.locator('#evacuation [data-exit-crowd] tr[data-exit-row="East"]');
     await east.filter({ hasText: 'Overcrowded' }).filter({ hasText: "Send people to exit 'West'" }).waitFor(POLL);

@@ -369,14 +369,16 @@ git pull
 </tbody>
 </table></div>
 <h3 id="ch9-pages">Har page kya dikhata hai</h3>
-<p><strong>Overview:</strong> upar banner (<strong>Building is Safe</strong> / <strong>Warning</strong> / <strong>Emergency</strong> + wajah + buttons), 4 cards (Cameras, Sensors, Sprinklers, Open Incidents, har ek par chip OK / Degraded / Alert / Active / None), <strong>"Needs your attention"</strong> list, aur camera tiles.</p>
-<p><strong>Live Cameras:</strong> har camera ki tile, <strong>LIVE</strong> ya <strong>NO AI DATA</strong>. AI ke dabbe: aag = <strong>bhara laal dabba</strong>, dhuwan = <strong>dashed narangi dabba</strong>, insaan = <strong>hara</strong>. Filters: All / Problems / CCTV / Drone. Camera par click = tafseel.</p>
+<p><strong>Overview:</strong> upar banner (<strong>Building is Safe</strong> / <strong>Warning</strong> / <strong>Emergency</strong> + wajah + buttons), 4 cards (Cameras, Sensors, Sprinklers, Open Incidents, har ek par chip OK / Degraded / Alert / Active / None), <strong>"Needs your attention"</strong> list, aur camera tiles (aag wala camera sab se pehle, bara <strong>FIRE DETECTED</strong> banner).</p>
+<p><strong>Live Cameras:</strong> har camera ki tile, <strong>LIVE</strong> ya <strong>NO AI DATA</strong>. AI ke dabbe: aag = <strong>bhara laal dabba</strong>, dhuwan = <strong>dashed narangi dabba</strong>, insaan = <strong>hara</strong>. Tile par ghari; aag/dhuwan mein bara laal <strong>FIRE DETECTED</strong> / narangi <strong>SMOKE DETECTED</strong> banner aur wo camera sab se pehle. Calibrated camera par aag ke waqt logon ka <strong>raasta video par hari line</strong> aur chip <strong>WAY OUT → EXIT</strong>. Filters: All / Problems / CCTV / Drone. Camera par click = tafseel (log, IN DANGER, aag ka size, <strong>Open incident #</strong> button).</p>
+<p><img alt="Camera tile with the way out" src="images/ui-camera-way-out.png" /></p>
+<p><em>Tasveer: camera tile par raasta, simulated test data.</em></p>
 <p><img alt="Live Cameras page" src="images/ui-cameras.png" /></p>
 <p><em>Tasveer: Live Cameras, simulated test data.</em></p>
-<p><strong>Floor Plan:</strong> naqsha, camera ke nishan, sensor icons (hara Online, peela Warning, gray Stale/Offline, laal Active alert), insaan ke nuqte, aur do checkbox layers: <strong>People per room</strong> aur <strong>Fire risk</strong>. Naqshe par click = bahar nikalne ka raasta (faasla, chalne ka waqt, exits ka muqabla, rescue list). <strong>Edit plan</strong> = editor.</p>
+<p><strong>Floor Plan:</strong> upar <strong>floor tabs</strong> (har floor ka button), naqsha, camera ke nishan, sensor icons (hara Online, peela Warning, gray Stale/Offline, laal Active alert), insaan ke nuqte, aur do checkbox layers: <strong>People per room</strong> aur <strong>Fire risk</strong>. Naqshe par click = bahar nikalne ka raasta: bara banner (<strong>GO TO EAST</strong> · faasla · waqt · "via" kamron ke naam), exits ka muqabla, rescue list. <strong>Demo fire</strong> checkbox = farzi aag/dhuwan ki mashq (kuch save nahi hota). <strong>Edit plan</strong> = editor.</p>
 <p><img alt="Floor Plan page with route and fire risk" src="images/ui-floor-plan.png" /></p>
 <p><em>Tasveer: Floor Plan, raasta aur fire risk layer, simulated test data.</em></p>
-<p><strong>Occupancy &amp; Heatmap</strong> (naya): 4 cards (People seen now, Rooms with live data, Crowded rooms, Exits near capacity), naqsha jamni (purple) <strong>log-per-kamra heatmap</strong> ke saath (yahan fire risk layer shuru mein band), <strong>"People per room"</strong> table (Live / Stale / Unknown; data na ho to jhoota 0 <strong>nahi</strong>, "Unknown"), aur <strong>"Crowd at the exits"</strong> table (har exit ki taraf kitne log, limit, haal, mashwara jaise "Send people to exit 'X'" ya "No safe alternative route").</p>
+<p><strong>Occupancy &amp; Heatmap</strong> (naya): upar floor tabs, 4 cards (People seen now, Rooms with live data, Crowded rooms, Exits near capacity), naqsha jamni (purple) <strong>log-per-kamra heatmap</strong> ke saath (yahan fire risk layer shuru mein band), <strong>"People per room"</strong> table (Live / Stale / Unknown; data na ho to jhoota 0 <strong>nahi</strong>, "Unknown"), aur <strong>"Crowd at the exits"</strong> table (har exit ki taraf kitne log, limit, haal, mashwara jaise "Send people to exit 'X'" ya "No safe alternative route").</p>
 <p><img alt="Occupancy and Heatmap page" src="images/ui-occupancy.png" /></p>
 <p><em>Tasveer: Occupancy &amp; Heatmap, simulated test data.</em></p>
 <p><strong>Incidents</strong> (title "Incident Management"): Fire aur Smoke cards, incidents ki list (severity chip, <strong>SMOKE</strong> tag, <strong>Resolve</strong> / <strong>False alarm</strong>), incident ki tafseel (aag ka size, dhuwan, log, waqt), aur <strong>"What happened"</strong> history filters ke saath.</p>
@@ -549,7 +551,7 @@ git pull
 </tbody>
 </table></div>
 <ol start="4">
-<li><strong>Select / Move</strong> se cheez par click → daen panel mein naam/size. Danger zone ka linked zone list se chunein (jaise <code>Ground Floor - Warehouse</code>).</li>
+<li><strong>Select / Move</strong> se cheez par click → daen panel mein naam/size. Danger zone ka linked zone list se chunein (jaise <code>Ground Floor - Warehouse</code>). <strong>Exit</strong> ka bhi linked zone de sakte hain: us zone mein aag/dhuwan ho to raasta us exit ki taraf nahi jayega. Kamron/corridors ko naam dein: raaste ke "via" mein yehi naam aate hain.</li>
 <li><strong>Save</strong>. ✅ "Floor plan saved".</li>
 </ol>
 <p><img alt="Floor plan editor" src="images/ui-floor-plan-editor.png" /></p>
@@ -559,15 +561,18 @@ git pull
 </ul>
 <h3 id="ch15-b-raasta">B. Raasta dekhna, aur aag mein raasta badalna</h3>
 <ol>
-<li>Sidebar → <strong>Floor Plan</strong> → apna naqsha. Naqshe par wahan click karein jahan insaan khara hai.</li>
+<li>Sidebar → <strong>Floor Plan</strong> → upar floor tab se apna naqsha. Naqshe par wahan click karein jahan insaan khara hai.</li>
 <li>Phir Test 1 (simulator) ya Test 3 (<code>temp-b1</code> = 75) se Warehouse mein incident kholein, aur <strong>Fire risk</strong> checkbox on karein.</li>
 </ol>
 <ul>
-<li class="task"><input type="checkbox" data-task="21" aria-label="Ho gaya"> Qareeb tareen exit tak raasta, faasla aur chalne ka waqt (andaza: faasla ÷ 1.2 m/s).</li>
+<li class="task"><input type="checkbox" data-task="21" aria-label="Ho gaya"> Qareeb tareen exit tak raasta, aur upar bara hara banner <strong>GO TO …</strong> faasle, chalne ke waqt (andaza: faasla ÷ 1.2 m/s) aur "via …" ke saath.</li>
 <li class="task"><input type="checkbox" data-task="22" aria-label="Ho gaya"> Aag ke baad danger zone active, raasta <strong>khud badal</strong> kar doosre exit ki taraf; koi raasta na bache to saaf "No safe route…".</li>
 <li class="task"><input type="checkbox" data-task="23" aria-label="Ho gaya"> Fire risk layer: aag wala kamra gehra laal, paas wale laal/narangi, door wale peele; poori deewar ke peeche wala kamra bina rang. Resolve par khud gayab.</li>
 </ul>
-<p><strong>Yaad rakhein:</strong> raasta aur risk <strong>andaza</strong> hain. Dhuwan, bheer aur seedhiyan shamil nahi.</p>
+<ul>
+<li class="task"><input type="checkbox" data-task="45" aria-label="Ho gaya"> <strong>Demo fire</strong> on → danger zone par click: banner par <strong>DEMO FIRE</strong> aur raasta badle; exit par click: wo exit band (dhuwan). Off karein: asli halat wapas. Incidents page par koi naya incident <strong>nahi</strong>.</li>
+</ul>
+<p><strong>Yaad rakhein:</strong> raasta aur risk <strong>andaza</strong> hain. Dhuwan sirf itna shamil hai ke jis exit ke linked zone mein alarm ho wo band maana jata hai; dhuwen ka phailna, bheer aur seedhiyan shamil nahi.</p>
 <h3 id="ch15-c-sensor">C. Sensor ko naqshe par rakhna (naya)</h3>
 <ol>
 <li><strong>Edit plan</strong> → <strong>+ Sensor</strong> → naqshe par click (sensor ki jagah).</li>
@@ -588,6 +593,7 @@ git pull
 </ol>
 <ul>
 <li class="task"><input type="checkbox" data-task="25" aria-label="Ho gaya"> Simulator ya AI camera chalne par Floor Plan par insaan ke nuqte; nuqte par click = usi jagah se raasta.</li>
+<li class="task"><input type="checkbox" data-task="46" aria-label="Ho gaya"> Us floor par aag ho to Live Cameras par us camera ki tile par logon ka raasta <strong>hari line</strong> aur chip <strong>WAY OUT → …</strong>.</li>
 </ul>
 <div class="table-wrap"><table>
 <thead><tr><th>Screen par</th><th>Hal</th></tr></thead>

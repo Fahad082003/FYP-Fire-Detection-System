@@ -127,18 +127,24 @@ class Tile {
     this.el.classList.toggle('tile-selected', wall.selected === c.id && !!$('camera-detail'));
     this.stage.querySelector('.tile-top').innerHTML = `<span class="tile-name" title="${esc(`${c.feedType} · ${c.locationZone}`)}">${esc(c.name)}</span>
       <span class="cam-status ${camState[1]}" title="${esc(camState[2])}">${camState[0]}</span>
+      <span class="tile-clock mono">${new Date(live.now).toLocaleTimeString([], { hour12: false })}</span>
       <span class="live-flag ${this.stale ? 'stale' : ''}"><span class="dot ${this.stale ? 'dot-slate' : 'dot-red blink'}" style="width:6px;height:6px"></span>${this.stale ? 'NO AI DATA' : 'LIVE'}</span>`;
     const model = s?.model;
     this.stage.querySelector('.chips').innerHTML = s ? `${s.humanCount ? `<span class="chip">HUM <b class="hum">${s.humanCount}</b></span>` : ''}
       ${s.dangerCount ? `<span class="chip chip-danger">DANGER <b>${s.dangerCount}</b></span>` : ''}
       ${model?.includes(':missing') ? `<span class="chip text-amber" title="Model not loaded: ${esc(model)}">MODEL MISSING</span>` : ''}
       ${s.smokeDetected ? '<span class="chip chip-fire">SMOKE</span>' : ''}
+      ${this.renderer.routesShown() ? (this.renderer.routes.none ? '<span class="chip chip-fire">NO SAFE WAY OUT</span>'
+        : `<span class="chip chip-go">WAY OUT → ${esc([...new Set(this.renderer.routes.lines.map((l) => l.exitName.toUpperCase()))].join(', '))}</span>`) : ''}
       ${s.fireDetected ? `<span class="chip chip-fire" title="Fire severity = share of the image covered by fire boxes, not a calibrated physical size">FIRE <b>${esc(fireSeverityText(s.fireSeverity) ?? 'YES')}</b></span>` : ''}` : '';
     // A camera without a stream link only gets data from the simulator (start.ps1 -Simulator): say so instead of "waiting".
     const [state, tone] = camState[1] === 'off' ? ['Camera Offline', 'danger'] : s?.fireDetected ? ['Fire Detected', 'danger']
       : s?.smokeDetected ? ['Smoke Detected', 'warn'] : s ? ['Normal', 'ok']
         : !c.streamUrl ? ['No camera connected', 'muted'] : ['Waiting for AI', 'muted'];
-    this.stage.querySelector('.tile-state').innerHTML = `<span class="state-pill sp-${tone}" title="${esc(!c.streamUrl && !s
+    const alarm = state === 'Fire Detected' || state === 'Smoke Detected'; // a big CCTV-style banner, so it is seen from across the room
+    this.el.classList.toggle('tile-alarm', alarm);
+    this.stage.querySelector('.tile-state').innerHTML = alarm ? `<span class="alarm-banner ab-${tone}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5M12 18v.01"/></svg>${state.toUpperCase()}</span>`
+      : `<span class="state-pill sp-${tone}" title="${esc(!c.streamUrl && !s
       ? 'This is a demo camera without a stream link. Start with .\\start.ps1 -Simulator for demo data, or add the real link under Settings.' : '')}">${state}</span>`;
   }
 
@@ -157,11 +163,18 @@ function cameraProblem(c) {
   return ['off', 'warn'].includes(cameraState(c)[1]) || !!s?.fireDetected || !!s?.smokeDetected;
 }
 
+/** Cameras to show, fire first, then smoke (a stable sort keeps the rest in their usual order). */
+function wallCameras() {
+  const shown = (c) => (wall.filter === 'all' || (wall.filter === 'problems' ? cameraProblem(c) : c.feedType === wall.filter));
+  const rank = (c) => { const s = live.liveStats().find((x) => x.cameraId === c.id); return s?.fireDetected ? 0 : s?.smokeDetected ? 1 : 2; };
+  return live.cameras.filter((c) => shown(c) && (!wall.focused || c.id === wall.focused)).sort((a, b) => rank(a) - rank(b));
+}
+
 function renderWall() {
   const container = $('video-wall');
   if (!container || !live.loaded) return;
-  const shown = (c) => (wall.filter === 'all' || (wall.filter === 'problems' ? cameraProblem(c) : c.feedType === wall.filter));
-  const visible = live.cameras.filter((c) => shown(c) && (!wall.focused || c.id === wall.focused));
+  const visible = wallCameras();
+  wall.order = visible.map((c) => c.id).join();
   for (const [id, tile] of wall.tiles) if (!live.cameras.some((c) => c.id === id)) { tile.destroy(); wall.tiles.delete(id); }
   if (!visible.length) {
     container.innerHTML = `<p class="empty">${live.cameras.length ? 'No camera matches this filter.' : 'No camera added yet. Add one under Settings.'}</p>`;
@@ -177,6 +190,7 @@ function renderWall() {
     tile.renderer.showHeatmap = wall.heatmap;
   }
   grid.replaceChildren(...visible.map((c) => wall.tiles.get(c.id).el));
+  grid.querySelectorAll('video').forEach((v) => { if (v.paused) v.play().catch(() => undefined); }); // moving a video in the page pauses it
   wall.tiles.forEach((t) => t.renderInfo());
   renderCameraDetail();
 }
@@ -194,7 +208,9 @@ function renderCameraDetail() {
   delete box.dataset.empty;
   const s = live.liveStats().find((x) => x.cameraId === c.id);
   const [label, tone, why] = cameraState(c);
-  const seen = !s ? 'no AI data right now' : [`${s.humanCount} people`, s.fireDetected ? 'FIRE' : 'no fire', s.smokeDetected ? 'SMOKE' : 'no smoke'].join(' · ');
+  const seen = !s ? 'no AI data right now' : [`${s.humanCount} people${s.dangerCount ? `, ${s.dangerCount} IN DANGER` : ''}`,
+    s.fireDetected ? `FIRE (${fireSeverityText(s.fireSeverity) ?? 'size unknown'})` : 'no fire', s.smokeDetected ? 'SMOKE' : 'no smoke'].join(' · ');
+  const incident = live.openIncidents().find((i) => i.cameraId === c.id);
   const last = live.frameStats[c.id]?.receivedAt;
   const html = `<h2 class="section-title">${esc(c.name)}</h2>
     <dl class="facts">
@@ -206,6 +222,7 @@ function renderCameraDetail() {
     </dl>
     <div class="row">
       <button type="button" class="btn btn-primary" data-full>${wall.focused === c.id ? 'Show all cameras' : 'Full screen'}</button>
+      ${incident ? `<a class="btn btn-danger" href="/incidents?incident=${incident.id}">Open incident #${incident.id}</a>` : ''}
       <a class="btn btn-ghost" href="/map">Show on map</a>
     </div>`;
   if (html !== box.dataset.html) { box.innerHTML = html; box.dataset.html = html; }
@@ -224,7 +241,45 @@ $('feed-filter')?.addEventListener('click', (e) => {
   renderWall();
 });
 $('heatmap-toggle')?.addEventListener('change', (e) => { wall.heatmap = e.target.checked; renderWall(); });
-live.on('detection', (f) => wall.tiles.get(f.cameraId)?.renderer.update(f));
+live.on('detection', (f) => { wall.tiles.get(f.cameraId)?.renderer.update(f); routeOnVideo(f); });
+
+// ---------------------------------------------------------------- the way out drawn on the camera picture
+const VIDEO_ROUTE_EVERY_MS = 5000;
+const videoRouteAt = new Map();
+let wallPlans = null;
+
+/** A camera calibrated to a floor plan, people in view and a fire on that floor: each person's route to the nearest safe exit,
+ * turned back from plan meters into the picture (the inverse of the feet -> plan mapping the Floor Plan page uses). */
+async function routeOnVideo(f) {
+  const tile = wall.tiles.get(f.cameraId), cal = tile?.camera.calibration;
+  if (!cal?.floorPlanId || cal.planPoints?.length !== 4 || Date.now() - (videoRouteAt.get(f.cameraId) ?? 0) < VIDEO_ROUTE_EVERY_MS) return;
+  videoRouteAt.set(f.cameraId, Date.now());
+  const toPlan = homography(cal.imagePoints, cal.planPoints), toImage = homography(cal.planPoints, cal.imagePoints);
+  // shortcut: the plan list is read once per page; a plan resized meanwhile needs a page reload.
+  wallPlans ??= api('/api/floorplans').catch(() => { wallPlans = null; return []; });
+  const plan = (await wallPlans).find((p) => p.id === cal.floorPlanId);
+  if (!toPlan || !toImage || !plan) return;
+  const sx = f.normalized ? f.frameWidth : 1, sy = f.normalized ? f.frameHeight : 1; // calibration points are frame pixels
+  const starts = f.detections.filter((d) => d.category === 'Human')
+    .map((d) => project(toPlan, [(d.bbox[0] + d.bbox[2] / 2) * sx, (d.bbox[1] + d.bbox[3]) * sy])) // the feet
+    .filter(([x, y]) => x >= 0 && y >= 0 && x <= plan.widthMeters && y <= plan.heightMeters).slice(0, 50).map(([x, y]) => [round1(x), round1(y)]);
+  if (!starts.length) { tile.renderer.routes = null; return; }
+  try {
+    const r = await api(`/api/floorplans/${plan.id}/routes`, { method: 'POST', body: { starts } }); // read-only: nothing logged
+    if (!r.activeDangerZones.length) { tile.renderer.routes = null; return; } // no fire on this floor: no arrows over the picture
+    const ways = r.results.map((x) => x.exits.find((e) => e.status === 'Available'));
+    // A plan point in front of the camera keeps the sign of w the calibration points have; past the horizon it flips: the line stops there.
+    const w = (p) => toImage[6] * p[0] + toImage[7] * p[1] + toImage[8], front = Math.sign(w(cal.planPoints[0]));
+    const toUnit = (p) => { const [x, y] = project(toImage, p); return [x / f.frameWidth, y / f.frameHeight]; };
+    const lines = ways.filter(Boolean).map((e) => {
+      const cut = e.path.findIndex((p) => Math.sign(w(p)) !== front);
+      return { exitName: e.exitName || 'exit', points: (cut < 0 ? e.path : e.path.slice(0, cut)).map(toUnit) };
+    });
+    tile.renderer.routes = { at: performance.now(), lines, none: ways.some((e) => !e) };
+  } catch { tile.renderer.routes = null; } // a failed request shows no route, never a guess
+  tile.renderInfo();
+}
+live.on('stats', () => { if ($('video-wall') && live.loaded && wallCameras().map((c) => c.id).join() !== wall.order) renderWall(); }); // a camera that starts or stops seeing fire moves
 for (const name of ['stats', 'health', 'tick']) live.on(name, () => { wall.tiles.forEach((t) => t.renderInfo()); renderCameraDetail(); });
 live.on('cameras', renderWall);
 
@@ -745,7 +800,7 @@ if ($('history-table')) loadHistory();
 const PEOPLE_EXPIRE_MS = 4500; // as the camera tile: a camera that sent nothing for this long no longer places people
 const RISK_RGBA = ['', 'rgba(234,197,79,0.14)', 'rgba(247,144,9,0.2)', 'rgba(240,68,56,0.28)', 'rgba(240,68,56,0.42)']; // tints: the plan stays readable
 const round1 = (v) => Math.round(v * 10) / 10;
-const evac = { plans: [], planId: null, imageUrl: null, start: null, result: null, routing: false, error: null, risk: null, seen: new Map(),
+const evac = { plans: [], simulate: [], planId: null, imageUrl: null, start: null, result: null, routing: false, error: null, risk: null, seen: new Map(),
   people: [], openZonesKey: '', map: null, compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueBusy: false, rescueAt: 0,
   occupancy: null, occupancyAt: 0, showPeople: true, showRisk: true, sensorKey: '' };
 const OCCUPANCY_EVERY_MS = 3000; // stale/unknown rooms change with time, not only with frames
@@ -796,7 +851,7 @@ function renderEvacuation() {
   if (!box || !plan) return;
   if (!evac.map) { // the Floor Plan page: the way out; the Occupancy page (data-mode="occupancy"): the people layer and the room/exit counts
     box.innerHTML = occupancyMode() ? '<div class="map-layout occ-layout"><div class="panel map-main" data-map></div><div class="panel evac-details" data-rooms><p class="empty">Loading occupancy…</p></div></div>'
-      : '<div class="map-layout"><div class="panel map-main" data-map></div><div class="panel evac-details"><h2 class="section-title">Way out from the clicked point</h2><p class="small muted" data-hint>Click a point on the plan, or an amber dot (a person a calibrated camera sees).</p><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-compare></div><div data-rescue></div><div data-safe></div></div></div>';
+      : '<div class="map-layout"><div class="panel map-main" data-map></div><div class="panel evac-details"><div data-banner></div><h2 class="section-title">Way out from the clicked point</h2><p class="small muted" data-hint>Click a point on the plan, or an amber dot (a person a calibrated camera sees).</p><div data-risk></div><div class="small" style="margin-top:12px" aria-live="polite" data-result></div><div data-compare></div><div data-rescue></div><div data-safe></div></div></div>';
     evac.map = new PlanMap(box.querySelector('[data-map]'), onPlanPointer);
     box.addEventListener('click', (e) => { // "Show" in the exit comparison: draw that exit's route
       const b = e.target.closest('[data-exit]');
@@ -835,6 +890,12 @@ function renderEvacuation() {
     result += `<p class="tiny muted" style="margin-top:4px">Start (${evac.start[0]}, ${evac.start[1]}) m · recalculated automatically when incidents open or close.</p>`;
   }
   box.querySelector('[data-result]').innerHTML = result ?? '';
+  const demo = evac.simulate.length ? '<span class="evac-demo">DEMO FIRE</span>' : '';
+  const exitName = esc((r?.exitName || 'exit').toUpperCase());
+  box.querySelector('[data-banner]').innerHTML = !evac.start || evac.routing || !r ? ''
+    : r.found && !r.clearanceViolated ? `<div class="evac-banner eb-go" role="status">${demo}<b>GO TO ${exitName}</b><span>${r.distanceMeters.toFixed(0)} m · ~${Math.round(r.estimatedSeconds)} s</span>${via(r)}</div>`
+    : r.found ? `<div class="evac-banner eb-warn" role="alert">${demo}<b>CAREFUL: GO TO ${exitName}</b><span>The way passes close to the fire · ${r.distanceMeters.toFixed(0)} m</span>${via(r)}</div>`
+    : `<div class="evac-banner eb-stop" role="alert">${demo}<b>NO SAFE WAY OUT</b><span>Stay in a closed room, block the smoke, call for help</span></div>`;
   box.querySelector('[data-hint]').classList.toggle('hidden', !!evac.start);
   box.querySelector('[data-compare]').innerHTML = compareHtml();
   renderRescue();
@@ -845,6 +906,8 @@ function renderEvacuation() {
         <b>${esc(z.name || 'Safe zone')}</b> — x ${z.x} m, y ${z.y} m, ${z.width} × ${z.height} m</li>`).join('')}</ul>`
     : ''}`;
 }
+
+const via = (r) => (r.via?.length > 1 ? `<span class="evac-via">via ${r.via.map(esc).join(' → ')}</span>` : ''); // turn-by-turn: the named places in order
 
 /** Every exit from the chosen start point (POST …/routes, read-only). A row without a route shows no distance, time or line. */
 function compareHtml() {
@@ -904,7 +967,7 @@ async function loadComparison() {
   const id = evac.planId, s = evac.start;
   Object.assign(evac, { compare: null, compareError: null, highlight: null });
   try {
-    const c = await api(`/api/floorplans/${id}/routes`, { method: 'POST', body: { starts: [s] } });
+    const c = await api(`/api/floorplans/${id}/routes`, { method: 'POST', body: { starts: [s], simulate: evac.simulate } });
     if (evac.planId === id && evac.start === s) evac.compare = c;
   } catch (err) {
     if (evac.planId === id && evac.start === s) evac.compareError = errorMessage(err);
@@ -917,14 +980,14 @@ const occupancyMode = () => $('evacuation')?.dataset.mode === 'occupancy';
 async function loadRescue() {
   const id = evac.planId;
   if (!id || evac.rescueBusy || occupancyMode()) return; // the rescue list is the Floor Plan page's
-  evac.rescueAt = Date.now();
   const cameras = new Map(live.cameras.map((c) => [c.id, c.name]));
   const markers = [...evac.seen].flatMap(([cameraId, v]) => v.points.map((p) => ({ cameraName: cameras.get(cameraId) ?? cameraId, at: v.at, x: p.x, y: p.y })))
     .filter((m) => Date.now() - m.at <= PEOPLE_EXPIRE_MS).slice(0, 50).map((m, i) => ({ ...m, n: i + 1 }));
   if (!markers.length) { Object.assign(evac, { rescue: { markers: [], results: [] }, rescueError: null }); renderRescue(); return; }
+  evac.rescueAt = Date.now(); // only a real refresh counts: an empty one must not hold back the next new person
   evac.rescueBusy = true;
   try {
-    const r = await api(`/api/floorplans/${id}/routes`, { method: 'POST', body: { starts: markers.map((m) => [round1(m.x), round1(m.y)]) } });
+    const r = await api(`/api/floorplans/${id}/routes`, { method: 'POST', body: { starts: markers.map((m) => [round1(m.x), round1(m.y)]), simulate: evac.simulate } });
     if (evac.planId === id) Object.assign(evac, { rescue: { markers, results: r.results }, rescueError: null });
   } catch (err) {
     if (evac.planId === id) evac.rescueError = errorMessage(err);
@@ -941,10 +1004,10 @@ function setImage(url) {
 
 async function choosePlan(id) {
   Object.assign(evac, { planId: id, start: null, result: null, routing: false, error: null, risk: null, riskLayerCache: null, people: [],
-    compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueAt: 0, occupancy: null });
+    compare: null, compareError: null, highlight: null, rescue: null, rescueError: null, rescueAt: 0, occupancy: null, simulate: [] });
   evac.seen.clear();
   setImage(null);
-  $('evac-plan').value = String(id);
+  $('floor-tabs').querySelectorAll('[data-plan]').forEach((b) => b.setAttribute('aria-selected', String(Number(b.dataset.plan) === id)));
   renderEvacuation();
   loadRisk();
   loadOccupancy();
@@ -960,7 +1023,7 @@ async function loadRisk() {
   const id = evac.planId;
   if (!id) return;
   try {
-    const r = await api(`/api/floorplans/${id}/risk`);
+    const r = await api(`/api/floorplans/${id}/risk${evac.simulate.length ? `?simulate=${evac.simulate.join(',')}` : ''}`);
     if (evac.planId !== id) return;
     evac.risk = r;
     evac.riskLayerCache = riskLayer();
@@ -975,7 +1038,7 @@ async function calculateRoute() {
   renderEvacuation();
   loadComparison();
   try {
-    const r = await api(`/api/floorplans/${id}/route`, { method: 'POST', body: { x: s[0], y: s[1] } });
+    const r = await api(`/api/floorplans/${id}/route`, { method: 'POST', body: { x: s[0], y: s[1], simulate: evac.simulate } });
     if (evac.planId !== id) return;
     Object.assign(evac, { result: r, routing: false, error: null });
   } catch (err) {
@@ -1128,6 +1191,7 @@ function onPlanPointer(p) {
   if (p.kind !== 'down' || occupancyMode()) return; // the Occupancy page only shows counts: no routes, no details panel
   if (p.camera) { showCamera(p.camera); return; } // a camera mark: its details, not a route
   if (p.sensor) { showSensor(p.sensor); return; }
+  if ($('demo-fire')?.checked) { toggleDemoFire(p); return; }
   const person = evac.people.find((q) => Math.hypot(q.x - p.x, q.y - p.y) < 1); // clicked a live person dot
   evac.start = person ? [round1(person.x), round1(person.y)] : [round1(p.x), round1(p.y)];
   calculateRoute();
@@ -1156,7 +1220,31 @@ function refreshPeople() {
   if (people.length || evac.people.length) { evac.people = people; if (evac.map) evac.map.set({ people }); }
 }
 
-$('evac-plan')?.addEventListener('change', (e) => choosePlan(Number(e.target.value)));
+$('floor-tabs')?.addEventListener('click', (e) => { const b = e.target.closest('[data-plan]'); if (b) choosePlan(Number(b.dataset.plan)); });
+
+function refreshDemo(message) {
+  $('map-detail').textContent = message;
+  loadRisk();
+  loadRescue();
+  if (evac.start) calculateRoute();
+}
+
+/** Demo fire: a click on a danger zone pretends it burns (or stops), so the route and the risk move. Only this page sees it. */
+function toggleDemoFire(p) {
+  const hit = (e) => p.x >= e.x && p.x <= e.x + e.width && p.y >= e.y && p.y <= e.y + e.height;
+  const els = currentPlan()?.elements ?? [];
+  const zone = els.find((e) => e.type === 'Exit' && hit(e)) ?? els.find((e) => e.type === 'DangerZone' && hit(e)); // exits are small: they win
+  if (!zone) { $('map-detail').textContent = 'Demo fire: click inside a danger zone (fire) or on an exit (smoke). Draw a zone with Edit plan → Danger zone.'; return; }
+  const on = !evac.simulate.includes(zone.id);
+  evac.simulate = on ? [...evac.simulate, zone.id] : evac.simulate.filter((id) => id !== zone.id);
+  const what = zone.type === 'Exit' ? `Demo smoke ${on ? 'blocks' : 'cleared at'} exit` : `Demo fire ${on ? 'started in' : 'stopped in'}`;
+  refreshDemo(`${what} ${zone.name || 'danger zone'}. Nothing is saved, logged or sent.`);
+}
+$('demo-fire')?.addEventListener('change', (e) => {
+  if (e.target.checked || !evac.simulate.length) return;
+  evac.simulate = []; // demo off: back to the real incidents
+  refreshDemo('Demo fire off: the plan shows the real incidents again.');
+});
 live.on('detection', placePeople);
 live.on('tick', () => { refreshPeople(); renderRescue(); }); // ages and stale labels move on between rescue refreshes
 setInterval(loadRescue, RESCUE_EVERY_MS);
@@ -1179,8 +1267,9 @@ if ($('evacuation')) (async () => {
     $('evacuation').innerHTML = `<p class="empty">No floor plan yet. Draw or upload one under <a href="/floor-plans">Edit plan</a> to see the building and the way out.</p>`;
     return;
   }
-  $('evac-plan').innerHTML = evac.plans.map((p) => `<option value="${p.id}">${esc(p.building ? `${p.building} · ` : '')}${esc(p.name)} (floor ${p.floorNumber})</option>`).join('');
-  $('evac-plan').classList.remove('hidden');
+  $('floor-tabs').innerHTML = evac.plans.map((p) => `<button type="button" role="tab" class="seg-btn" data-plan="${p.id}" aria-selected="false"
+    title="${esc(`${p.building ? `${p.building} · ` : ''}floor ${p.floorNumber}`)}">${esc(p.name)}</button>`).join('');
+  $('floor-tabs').classList.remove('hidden');
   choosePlan(evac.plans[0].id);
 })();
 

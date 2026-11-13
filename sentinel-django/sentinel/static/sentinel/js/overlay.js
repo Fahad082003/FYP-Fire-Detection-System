@@ -4,10 +4,11 @@ import { FRAME_STALE_MS as STALE_MS } from './shell.js';
 
 /** Box colours: fire = red, humans = green, humans inside a danger zone = pulsing amber. */
 // Fire = solid red box, smoke = dashed orange box (the design system's overlay rule: hue, line style and label differ).
-export const OVERLAY_COLORS = { fire: '#f04438', human: '#12b76a', humanAtRisk: '#eac54f', smoke: '#f79009', danger: '#f43f5e', vehicle: '#a78bfa', other: '#e6ebf2' };
+export const OVERLAY_COLORS = { fire: '#f04438', human: '#12b76a', humanAtRisk: '#eac54f', smoke: '#f79009', danger: '#f43f5e', vehicle: '#a78bfa', other: '#e6ebf2', route: '#22c55e' };
 const ZONE_RGB = { Warning: '245,158,11', Danger: '239,68,68', Critical: '220,38,38', Safe: '34,197,94' };
 const LABEL_FONT = '600 11px "JetBrains Mono", Consolas, monospace';
 const EXPIRE_MS = 6000; // boxes fade out between STALE_MS and this
+const ROUTE_EXPIRE_MS = 8000; // the dashboard refreshes the way out every 5 s
 const EASING_RATE = 14;
 
 /** Rect occupied by media drawn with `object-fit: contain` inside a stage of size W x H (letterboxing). */
@@ -105,6 +106,7 @@ export class OverlayRenderer {
     }
     ctx.globalAlpha = alpha;
     for (const zone of frame.dangerZones) this.drawZone(zone, frame, rect, now, pulse);
+    if (this.routesShown(now)) this.drawRoutes(rect, now);
     for (const track of this.tracks.values()) {
       for (let i = 0; i < 4; i++) track.box[i] += (track.target[i] - track.box[i]) * ease;
       this.drawBox(track, rect, pulse, now);
@@ -158,6 +160,38 @@ export class OverlayRenderer {
       const top = pts.reduce((best, p) => (p[1] < best[1] ? p : best), pts[0]);
       this.drawTag(zone.label.toUpperCase(), top[0], top[1] - 4, `rgb(${rgb})`, '#fff', 'above');
     }
+  }
+
+  /** The way out set by the dashboard (routes.lines: 0..1 picture points per person), kept while it is recent. */
+  routesShown(now = performance.now()) {
+    return !!this.routes && now - this.routes.at <= ROUTE_EXPIRE_MS;
+  }
+
+  drawRoutes(r, now) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip(); // the part of a route outside the picture is not drawn over the letterbox
+    for (const line of this.routes.lines) {
+      const pts = line.points.map(([u, v]) => [r.x + u * r.w, r.y + v * r.h]);
+      if (pts.length < 2) continue;
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.lineCap = ctx.lineJoin = 'round';
+      ctx.lineWidth = 7;
+      ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+      ctx.stroke(); // dark under-stroke: readable on a bright picture
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = OVERLAY_COLORS.route;
+      ctx.setLineDash([14, 10]);
+      ctx.lineDashOffset = -now / 25; // dashes march towards the exit
+      ctx.stroke();
+      ctx.setLineDash([]);
+      const [x, y] = pts[pts.length - 1];
+      this.drawTag(`EXIT ${line.exitName.toUpperCase()} →`, Math.min(x, r.x + r.w - 90), Math.max(y, r.y + 18), '#15803d', '#fff', 'above');
+    }
+    ctx.restore();
   }
 
   drawBox(track, r, pulse, now) {

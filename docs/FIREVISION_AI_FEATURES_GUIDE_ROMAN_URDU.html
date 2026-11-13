@@ -213,7 +213,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <tr><td><strong>Status banner</strong></td><td>"Building is Safe" (hara) / "Warning" / "Emergency" + wajah + buttons (jaise incident kholna)</td></tr>
 <tr><td><strong>4 cards</strong></td><td>Cameras, Sensors, Sprinklers, Open Incidents. Har card par chip: <strong>OK / Degraded / Alert / Active / None</strong></td></tr>
 <tr><td><strong>Needs your attention</strong></td><td>Jin cheezon par abhi dhyan dena hai (khule incidents, offline camera, sensor alarm…)</td></tr>
-<tr><td><strong>Camera tiles</strong></td><td>Cameras ki chhoti tasveerein; poori list Live Cameras par</td></tr>
+<tr><td><strong>Camera tiles</strong></td><td>Cameras ki chhoti tasveerein, har tile par ghari. Aag/dhuwan wala camera <strong>sab se pehle</strong> aata hai, us par bara laal <strong>FIRE DETECTED</strong> (ya narangi <strong>SMOKE DETECTED</strong>) banner. Poori list Live Cameras par</td></tr>
 </tbody>
 </table></div>
 <hr /></section><p class="part-label">B · Setup: cameras, naqsha, calibration</p><section class="chapter" data-ch="5"><h1 id="ch5">5. Apne Cameras Daalna (Settings, Admin)</h1>
@@ -286,6 +286,8 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <li><strong>Select / Move</strong> → cheez par click.</li>
 <li>Daen <strong>Selected element</strong>: naam, X, Y, Width, Height (meters).</li>
 <li>Darwaza/Exit: <strong>Blocked / closed</strong> tick = band (raasta wahan se nahi guzarega).</li>
+<li>Exit: <strong>Linked camera/sensor zone</strong> bhi chun sakte hain (naya). Us zone mein aag ya dhuwan ka incident khula ho to <strong>raasta is exit ki taraf nahi jata</strong> (dhuwan wala exit band). Incident band hote hi exit wapas.</li>
+<li>Kamron, corridors aur darwazon ko <strong>naam</strong> dein (jaise "Store", "Store door"): raaste ke banner mein "via Store → Store door → Hall" inhi naamon se banta hai.</li>
 <li>Danger zone: <strong>Active now (manual)</strong> (abhi khatra), ya <strong>Linked camera/sensor zone</strong> mein list se zone chunein (us zone mein incident khulte hi khud active).</li>
 <li>Room / Corridor / Safe zone / Exit: <strong>Max people (crowd alert)</strong> mein had likhein (chapter 10). Khali = koi had nahi.</li>
 <li>Hilana = drag (Select / Move tool). <strong>Chhota/bara karna</strong> = selected cheez ke neeche-daen <strong>cyan kona</strong> drag karein, ya daen <strong>Width / Height</strong> mein meters likhein. Mitana = <code>Delete</code> key.</li>
@@ -293,7 +295,7 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <h3 id="ch6-d-save">D. Save</h3>
 <p><strong>Save</strong> dabayein. Title par "unsaved" hat jaye. Zoom: mouse wheel ya + / − / Fit.</p>
 <hr /></section><section class="chapter" data-ch="7"><h1 id="ch7">7. Camera Ko Naqshe Se Jorna (Calibration)</h1>
-<p><strong>Faida:</strong> camera mein dikha insaan naqshe par khud <strong>nuqta</strong> ban jata hai. Isi se <strong>Occupancy</strong> (kamron mein log) aur crowd limits chalti hain. Bina calibration wale camera ke log naqshe par nahi aate.</p>
+<p><strong>Faida:</strong> camera mein dikha insaan naqshe par khud <strong>nuqta</strong> ban jata hai. Isi se <strong>Occupancy</strong> (kamron mein log) aur crowd limits chalti hain. Aag ke waqt <strong>camera ki video par hi</strong> har insaan ka raasta bhi isi se khinchta hai (chapter 11). Bina calibration wale camera ke log naqshe par nahi aate.</p>
 <ol>
 <li>Floor Plan → <strong>Edit plan</strong> → naqsha kholein → <strong>Save</strong>.</li>
 <li>Daen <strong>Camera calibration</strong> → camera chunein.</li>
@@ -310,14 +312,24 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <p class="small"><em>Tasveer: Floor Plan par raasta aur fire risk layer, simulated aag.</em></p>
 <h3 id="ch8-raasta">Raasta (way out)</h3>
 <ol>
-<li>Upar list se <strong>naqsha</strong> chunein.</li>
+<li>Upar <strong>floor tabs</strong> (har naqshe ka ek button, jaise "Basement | Ground Floor | First Floor") se floor chunein.</li>
 <li>Naqshe par wahan <strong>click</strong> karein jahan insaan hai, <strong>ya</strong> kisi insaan ke nuqte par.</li>
-<li>Hari line qareeb tareen <strong>mehfooz exit</strong> tak. Saath mein: faasla (m), chalne ka waqt (andaza), exits ka muqabla, aur rescue list (khatre mein log).</li>
+<li>Hari line qareeb tareen <strong>mehfooz exit</strong> tak. Daen panel ke upar <strong>bara banner</strong>, misaal: <strong>GO TO EAST</strong> · 16 m · ~13 s · <em>via Store → Store door → Hall → East</em>.</li>
+<li>Neeche: exits ka muqabla, aur rescue list (camera mein dikhe log aur un ka exit).</li>
 </ol>
+<div class="table-wrap"><table>
+<thead><tr><th>Banner</th><th>Matlab</th></tr></thead>
+<tbody>
+<tr><td>Hara <strong>GO TO …</strong></td><td>Mehfooz raasta: is exit ki taraf jayein</td></tr>
+<tr><td>Narangi <strong>CAREFUL: GO TO …</strong></td><td>Raasta hai lekin aag ke 1 m se qareeb se guzarta hai: ehtiyat</td></tr>
+<tr><td>Laal <strong>NO SAFE WAY OUT</strong></td><td>Koi mehfooz raasta nahi: band kamre mein rahein, dhuwan rokein, madad bulayein</td></tr>
+</tbody>
+</table></div>
 <div class="table-wrap"><table>
 <thead><tr><th>Halat</th><th>Kya dikhega</th></tr></thead>
 <tbody>
 <tr><td>Aag (danger zone active)</td><td>Raasta khud badal kar aag se door (danger zone se nahi guzarta)</td></tr>
+<tr><td>Exit ke linked zone mein aag/dhuwan</td><td>Wo exit muqable mein <strong>Danger</strong>, raasta doosre exit ki taraf</td></tr>
 <tr><td>Koi raasta nahi</td><td>"No safe route…" (har exit band, khatre mein ya pohanch se bahar)</td></tr>
 </tbody>
 </table></div>
@@ -344,8 +356,21 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 </table></div>
 <p>Incident <strong>Resolve</strong> karein to risk khud hat jata hai. Ye rule-based <strong>andaza</strong> hai (darwazon ke raaste faasla), aag ka asli simulation nahi.</p>
 <p>Naqshe par <strong>sensor icons</strong> bhi hote hain (chapter 14) aur camera ke nishaan.</p>
+<h3 id="ch8-demo">Demo fire: aag aur dhuwan ki mashq (naya)</h3>
+<p>Asli aag ke baghair dikhana ho ke raasta kaise badalta hai (training, FYP demo):</p>
+<ol>
+<li>Floor Plan par upar <strong>Demo fire</strong> checkbox on karein.</li>
+<li>Kisi <strong>danger zone</strong> par click = wahan farzi <strong>aag</strong>. Kisi <strong>exit</strong> par click = wahan farzi <strong>dhuwan</strong> (exit band).</li>
+<li>Raasta, banner, exits ka muqabla, fire risk aur rescue list foran badal jate hain. Banner par <strong>DEMO FIRE</strong> likha aata hai.</li>
+<li>Dobara click = wo aag/dhuwan khatam. Checkbox off = sab asli halat par wapas.</li>
+</ol>
+<p><img alt="Floor Plan: demo smoke at an exit" src="images/ui-floor-plan-demo.png" /></p>
+<p class="small"><em>Tasveer: Demo fire on, West exit par farzi dhuwan: raasta East ki taraf. Simulated test data.</em></p>
+<blockquote>
+<p>Demo mein <strong>kuch save, log ya bheja nahi jata</strong>: na incident, na alarm, na sprinkler, na SMS. Sirf isi browser page par dikhta hai. Danger zone pehle <strong>Edit plan → + Danger zone</strong> se banana zaroori hai.</p>
+</blockquote>
 <hr /></section><section class="chapter" data-ch="9"><h1 id="ch9">9. Occupancy &amp; Heatmap (Kamron Mein Log)</h1>
-<p><strong>Kahan:</strong> Sidebar → <strong>Occupancy &amp; Heatmap</strong> (naya page). Pehle ye ginti Floor Plan par thi.</p>
+<p><strong>Kahan:</strong> Sidebar → <strong>Occupancy &amp; Heatmap</strong> (naya page). Pehle ye ginti Floor Plan par thi. Floor upar <strong>floor tabs</strong> se chunein.</p>
 <p><img alt="Occupancy and Heatmap page" src="images/ui-occupancy.png" /></p>
 <p class="small"><em>Tasveer: Occupancy &amp; Heatmap, simulated log.</em></p>
 <p><strong>Kaise kaam karta hai:</strong> AI camera mein insaan dekhti hai. Jo banda kam az kam <strong>3 frames</strong> tak track ho, use camera calibration (chapter 7) ke zariye naqshe par rakha jata hai aur phir gina jata hai ke wo kis kamre mein hai.</p>
@@ -410,12 +435,27 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <tr><td>Narangi <strong>dashed</strong> (toota hua) dabba</td><td>Dhuwan</td></tr>
 <tr><td>Hara dabba</td><td>Insaan</td></tr>
 <tr><td>SIM DATA</td><td>Test (simulated) data</td></tr>
+<tr><td>Bara laal <strong>FIRE DETECTED</strong> / narangi <strong>SMOKE DETECTED</strong></td><td>Is camera mein abhi aag/dhuwan. Aise cameras grid mein sab se pehle aate hain</td></tr>
+<tr><td>Ghari (tile ke upar)</td><td>Abhi ka waqt, CCTV ki tarah</td></tr>
+<tr><td>Hara <strong>WAY OUT → EXIT</strong></td><td>Video par logon ka raasta (neeche)</td></tr>
 </tbody>
 </table></div>
 <ul>
 <li>Filters: <strong>All / Problems / CCTV / Drone</strong> ("Problems" = sirf jin cameras mein masla hai).</li>
-<li>Camera par <strong>click</strong>: us ki tafseel.</li>
+<li>Camera par <strong>click</strong>: daen panel mein tafseel: kitne log, kitne <strong>IN DANGER</strong>, aag ka size, aur khula incident ho to <strong>Open incident #…</strong> button (seedha wohi incident).</li>
 </ul>
+<h3 id="ch11-way-out">Camera ki video par raasta (naya)</h3>
+<p>Jo camera naqshe se <strong>calibrate</strong> ho (chapter 7), aur us floor par <strong>aag lagi ho</strong> (danger zone active), us ki tile par:</p>
+<ul>
+<li>har dikhte insaan ke <strong>pairon se mehfooz exit tak hari, chalti hui dashed line</strong>, aakhir mein tag <strong>EXIT WEST →</strong>;</li>
+<li>tile par chip <strong>WAY OUT → WEST</strong>. Kisi insaan ke liye koi mehfooz raasta na ho to laal chip <strong>NO SAFE WAY OUT</strong>.</li>
+</ul>
+<p><img alt="Camera tile: the way out drawn on the picture" src="images/ui-camera-way-out.png" /></p>
+<p class="small"><em>Tasveer: Main Lobby camera, Warehouse mein aag: logon ka raasta West exit tak. Simulated test data.</em></p>
+<p>Raasta har <strong>5 second</strong> naya nikalta hai, wohi hisaab jo Floor Plan par hai (kuch log nahi hota). Aag na ho to video par koi line nahi. Line utni hi sahi hai jitni calibration: 4 kone ghalat hon to line ghalat jagah. Camera ke ufaq (horizon) se aage ka hissa nahi khinchta.</p>
+<blockquote>
+<p>⚠️ Asli camera aur asli indoor video par abhi <strong>NOT TESTED</strong>: sirf simulated frames se test hua.</p>
+</blockquote>
 <hr /></section><section class="chapter" data-ch="12"><h1 id="ch12">12. Incidents: Aag Aur Dhuwan Alag</h1>
 <p><strong>Kahan:</strong> Sidebar → <strong>Incidents</strong> (page ka title "Incident Management"). Sidebar ka laal badge = kitne incidents khule hain.</p>
 <p><img alt="Incidents page" src="images/ui-incidents.png" /></p>
@@ -736,6 +776,8 @@ li.task:has(input:checked) { color: var(--muted); text-decoration: line-through;
 <li class="task"><input type="checkbox" data-task="7" aria-label="Ho gaya"> Floor Plan par Fire risk ke rang</li>
 <li class="task"><input type="checkbox" data-task="8" aria-label="Ho gaya"> Incident <strong>Resolve</strong> → alarm band, risk hat jaye</li>
 <li class="task"><input type="checkbox" data-task="9" aria-label="Ho gaya"> Occupancy &amp; Heatmap par Corridor <strong>Live</strong>, aur camera band karne ke 10 s baad <strong>Stale</strong></li>
+<li class="task"><input type="checkbox" data-task="10" aria-label="Ho gaya"> Aag ke dauran Live Test tile par <strong>hari line</strong> aur chip <strong>WAY OUT → EAST</strong></li>
+<li class="task"><input type="checkbox" data-task="11" aria-label="Ho gaya"> Floor Plan par banner <strong>GO TO EAST</strong>; <strong>Demo fire</strong> on karke East exit par click → <strong>NO SAFE WAY OUT</strong> (off karein to wapas)</li>
 </ul>
 <p><strong>Band karna:</strong> test camera window mein <code>Ctrl+C</code>, phir Settings se <code>cam-live</code> Delete (warna "Camera lost" alert aayega).</p>
 <blockquote>

@@ -5,7 +5,7 @@
 <main class="page">
   <section class="kpis" id="occ-kpis" aria-label="Occupancy totals" aria-live="polite"></section>
   <header class="page-head">
-    <label class="row page-sub">Floor <select class="input input-sm hidden" id="evac-plan" aria-label="Floor plan"></select></label>
+    <div class="seg hidden" id="floor-tabs" role="tablist" aria-label="Floor"></div>
     <span class="row small dim" role="group" aria-label="Map layers"><label class="row"><input type="checkbox" id="layer-people" checked> People per room (heatmap)</label>
       <label class="row"><input type="checkbox" id="layer-risk"> Fire risk</label></span>
     <a class="push-right small" href="{% url 'map' %}">Show on floor plan →</a>

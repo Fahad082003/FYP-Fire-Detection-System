@@ -431,23 +431,42 @@ def save_floor_plan_image(plan: FloorPlan, data: bytes, content_type: str) -> Fl
     return plan
 
 
-def _active_danger(elements: list[FloorPlanElement]) -> list[FloorPlanElement]:
-    """A danger zone is active when marked so, or when its linked camera/sensor zone has an open incident."""
+def _active_danger(elements: list[FloorPlanElement], simulate=(), exits=False) -> list[FloorPlanElement]:
+    """A danger zone is active when marked so, when its linked camera/sensor zone has an open incident, or when the
+    dashboard's demo mode simulates a fire there (element ids in `simulate`: what-if only, nothing is stored).
+    exits=True (routing only): an exit whose linked zone has an open fire or smoke incident is unusable too, so no route
+    leads people into smoke. The fire-risk map leaves exits out: a smoky exit is not where a fire spreads from."""
     open_zones = {z.lower() for z in IncidentAlert.objects.filter(is_resolved=False).values_list("zone", flat=True)}
-    return [e for e in elements if e.type == "DangerZone" and (e.is_active or (e.zone and e.zone.strip() and e.zone.lower() in open_zones))]
+    types = ("DangerZone", "Exit") if exits else ("DangerZone",)
+    return [e for e in elements if e.type in types and (e.is_active or e.id in simulate
+                                                               or (e.zone and e.zone.strip() and e.zone.lower() in open_zones))]
+
+
+def simulated_zones(value) -> list[int]:
+    """The demo mode's simulated fires: up to 50 danger-zone element ids (a list, or "1,2" from a query string)."""
+    if value in (None, "", []):
+        return []
+    items = value.split(",") if isinstance(value, str) else value
+    try:
+        ids = [int(v) for v in items if not isinstance(v, bool)] if isinstance(items, list) else None
+    except (TypeError, ValueError):
+        ids = None
+    if ids is None or len(ids) != len(items) or len(ids) > 50:
+        raise invalid("simulate", "simulate must be a list of up to 50 danger-zone or exit ids.")
+    return ids
 
 
 def _zone_names(zones) -> list[str]:
     return [e.name if e.name and e.name.strip() else "Danger zone" for e in zones]
 
 
-def route(plan: FloorPlan, x, y) -> dict:
+def route(plan: FloorPlan, x, y, simulate=()) -> dict:
     """Estimated evacuation route from a known start point (meters) to the nearest reachable exit; logged (requirement 5.3)."""
     if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in (x, y)) \
             or x < 0 or y < 0 or x > plan.width_meters or y > plan.height_meters:
         raise invalid("start", "Start point must be inside the floor plan.")
     elements = list(plan.elements.all())
-    active = _active_danger(elements)
+    active = _active_danger(elements, simulate, exits=True)
     clearance, speed = _opt("DANGER_CLEARANCE_METERS"), _opt("WALKING_SPEED")
     r = geometry.find_route(plan.width_meters, plan.height_meters, elements, active, x, y, clearance)
     seconds = round(r["distanceMeters"] / speed, 1) if r["found"] else 0
@@ -460,7 +479,7 @@ def route(plan: FloorPlan, x, y) -> dict:
                   f"(required {f(clearance)} m)" if r["clearanceViolated"] else "")
                if r["found"] else f"No safe route from ({f(x)}, {f(y)}) m: {r['message']}")
     last = IncidentLog.objects.filter(type=IncidentLogType.EVACUATION_ROUTE, zone=zone).order_by("-id").values_list("details", flat=True).first()
-    if last != details[:500]:  # skip an exact repeat of the previous estimate for this plan
+    if not simulate and last != details[:500]:  # a demo what-if is never logged; skip an exact repeat of the previous estimate
         alerts.add_log(IncidentLog(type=IncidentLogType.EVACUATION_ROUTE, zone=zone, details=details))
     return {**r, "estimatedSeconds": seconds, "walkingSpeedMetersPerSecond": speed, "activeDangerZones": _zone_names(active),
             "requiredClearanceMeters": clearance}
@@ -469,7 +488,7 @@ def route(plan: FloorPlan, x, y) -> dict:
 MAX_ROUTE_STARTS = 50
 
 
-def routes(plan: FloorPlan, starts) -> dict:
+def routes(plan: FloorPlan, starts, simulate=()) -> dict:
     """Every exit compared from each start point (meters): the dashboard's route comparison (one start) and rescue list (the
     current camera person markers). Read-only: no log, no incident, so polling it changes nothing."""
     if not (plan.width_meters > 0 and plan.height_meters > 0):
@@ -481,7 +500,7 @@ def routes(plan: FloorPlan, starts) -> dict:
         if not ok or not (0 <= s[0] <= plan.width_meters and 0 <= s[1] <= plan.height_meters):
             raise invalid(f"starts[{i}]", "Start point must be [x, y] inside the floor plan.")
     elements = list(plan.elements.all())
-    active = _active_danger(elements)
+    active = _active_danger(elements, simulate, exits=True)
     clearance, speed = _opt("DANGER_CLEARANCE_METERS"), _opt("WALKING_SPEED")
     results = []
     for x, y in starts:
@@ -493,9 +512,9 @@ def routes(plan: FloorPlan, starts) -> dict:
             "activeDangerZones": _zone_names(active)}
 
 
-def risk(plan: FloorPlan) -> dict:
+def risk(plan: FloorPlan, simulate=()) -> dict:
     elements = list(plan.elements.all())
-    return geometry.fire_risk(plan.width_meters, plan.height_meters, elements, _active_danger(elements))
+    return geometry.fire_risk(plan.width_meters, plan.height_meters, elements, _active_danger(elements, simulate))
 
 
 # ---------------------------------------------------------------- first-run data

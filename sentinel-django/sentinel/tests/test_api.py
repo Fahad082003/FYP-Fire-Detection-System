@@ -783,6 +783,63 @@ class RouteComparisonApiTests(SentinelTestCase):
         self.assertEqual(self.routes(flat.id, [[0, 0]]).status_code, 400)
 
 
+class DemoFireTests(SentinelTestCase):
+    """The Floor Plan page's demo mode: simulated danger zones move the route and the risk, and nothing is stored."""
+
+    plan = RouteComparisonApiTests.plan  # the same test plan (not a subclass: its tests would run twice)
+
+    def test_a_simulated_zone_reroutes_and_raises_the_risk_without_any_log_or_incident(self):
+        plan_id = self.plan({"type": "DangerZone", "name": "Demo fire", "x": 17.5, "y": 4, "width": 1, "height": 2})
+        zone_id = FloorPlanElement.objects.get(floor_plan_id=plan_id, type="DangerZone").id
+        logs, incidents = IncidentLog.objects.count(), IncidentAlert.objects.count()
+        real = self.op.post(f"/api/floorplans/{plan_id}/route", {"x": 16, "y": 5}, format="json").json()
+        self.assertEqual((real["exitName"], real["activeDangerZones"]), ("East", []))
+        logs += 1  # the real route is logged once, as before
+        demo = self.op.post(f"/api/floorplans/{plan_id}/route", {"x": 16, "y": 5, "simulate": [zone_id]}, format="json").json()
+        self.assertEqual((demo["exitName"], demo["activeDangerZones"]), ("West", ["Demo fire"]))
+        compare = self.op.post(f"/api/floorplans/{plan_id}/routes", {"starts": [[16, 5]], "simulate": [zone_id]}, format="json").json()
+        self.assertEqual({e["exitName"]: e["status"] for e in compare["results"][0]["exits"]}["West"], "Available")
+        self.assertNotEqual({e["exitName"]: e["status"] for e in compare["results"][0]["exits"]}["East"], "Available")
+        self.assertFalse(self.op.get(f"/api/floorplans/{plan_id}/risk").json()["active"])
+        self.assertTrue(self.op.get(f"/api/floorplans/{plan_id}/risk?simulate={zone_id}").json()["active"])
+        self.assertEqual((IncidentLog.objects.count(), IncidentAlert.objects.count()), (logs, incidents))  # a what-if stores nothing
+
+    def test_a_malformed_simulate_list_is_rejected(self):
+        plan_id = self.plan()
+        for value in ("x", [True], ["a"], list(range(51)), {"a": 1}):
+            with self.subTest(value=value):
+                r = self.op.post(f"/api/floorplans/{plan_id}/routes", {"starts": [[1, 5]], "simulate": value}, format="json")
+                self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.op.get(f"/api/floorplans/{plan_id}/risk?simulate=1,x").status_code, 400)
+
+    def test_the_route_names_the_places_it_walks_through(self):
+        r = self.op.post("/api/floorplans", {"name": "Via", "building": "", "floorNumber": 0, "widthMeters": 20, "heightMeters": 10, "elements": [
+            {"type": "Room", "name": "Store", "x": 0, "y": 0, "width": 6, "height": 4},
+            {"type": "Wall", "name": "", "x": 0, "y": 3.9, "width": 6, "height": 0.2},
+            {"type": "Door", "name": "Store door", "x": 2, "y": 3.5, "width": 2, "height": 1},
+            {"type": "Corridor", "name": "Hall", "x": 0, "y": 4, "width": 20, "height": 2},
+            {"type": "Exit", "name": "East", "x": 19, "y": 4, "width": 1, "height": 2}]}, format="json")
+        route = self.op.post(f"/api/floorplans/{r.json()['id']}/route", {"x": 3, "y": 1}, format="json").json()
+        self.assertEqual(route["via"], ["Store", "Store door", "Hall", "East"])
+
+    def test_an_exit_whose_zone_has_an_open_alarm_is_not_used_and_the_demo_can_block_one(self):
+        r = self.op.post("/api/floorplans", {"name": "Smoke", "building": "", "floorNumber": 0, "widthMeters": 20, "heightMeters": 10, "elements": [
+            {"type": "Corridor", "name": "Hall", "x": 0, "y": 4, "width": 20, "height": 2},
+            {"type": "Exit", "name": "East", "x": 19, "y": 4, "width": 1, "height": 2, "zone": RouteComparisonApiTests.LOBBY},
+            {"type": "Exit", "name": "West", "x": 0, "y": 4, "width": 1, "height": 2}]}, format="json")
+        plan_id = r.json()["id"]
+        route = lambda **extra: self.op.post(f"/api/floorplans/{plan_id}/route", {"x": 16, "y": 5, **extra}, format="json").json()
+        self.assertEqual(route()["exitName"], "East")
+        west = FloorPlanElement.objects.get(floor_plan_id=plan_id, name="West").id
+        self.assertEqual(route(simulate=[west])["exitName"], "East")  # demo smoke at West changes nothing here
+        IncidentAlert.objects.create(zone=RouteComparisonApiTests.LOBBY, severity="Medium", message="smoke at the east exit")
+        self.assertEqual(route()["exitName"], "West")
+        exits = {e["exitName"]: e["status"] for e in self.op.post(f"/api/floorplans/{plan_id}/routes", {"starts": [[16, 5]]}, format="json").json()["results"][0]["exits"]}
+        self.assertEqual(exits, {"West": "Available", "East": "Danger"})
+        self.assertFalse(self.op.get(f"/api/floorplans/{plan_id}/risk").json()["active"])  # a smoky exit is not a fire source
+        self.assertFalse(route(simulate=[west])["found"])  # both exits blocked: no safe way out
+
+
 class FireMeasurementTests(SentinelTestCase):
     def test_overlapping_and_partly_outside_fire_boxes_are_measured_once(self):
         box = {"category": "Fire", "confidence": 0.9, "bbox": [100, 100, 200, 200]}
